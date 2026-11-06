@@ -1,0 +1,40 @@
+# Build output
+bin/
+obj/
+artifacts/
+publish/
+*.user
+*.suo
+*.cache
+
+# IDE
+.vs/
+.idea/
+.vscode/
+*.DotSettings.user
+
+# Test output
+TestResults/
+coverage/
+*.trx
+*.coverage
+
+# Local runtime data (sessions, logs, exported reports)
+logs/
+sessions/
+*.log
+*.agsession
+
+# Package output
+*.nupkg
+*.snupkg
+dist/
+
+# Signing material
+*.pfx
+*.snk
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
