@@ -37,6 +37,14 @@ while ((Get-Date) - $started -lt $duration) {
     $timestamp = Get-Date
     $elapsed = $timestamp - $started
 
+    $perfRows = @{}
+    try {
+        foreach ($perf in Get-CimInstance Win32_PerfFormattedData_PerfProc_Process -ErrorAction Stop) {
+            $perfRows[[int]$perf.IDProcess] = $perf
+        }
+    } catch {
+    }
+
     foreach ($name in $ProcessNames) {
         $process = Get-Process -Name $name -ErrorAction SilentlyContinue | Select-Object -First 1
         if (-not $process) {
@@ -55,12 +63,18 @@ while ((Get-Date) - $started -lt $duration) {
 
         $previous[$name] = [pscustomobject]@{ Time = $timestamp; Cpu = $process.TotalProcessorTime }
 
+        $privateWorkingSetMb = $null
+        if ($perfRows.ContainsKey($process.Id)) {
+            $privateWorkingSetMb = [Math]::Round([double]$perfRows[$process.Id].WorkingSetPrivate / 1MB, 2)
+        }
+
         $row = [pscustomobject]@{
             Timestamp         = $timestamp.ToString("o")
             ElapsedSeconds    = [Math]::Round($elapsed.TotalSeconds, 1)
             Process           = $name
             Pid               = $process.Id
             WorkingSetMb      = [Math]::Round($process.WorkingSet64 / 1MB, 2)
+            PrivateWorkingSetMb = $privateWorkingSetMb
             PrivateMb         = [Math]::Round($process.PrivateMemorySize64 / 1MB, 2)
             CpuPercent        = $cpuPercent
             TotalCpuSeconds   = [Math]::Round($process.TotalProcessorTime.TotalSeconds, 3)
@@ -70,8 +84,8 @@ while ((Get-Date) - $started -lt $duration) {
 
         $rows.Add($row)
         $cpuText = if ($null -eq $cpuPercent) { "n/a" } else { "$cpuPercent%" }
-        Write-Host ("{0,-38} pid={1,-6} ws={2,8:N1} MB  private={3,8:N1} MB  cpu={4}" -f `
-            $name, $process.Id, $row.WorkingSetMb, $row.PrivateMb, $cpuText)
+        Write-Host ("{0,-38} pid={1,-6} ws={2,8:N1} MB  privateWS={3,8:N1} MB  commit={4,8:N1} MB  cpu={5}" -f `
+            $name, $process.Id, $row.WorkingSetMb, $row.PrivateWorkingSetMb, $row.PrivateMb, $cpuText)
     }
 
     Start-Sleep -Seconds $IntervalSeconds
@@ -98,14 +112,16 @@ function Get-Median([double[]]$values) {
 
 foreach ($group in ($rows | Group-Object Process)) {
     $privateValues = @($group.Group | Where-Object { $null -ne $_.PrivateMb } | ForEach-Object { [double]$_.PrivateMb })
+    $privateWorkingValues = @($group.Group | Where-Object { $null -ne $_.PrivateWorkingSetMb } | ForEach-Object { [double]$_.PrivateWorkingSetMb })
     $workingValues = @($group.Group | Where-Object { $null -ne $_.WorkingSetMb } | ForEach-Object { [double]$_.WorkingSetMb })
     $cpuValues = @($group.Group | Where-Object { $null -ne $_.CpuPercent } | ForEach-Object { [double]$_.CpuPercent })
     $handleValues = @($group.Group | Where-Object { $null -ne $_.HandleCount } | ForEach-Object { [double]$_.HandleCount })
 
-    $line = "{0}: samples={1}  WS median={2:N1} MB  private median={3:N1} MB  CPU median={4:N3}%  handles={5}" -f `
+    $line = "{0}: samples={1}  WS median={2:N1} MB  privateWS median={3:N1} MB  commit median={4:N1} MB  CPU median={5:N3}%  handles={6}" -f `
         $group.Name,
         $group.Count,
         (Get-Median $workingValues),
+        (Get-Median $privateWorkingValues),
         (Get-Median $privateValues),
         (Get-Median $cpuValues),
         (Get-Median $handleValues)

@@ -27,10 +27,9 @@ if (-not (Test-Path $collector)) {
     Write-Warning "Collector executable not found: $collector (build the solution first)"
 }
 
-$arguments = @()
 if ($Tray) {
-    $arguments += "--tray"
+    Start-Process -FilePath $exe -ArgumentList "--tray"
+} else {
+    Start-Process -FilePath $exe
 }
-
-Start-Process -FilePath $exe -ArgumentList $arguments
 Write-Host "Started $exe"
