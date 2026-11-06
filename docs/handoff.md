@@ -21,8 +21,8 @@
 | 产品阶段 | M1（v0.1）基础闭环 |
 | 最新里程碑 | M1-1 ~ M1-5 完成；M1-6 连续 30 分钟验收未做 |
 | 可运行产物 | `build/run-dev.ps1` 可启动；`build/package.ps1 -CollectorMode SelfContained` 可生成便携 ZIP |
-| 代码分支 | `feat/m1-foundation` 合入 `main` |
-| 当前提交 | `feat(m1): 完成系统采集与界面基础闭环`（含 `Agent: Qoder`） |
+| 代码分支 | `main`（`feat/m1-foundation` 已 squash 合入，分支保留） |
+| 当前提交 | `efad8fe feat(m1): 完成系统采集与界面基础闭环`（含 `Agent: Qoder`） |
 | 未提交变更 | 无（本轮提交后） |
 | 阻塞事项 | 本机缺少 NativeAOT 链接器（见 K-12），暂不能产出 AOT 采集进程 |
 
