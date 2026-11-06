@@ -234,7 +234,15 @@ public sealed class CollectorLauncher : IDisposable
         }
 
         string baseDirectory = AppContext.BaseDirectory;
-        foreach (string configuration in new[] { "Debug", "Release" })
+        string separator = Path.DirectorySeparatorChar.ToString();
+        string preferred = baseDirectory.Contains(
+            $"{separator}bin{separator}Release{separator}",
+            StringComparison.OrdinalIgnoreCase)
+            ? "Release"
+            : "Debug";
+        string fallback = preferred == "Release" ? "Debug" : "Release";
+
+        foreach (string configuration in new[] { preferred, fallback })
         {
             string candidate = Path.GetFullPath(Path.Combine(
                 baseDirectory,
