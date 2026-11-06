@@ -3,7 +3,7 @@
 | 项目 | 内容 |
 | --- | --- |
 | 文档编号 | AGS-GIT-001 |
-| 版本 | v1.0 |
+| 版本 | v1.1 |
 | 状态 | 生效 |
 | 作者 | Qoder |
 | 适用范围 | 本仓库全部提交、分支、Issue、Pull Request、版本标签 |
@@ -20,6 +20,8 @@
 3. `main` 受保护：所有变更走短分支 + Pull Request + Squash 合并。
 4. 禁止 `--no-verify`、禁止强推 `main`、禁止提交密钥与大文件。
 5. 每个任务结束必须更新 `docs/handoff.md`，并在 PR 自检清单中确认。
+6. 引入或升级第三方二进制/库时，必须同时提交许可证声明与校验值，并在 PR 中说明来源。
+7. 禁止提交模型 API Key、AI 请求体、AI 原始响应、会话文件与日志。
 
 ## 1. Agent 身份标注
 
@@ -117,12 +119,16 @@ Agent: AI             # 笼统名称，无法追溯
 | `collector` | 采集进程、PDH、进程采样、共享内存 |
 | `core` | 数据模型、环形缓冲、判定、会话、设置、日志 |
 | `detection` | 卡顿信号、事件状态机、归因 |
-| `gpu` | GPU Engine、NVML / ADL / IGCL |
+| `frames` | PresentMon 集成、CSV 解析、帧环形缓冲、帧统计 |
+| `gpu` | GPU Engine、厂商传感器 |
+| `sensors` | LibreHardwareMonitor 边车、传感器共享内存 |
+| `ai` | 模型接口、事实层、脱敏、提示词、报告校验 |
 | `ipc` | 命名管道、共享内存协议 |
 | `storage` | 会话文件、留存、导出 |
 | `ui` | WPF 窗口、控件、时间轴、托盘、悬浮条 |
 | `i18n` | 中英文资源 |
 | `theme` | 明暗主题与视觉 |
+| `thirdparty` | 第三方二进制、依赖、许可证与校验值 |
 | `build` | 构建、发布、打包 |
 | `docs` | 文档 |
 | `repo` | 仓库级配置 |
@@ -194,7 +200,7 @@ scope 可省略（如 `docs: 修正错别字`），但涉及上述模块时必�
 | --- | --- |
 | 类型 | `type/feature`、`type/bug`、`type/task`、`type/research`、`type/debt` |
 | 优先级 | `priority/P0`（阻塞发布）、`P1`（高）、`P2`（中）、`P3`（低） |
-| 模块 | `area/collector`、`area/core`、`area/detection`、`area/gpu`、`area/ipc`、`area/storage`、`area/ui`、`area/i18n`、`area/docs`、`area/build` |
+| 模块 | `area/collector`、`area/core`、`area/detection`、`area/frames`、`area/gpu`、`area/sensors`、`area/ai`、`area/ipc`、`area/storage`、`area/ui`、`area/i18n`、`area/docs`、`area/build`、`area/thirdparty` |
 | 状态 | `status/blocked`、`status/needs-info`、`status/ready` |
 | 阶段 | `phase/M1`、`phase/M2`、`phase/M3` |
 
@@ -269,6 +275,7 @@ FR-xxx
 - 代码已合并到 `main`，构建通过。
 - 新增/修改逻辑有对应测试，或说明无法自动测试的原因。
 - 涉及性能红线的变更附测量数据。
+- 涉及外发数据、AI、第三方依赖的变更附隐私与许可证检查结论。
 - 文档与实现一致；`docs/handoff.md` 已更新。
 - 无新增编译警告；无密钥、无生成物、无无关变更。
 
@@ -306,7 +313,10 @@ Closes #
 ## 自检清单
 - [ ] 只做了一件事，无无关变更
 - [ ] 无密钥、日志、会话文件、bin/obj 等生成物
+- [ ] 无 API Key、AI 请求体、AI 原始响应
 - [ ] 新增逻辑有测试或说明原因
+- [ ] 涉及外发数据时，已更新脱敏规则与隐私测试
+- [ ] 涉及第三方依赖时，已更新许可证声明与 SHA256
 - [ ] 更新了 `docs/handoff.md`
 - [ ] 文档与实现一致
 - [ ] 提交信息含 `Agent: <名称>`
@@ -352,6 +362,8 @@ Agent: Qoder
 - 使用 `--no-verify` 跳过钩子；使用 `--no-gpg-sign` 绕过签名（除非用户明确要求）。
 - 对 `main` 强推、改写已发布提交、删除他人分支。
 - 提交密钥、令牌、证书、个人路径、会话文件、日志、`bin/`、`obj/`、`artifacts/`。
+- 提交模型 API Key、AI 请求体、AI 原始响应、含进程名的事实层样本。
+- 提交第三方二进制但未附许可证、来源与 SHA256。
 - 提交超过 5MB 的二进制文件（确需版本化时先讨论并记录原因）。
 - 一个提交混合多个无关变更。
 - 提交信息缺失 `Agent:`、冒用他人身份、使用笼统的 "AI"。
@@ -364,6 +376,9 @@ Agent: Qoder
 - [ ] 构建与测试通过
 - [ ] 无调试代码、临时日志、注释掉的代码
 - [ ] 无密钥、无本地路径、无会话/日志文件
+- [ ] 无 API Key、AI 请求体、AI 原始响应
+- [ ] 第三方依赖已登记许可证与 SHA256
+- [ ] 涉及外发数据时，脱敏规则与隐私测试已更新
 - [ ] 性能相关变更附前后数据
 - [ ] `docs/handoff.md` 已更新
 - [ ] 提交信息格式正确，footer 含 `Agent: <名称>`
