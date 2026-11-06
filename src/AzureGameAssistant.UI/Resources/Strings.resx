@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AppTitle" xml:space="preserve">
+    <value>Azure Game Assistant</value>
+  </data>
+  <data name="AppSubtitle" xml:space="preserve">
+    <value>Real-time load timeline and stutter diagnostics</value>
+  </data>
+  <data name="StatusStarting" xml:space="preserve">
+    <value>Starting collector…</value>
+  </data>
+  <data name="StatusConnected" xml:space="preserve">
+    <value>Collector connected</value>
+  </data>
+  <data name="StatusDisconnected" xml:space="preserve">
+    <value>Collector not running</value>
+  </data>
+  <data name="StatusCollectorMissing" xml:space="preserve">
+    <value>Collector executable not found</value>
+  </data>
+  <data name="StatusCollectorFailed" xml:space="preserve">
+    <value>Collector stopped unexpectedly</value>
+  </data>
+  <data name="Pause" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="Resume" xml:space="preserve">
+    <value>Resume</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="QuitApp" xml:space="preserve">
+    <value>Quit</value>
+  </data>
+  <data name="OpenMain" xml:space="preserve">
+    <value>Open main window</value>
+  </data>
+  <data name="MarkStutter" xml:space="preserve">
+    <value>Mark stutter</value>
+  </data>
+  <data name="MuteNotifications" xml:space="preserve">
+    <value>Mute notifications</value>
+  </data>
+  <data name="UnmuteNotifications" xml:space="preserve">
+    <value>Unmute notifications</value>
+  </data>
+  <data name="Cpu" xml:space="preserve">
+    <value>CPU</value>
+  </data>
+  <data name="Gpu" xml:space="preserve">
+    <value>GPU</value>
+  </data>
+  <data name="Memory" xml:space="preserve">
+    <value>Memory available</value>
+  </data>
+  <data name="Disk" xml:space="preserve">
+    <value>Disk busy</value>
+  </data>
+  <data name="Jitter" xml:space="preserve">
+    <value>Timer jitter</value>
+  </data>
+  <data name="CpuFrequencySub" xml:space="preserve">
+    <value>{0}% of base clock</value>
+  </data>
+  <data name="GpuMemorySub" xml:space="preserve">
+    <value>Dedicated {0} MB</value>
+  </data>
+  <data name="MemorySub" xml:space="preserve">
+    <value>Commit {0} / {1} GB</value>
+  </data>
+  <data name="DiskSub" xml:space="preserve">
+    <value>Latency {0} ms</value>
+  </data>
+  <data name="JitterSub" xml:space="preserve">
+    <value>Sample {0} ms</value>
+  </data>
+  <data name="LiveTimeline" xml:space="preserve">
+    <value>Live timeline</value>
+  </data>
+  <data name="WindowOneMinute" xml:space="preserve">
+    <value>1 minute</value>
+  </data>
+  <data name="WindowFiveMinutes" xml:space="preserve">
+    <value>5 minutes</value>
+  </data>
+  <data name="WindowFifteenMinutes" xml:space="preserve">
+    <value>15 minutes</value>
+  </data>
+  <data name="Processes" xml:space="preserve">
+    <value>Top processes</value>
+  </data>
+  <data name="ColumnProcess" xml:space="preserve">
+    <value>Process</value>
+  </data>
+  <data name="ColumnPid" xml:space="preserve">
+    <value>PID</value>
+  </data>
+  <data name="ColumnCpu" xml:space="preserve">
+    <value>CPU</value>
+  </data>
+  <data name="ColumnGpu" xml:space="preserve">
+    <value>GPU</value>
+  </data>
+  <data name="ColumnMemory" xml:space="preserve">
+    <value>Memory</value>
+  </data>
+  <data name="Foreground" xml:space="preserve">
+    <value>Foreground</value>
+  </data>
+  <data name="NoData" xml:space="preserve">
+    <value>Waiting for samples…</value>
+  </data>
+  <data name="Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="CollectorLabel" xml:space="preserve">
+    <value>Collector</value>
+  </data>
+  <data name="SamplingLabel" xml:space="preserve">
+    <value>Sampling</value>
+  </data>
+  <data name="UptimeLabel" xml:space="preserve">
+    <value>Uptime</value>
+  </data>
+  <data name="SamplesLabel" xml:space="preserve">
+    <value>Samples</value>
+  </data>
+  <data name="HeartbeatLabel" xml:space="preserve">
+    <value>Heartbeat</value>
+  </data>
+  <data name="Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="NotAvailable" xml:space="preserve">
+    <value>—</value>
+  </data>
+  <data name="SettingsTitle" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="SamplingSection" xml:space="preserve">
+    <value>Sampling</value>
+  </data>
+  <data name="NormalInterval" xml:space="preserve">
+    <value>Normal interval</value>
+  </data>
+  <data name="GameInterval" xml:space="preserve">
+    <value>Game interval</value>
+  </data>
+  <data name="InterfaceSection" xml:space="preserve">
+    <value>Interface</value>
+  </data>
+  <data name="ThemeLabel" xml:space="preserve">
+    <value>Theme</value>
+  </data>
+  <data name="ThemeAuto" xml:space="preserve">
+    <value>Follow system</value>
+  </data>
+  <data name="ThemeLight" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="ThemeDark" xml:space="preserve">
+    <value>Dark</value>
+  </data>
+  <data name="LanguageLabel" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="LanguageAuto" xml:space="preserve">
+    <value>Follow system</value>
+  </data>
+  <data name="English" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Chinese" xml:space="preserve">
+    <value>简体中文</value>
+  </data>
+  <data name="NotificationsLabel" xml:space="preserve">
+    <value>Show notifications</value>
+  </data>
+  <data name="AutoStartLabel" xml:space="preserve">
+    <value>Start with Windows</value>
+  </data>
+  <data name="Apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="SettingsSaved" xml:space="preserve">
+    <value>Settings saved</value>
+  </data>
+  <data name="NeedsRestart" xml:space="preserve">
+    <value>Sampling changes apply after the collector restarts.</value>
+  </data>
+  <data name="AboutSection" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="VersionLabel" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="LogsLabel" xml:space="preserve">
+    <value>Logs</value>
+  </data>
+  <data name="DataLabel" xml:space="preserve">
+    <value>Data directory</value>
+  </data>
+  <data name="Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="M1Notice" xml:space="preserve">
+    <value>Frame-level truth, stutter detection and AI analysis arrive in later milestones.</value>
+  </data>
+  <data name="Milliseconds" xml:space="preserve">
+    <value>{0} ms</value>
+  </data>
+  <data name="Seconds" xml:space="preserve">
+    <value>{0} s</value>
+  </data>
+  <data name="TrayTip" xml:space="preserve">
+    <value>Azure Game Assistant — CPU {0}% · GPU {1}%</value>
+  </data>
+  <data name="Paused" xml:space="preserve">
+    <value>Paused</value>
+  </data>
+  <data name="Live" xml:space="preserve">
+    <value>Live</value>
+  </data>
+  <data name="History" xml:space="preserve">
+    <value>History</value>
+  </data>
+</root>

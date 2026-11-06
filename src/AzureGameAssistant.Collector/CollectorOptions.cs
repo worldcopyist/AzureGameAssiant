@@ -1,0 +1,76 @@
+using System.Globalization;
+
+namespace AzureGameAssistant.Collector;
+
+internal sealed class CollectorOptions
+{
+    public TimeSpan? Duration { get; private init; }
+    public int? IntervalOverrideMs { get; private init; }
+    public bool EnablePipe { get; private init; } = true;
+    public bool ShowHelp { get; private init; }
+    public string? ParseError { get; private init; }
+
+    public static CollectorOptions Parse(string[] args)
+    {
+        TimeSpan? duration = null;
+        int? interval = null;
+        bool pipe = true;
+        bool help = false;
+        string? error = null;
+
+        for (int i = 0; i < args.Length; i++)
+        {
+            string arg = args[i];
+            switch (arg)
+            {
+                case "--help" or "-h":
+                    help = true;
+                    break;
+
+                case "--no-pipe":
+                    pipe = false;
+                    break;
+
+                case "--duration":
+                    if (i + 1 < args.Length &&
+                        double.TryParse(args[i + 1], NumberStyles.Float, CultureInfo.InvariantCulture, out double seconds) &&
+                        seconds > 0)
+                    {
+                        duration = TimeSpan.FromSeconds(seconds);
+                        i++;
+                    }
+                    else
+                    {
+                        error = "--duration 需要一个正数秒数";
+                    }
+
+                    break;
+
+                case "--interval":
+                    if (i + 1 < args.Length &&
+                        int.TryParse(args[i + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int intervalMs) &&
+                        intervalMs >= 100 &&
+                        intervalMs <= 10_000)
+                    {
+                        interval = intervalMs;
+                        i++;
+                    }
+                    else
+                    {
+                        error = "--interval 需要 100–10000 之间的毫秒数";
+                    }
+
+                    break;
+            }
+        }
+
+        return new CollectorOptions
+        {
+            Duration = duration,
+            IntervalOverrideMs = interval,
+            EnablePipe = pipe,
+            ShowHelp = help,
+            ParseError = error,
+        };
+    }
+}

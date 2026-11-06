@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{53F481B2-B561-4614-806A-267A11974EB1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureGameAssistant.Core", "src\AzureGameAssistant.Core\AzureGameAssistant.Core.csproj", "{4AB4D099-84D5-4F22-B17D-28ADC3375B9B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureGameAssistant.Collector", "src\AzureGameAssistant.Collector\AzureGameAssistant.Collector.csproj", "{A7F59830-0258-444D-9EA6-D6ABCBD10B55}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureGameAssistant.Sensors", "src\AzureGameAssistant.Sensors\AzureGameAssistant.Sensors.csproj", "{95F47444-9092-4674-A096-D0EB83567A46}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureGameAssistant.UI", "src\AzureGameAssistant.UI\AzureGameAssistant.UI.csproj", "{ACCC39C4-B18D-43F2-9E52-45A5FFD9151A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureGameAssistant.Tests", "src\AzureGameAssistant.Tests\AzureGameAssistant.Tests.csproj", "{81F649F0-3BF7-4935-A5AA-CC06B65D4DA5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4AB4D099-84D5-4F22-B17D-28ADC3375B9B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4AB4D099-84D5-4F22-B17D-28ADC3375B9B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4AB4D099-84D5-4F22-B17D-28ADC3375B9B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4AB4D099-84D5-4F22-B17D-28ADC3375B9B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A7F59830-0258-444D-9EA6-D6ABCBD10B55}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7F59830-0258-444D-9EA6-D6ABCBD10B55}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7F59830-0258-444D-9EA6-D6ABCBD10B55}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7F59830-0258-444D-9EA6-D6ABCBD10B55}.Release|Any CPU.Build.0 = Release|Any CPU
+		{95F47444-9092-4674-A096-D0EB83567A46}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{95F47444-9092-4674-A096-D0EB83567A46}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{95F47444-9092-4674-A096-D0EB83567A46}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{95F47444-9092-4674-A096-D0EB83567A46}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ACCC39C4-B18D-43F2-9E52-45A5FFD9151A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ACCC39C4-B18D-43F2-9E52-45A5FFD9151A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ACCC39C4-B18D-43F2-9E52-45A5FFD9151A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ACCC39C4-B18D-43F2-9E52-45A5FFD9151A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{81F649F0-3BF7-4935-A5AA-CC06B65D4DA5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{81F649F0-3BF7-4935-A5AA-CC06B65D4DA5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{81F649F0-3BF7-4935-A5AA-CC06B65D4DA5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{81F649F0-3BF7-4935-A5AA-CC06B65D4DA5}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{4AB4D099-84D5-4F22-B17D-28ADC3375B9B} = {53F481B2-B561-4614-806A-267A11974EB1}
+		{A7F59830-0258-444D-9EA6-D6ABCBD10B55} = {53F481B2-B561-4614-806A-267A11974EB1}
+		{95F47444-9092-4674-A096-D0EB83567A46} = {53F481B2-B561-4614-806A-267A11974EB1}
+		{ACCC39C4-B18D-43F2-9E52-45A5FFD9151A} = {53F481B2-B561-4614-806A-267A11974EB1}
+		{81F649F0-3BF7-4935-A5AA-CC06B65D4DA5} = {53F481B2-B561-4614-806A-267A11974EB1}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RootNamespace>AzureGameAssistant.Sensors</RootNamespace>
+    <AssemblyName>AzureGameAssistant.Sensors</AssemblyName>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AzureGameAssistant.Core\AzureGameAssistant.Core.csproj" />
+  </ItemGroup>
+</Project>

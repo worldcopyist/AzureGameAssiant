@@ -1,0 +1,138 @@
+<Window x:Class="AzureGameAssistant.UI.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:svc="clr-namespace:AzureGameAssistant.UI.Services"
+        Title="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[SettingsTitle]}"
+        Width="560" Height="660" MinWidth="520" MinHeight="520"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        Foreground="{DynamicResource TextPrimaryBrush}"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,8"
+                           Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[SamplingSection]}" />
+                <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock VerticalAlignment="Center"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[NormalInterval]}" />
+                        <ComboBox Grid.Column="1" ItemsSource="{Binding IntervalOptions}"
+                                  SelectedItem="{Binding NormalMs, Mode=TwoWay}" />
+
+                        <TextBlock Grid.Row="1" Margin="0,10,0,0" VerticalAlignment="Center"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[GameInterval]}" />
+                        <ComboBox Grid.Row="1" Grid.Column="1" Margin="0,10,0,0" ItemsSource="{Binding IntervalOptions}"
+                                  SelectedItem="{Binding GameMs, Mode=TwoWay}" />
+                    </Grid>
+                </Border>
+
+                <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,8"
+                           Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[InterfaceSection]}" />
+                <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock VerticalAlignment="Center"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ThemeLabel]}" />
+                        <ComboBox Grid.Column="1" ItemsSource="{Binding ThemeOptions}" DisplayMemberPath="Display"
+                                  SelectedValuePath="Value" SelectedValue="{Binding Theme, Mode=TwoWay}" />
+
+                        <TextBlock Grid.Row="1" Margin="0,10,0,0" VerticalAlignment="Center"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[LanguageLabel]}" />
+                        <ComboBox Grid.Row="1" Grid.Column="1" Margin="0,10,0,0"
+                                  ItemsSource="{Binding LanguageOptions}" DisplayMemberPath="Display"
+                                  SelectedValuePath="Value" SelectedValue="{Binding Language, Mode=TwoWay}" />
+
+                        <CheckBox Grid.Row="2" Grid.ColumnSpan="2" Margin="0,14,0,0"
+                                  IsChecked="{Binding Notifications, Mode=TwoWay}"
+                                  Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[NotificationsLabel]}" />
+
+                        <CheckBox Grid.Row="3" Grid.ColumnSpan="2" Margin="0,8,0,0"
+                                  IsChecked="{Binding AutoStart, Mode=TwoWay}"
+                                  Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AutoStartLabel]}" />
+                    </Grid>
+                </Border>
+
+                <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,8"
+                           Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AboutSection]}" />
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" MinWidth="72" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[VersionLabel]}" />
+                            <TextBlock Grid.Column="1" Style="{StaticResource MonoText}" Text="{Binding AppVersion}" />
+                        </Grid>
+
+                        <Grid Margin="0,0,0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" MinWidth="72" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[LogsLabel]}" />
+                            <TextBlock Grid.Column="1" Style="{StaticResource MonoText}" Text="{Binding LogsPath}"
+                                       TextTrimming="CharacterEllipsis" ToolTip="{Binding LogsPath}" />
+                            <Button Grid.Column="2" Style="{StaticResource FlatButton}" Padding="8,2" Margin="8,0,0,0"
+                                    Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Open]}"
+                                    Click="OnOpenLogs" />
+                        </Grid>
+
+                        <TextBlock Style="{StaticResource MonoText}" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding DataPath}" TextTrimming="CharacterEllipsis" ToolTip="{Binding DataPath}" />
+
+                        <TextBlock Margin="0,12,0,0" FontSize="11" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[M1Notice]}" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Grid Grid.Row="1" Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock VerticalAlignment="Center" FontSize="11" TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[NeedsRestart]}" />
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button Style="{StaticResource FlatButton}" Margin="0,0,8,0" Click="OnCancel"
+                        Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Cancel]}" />
+                <Button Style="{StaticResource FlatButton}" Click="OnApply"
+                        Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Apply]}" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

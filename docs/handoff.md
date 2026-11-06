@@ -7,10 +7,10 @@
 | 项目 | 内容 |
 | --- | --- |
 | 文档编号 | AGS-HANDOFF |
-| 当前版本 | v0.0.2 |
+| 当前版本 | v0.0.3 |
 | 最后更新 | 2026-11-07 |
 | 最后更新人 | Qoder |
-| 仓库状态 | 已初始化，文档完成，无代码 |
+| 仓库状态 | M1 基础闭环已完成，可本地运行与打包测试 |
 
 ---
 
@@ -18,13 +18,13 @@
 
 | 项 | 值 |
 | --- | --- |
-| 产品阶段 | 文档阶段（M0） |
-| 最新里程碑 | 无（M1 未开始） |
-| 可运行产物 | 无 |
-| 代码分支 | `main` |
-| 当前提交 | `docs(handoff): 同步文档改版后的仓库快照`（上一功能提交 `a56e465 docs: 引入帧级真相与 AI 分析架构`） |
-| 未提交变更 | 无 |
-| 阻塞事项 | 无 |
+| 产品阶段 | M1（v0.1）基础闭环 |
+| 最新里程碑 | M1-1 ~ M1-5 完成；M1-6 连续 30 分钟验收未做 |
+| 可运行产物 | `build/run-dev.ps1` 可启动；`build/package.ps1 -CollectorMode SelfContained` 可生成便携 ZIP |
+| 代码分支 | `feat/m1-foundation` 合入 `main` |
+| 当前提交 | `feat(m1): 完成系统采集与界面基础闭环`（含 `Agent: Qoder`） |
+| 未提交变更 | 无（本轮提交后） |
+| 阻塞事项 | 本机缺少 NativeAOT 链接器（见 K-12），暂不能产出 AOT 采集进程 |
 
 ## 2. 环境
 
@@ -37,33 +37,43 @@
 | Git 身份 | `worldcopyist <2767263382@qq.com>` |
 | 仓库路径 | `C:\Users\worldcopyist\Documents\Qoder\2026-11-07\275e2b44` |
 | 远端 | 无（暂不上传 GitHub） |
+| 备注 | 仓库根 `NuGet.Config` 清空 fallbackPackageFolders，规避本机无效共享源 `D:\VS2022\Shared\NuGetPackages` |
 
 ## 3. 已完成
 
-- [x] 需求访谈：确认技术栈、采集方式、判定策略、性能预算、界面形态、分期、命名、提交标注方式。
-- [x] 需求文档 `docs/requirements.md`（FR 21 项、NFR 7 类、验收与风险）。
-- [x] 开发文档 `docs/development.md`（架构、IPC、采集、帧管线、传感器边车、AI 模块、数据模型、算法、UI、构建、测试、编码规范）。
-- [x] 开源调研 `docs/research.md`（竞品矩阵、复用边界、许可证义务、明确不复用对象）。
-- [x] 提交规范 `docs/commit-guidelines.md`。
-- [x] README 索引、`.gitignore`、`.gitattributes`。
-- [x] Git 仓库初始化与首次提交（`Agent: Qoder`）。
-- [x] 方向调整：引入 PresentMon 帧级真相、LHM 厂商传感器边车、OpenAI 兼容 LLM 分析；同步修订隐私、权限、分期与验收。
+- [x] 需求访谈与三份基础文档（需求 / 开发 / 调研）、提交规范、README、`.gitignore`、`.gitattributes`。
+- [x] Git 仓库初始化与文档阶段提交（`Agent: Qoder`）。
+- [x] 方向调整：PresentMon 帧级真相、LHM 厂商传感器边车、OpenAI 兼容 LLM 分析。
+- [x] M1-1：解决方案、五个项目、`Directory.Build.props`、`.editorconfig`、警告即错误。
+- [x] M1-2：数据模型、`RingBuffer`、`SettingsService`（schemaVersion=2）、`FileLogger`、xUnit 测试。
+- [x] M1-3：PDH 系统指标、NT 进程采样、GPU Engine 解析、共享内存 v2（seqlock）、命名管道 v2。
+  - 已验证：magic/PID/能力位/GPU/显存/抖动/QPC 单调/心跳；`hello`、`status`、`capabilities`、`pause`、`resume`、`quit` 全部往返正常；未知命令被正确拒绝。
+- [x] M1-4：WPF 主窗口、五张指标卡、自绘三轨时间轴（1/5/15 分钟、悬停、缩放、平移）、Top-5 进程、状态卡、设置页、托盘、单实例、采集进程自动启动与退避重启。
+- [x] i18n（en 中性资源 + zh-CN 卫星程序集，启动按设置切换）与明暗主题（跟随系统）。
+- [x] M1-5：`build/run-dev.ps1`、`build/measure.ps1`（CSV + 中位数）、`build/package.ps1`（便携 ZIP）。
+- [x] UI 冒烟：托盘隐藏/双击恢复、暂停/恢复、设置保存、托盘菜单退出（UI 与采集进程均正常退出）、语言启动切换、打包产物可运行。
+- [x] 测试：20 个单元测试全部通过（RingBuffer、SettingsService、GpuInstanceParser）。
+
+### 3.1 性能实测（Release，UI 可见，采样 1000ms）
+
+| 进程 | 专用工作集（中位数） | 私有提交 | CPU（中位数） | 预算 |
+| --- | --- | --- | --- | --- |
+| Collector | 11.9 MB | 15.3 MB | 0.129% | ≤30 MB / ≤0.3% |
+| UI | 43.5 MB | 67.6 MB | 0.311% | 托盘 ≤60 MB / 主窗口 ≤80 MB |
+
+- UI 已切换为软件渲染（ADR-021）：专用工作集从约 96MB 降至约 43MB。
+- 测量脚本输出原始 CSV 与 `.summary.txt`；隐藏到托盘后 UI 刷新计时器停止，CPU 会进一步下降。
 
 ## 4. 进行中
 
-无。下一个任务从 M1 开始；M2-0 / M3-0 为技术验证节点，进入对应阶段前必须先做。
+无。下一步进入 M1-6 验收与 M2-0 技术验证。
 
 ## 5. 下一步（按顺序）
 
-1. **M1-1 解决方案骨架**：创建 `AzureGameAssistant.sln`、`src/` 五个项目（Core / Collector / Sensors / UI / Tests）、`Directory.Build.props`、`.editorconfig`；Core/Collector 开启警告即错误。
-2. **M1-2 Core 基础设施**：数据模型、`RingBuffer`、`SettingsService`（schemaVersion=2）、`FileLogger`，并补单元测试。
-3. **M1-3 采集进程**：PDH 系统指标、`NtQuerySystemInformation` 进程采样、GPU Engine 解析、共享内存 v2 写入、命名管道 v2 服务。
-4. **M1-4 界面进程**：应用外壳、托盘（`Shell_NotifyIcon`）、主窗口、系统时间轴控件、设置页、i18n 基础设施。
-5. **M1-5 打包与测量**：`build/measure.ps1`、便携目录结构（先不含 PresentMon/LHM）。
-6. **M1-6 验收**：连续 30 分钟运行，对照需求文档 NFR 测量内存/CPU/磁盘。
-7. **M2-0 PresentMon 验证**（进入 M2 前）：锁定版本与 SHA256、核对参数/列名、验证权限模型、3 款游戏实测、评估反作弊兼容性。
-8. **M3-0 传感器验证**（进入 M3 前）：LHM GPU-only、确认不加载内核驱动、三厂商真机、内存/CPU 预算。
-9. **M3-0 AI 验证**（进入 M3 前）：OpenAI 兼容接口、3 家云 + 1 个本地模型、schema 与危险建议过滤。
+1. **M1-6 验收**：连续运行 30 分钟，验证采样连续性、时间轴正确性、内存无增长；补充“仅托盘”状态的独立测量。
+2. **解决 K-12**：安装 VS Build Tools C++ 工作负载，验证 NativeAOT 采集进程体积与启动，产出正式包。
+3. **M2-0 PresentMon 验证**：锁定版本与 SHA256、核对列名/参数、权限模型、3 款游戏实测、反作弊兼容性评估。
+4. **M3-0 传感器与 AI 验证**：LHM GPU-only、不加载内核驱动；OpenAI 兼容接口与本地模型联调。
 
 每个步骤完成后：更新本文件 → 按提交规范提交 → 在交接日志追加一行。
 
@@ -91,14 +101,15 @@
 | 提交标注 | 人类作者不变，footer 加 `Agent: Qoder`；其他 Agent 用自己名称 | 用户确认 |
 | 分支模型 | 主干 + 短分支 + PR Squash | 用户确认 |
 | 第三方分发 | PresentMon MIT、LHM MPL-2.0；固定版本 + SHA256 + 许可证清单 | 调研结论；ADR-020 |
+| UI 渲染 | WPF 软件渲染；界面低频刷新，换取更低常驻内存 | 实测专用工作集约 43MB；ADR-021 |
 
 ## 7. 已知问题与限制
 
 | 编号 | 问题 | 影响 | 处理 |
 | --- | --- | --- | --- |
-| K-01 | 尚未验证 30MB 内存预算能否达成 | 核心卖点风险 | M1 第一版采集进程完成后立即测量；超预算优先裁剪 |
-| K-02 | PDH GPU 计数器在不同驱动上实例名/精度可能不同 | GPU 曲线缺失 | M1 做能力探测与降级；M3 厂商边车补足 |
-| K-03 | 全屏独占游戏可能拦截全局热键 | 手动标记失效 | 文档说明；提供托盘/悬浮条入口 |
+| K-01 | 30MB 采集内存预算尚未在 AOT 产物上验证 | 核心卖点风险 | JIT 自包含版实测专用工作集 11.9MB；K-12 解决后复测 AOT 版 |
+| K-02 | PDH GPU 计数器在不同驱动上实例名/精度可能不同 | GPU 曲线缺失 | 已做实例解析与 `_Total` 过滤；能力探测与 M3 厂商边车补足 |
+| K-03 | 全屏独占游戏可能拦截全局热键 | 手动标记失效 | 文档说明；提供托盘/悬浮条入口（M2） |
 | K-04 | 本机仅安装 .NET SDK 9.0.100 | 构建 `net8.0` 需联网还原目标包 | 首次 `dotnet restore` 需可用网络 |
 | K-05 | 许可证、代码签名未定 | 不影响开发 | M3 前决策；需兼容 MIT / MPL-2.0 |
 | K-06 | PresentMon 需要管理员或 Performance Log Users | 普通用户无帧数据 | 浅/深模式；显式提权；不自动弹 UAC |
@@ -107,22 +118,33 @@
 | K-09 | 各 LLM 供应商兼容接口存在细节差异 | AI 调用失败 | 只依赖 `chat/completions` 最小子集；3 家云 + 本地联调 |
 | K-10 | 含帧会话体积可能超过 12MB 预算 | 存储增长 | M2 实测；必要时降低帧批字段或提高压缩率 |
 | K-11 | OCAT 许可证不明确 | 不可复用其代码 | 只参考思路；代码评审检查来源 |
+| K-12 | 本机缺少 NativeAOT 链接器（VS C++ 工作负载） | 无法产出正式采集进程 | 安装 Build Tools C++ 后执行 `package.ps1` 默认 AOT 流程；当前用 `-CollectorMode SelfContained` 验证 |
+| K-13 | UI 软件渲染在超大窗口/高 DPI 下可能增加 CPU | 界面开销上升 | 仅 2Hz 刷新；M2 增加渲染模式设置项后再评估 |
+| K-14 | 当前仅验证单显示器、单 GPU、本机驱动 | 兼容性未知 | M1-6 / M2-0 扩展手工验收矩阵 |
 
 ## 8. 如何验证当前状态
 
-```bash
+```powershell
 cd "C:/Users/worldcopyist/Documents/Qoder/2026-11-07/275e2b44"
 git log --oneline --decorate -n 5
 git status
-ls docs
+dotnet build AzureGameAssistant.sln
+dotnet test AzureGameAssistant.sln
+powershell -File build/run-dev.ps1        # 启动界面与采集进程
+powershell -File build/measure.ps1 -DurationMinutes 1
 ```
 
-预期：`main` 上至少有初始化提交与本次文档改版提交；工作区干净；`docs/` 下有 `requirements.md`、`development.md`、`research.md`、`handoff.md`、`commit-guidelines.md`。
+预期：
+
+- 构建 0 警告、0 错误；测试 20 项全部通过。
+- 界面显示五张指标卡、时间轴曲线、Top-5 进程与采集状态；关闭按钮隐藏到托盘，双击托盘图标恢复，托盘菜单可退出并同时结束采集进程。
+- `measure.ps1` 输出的 `.summary.txt` 中 Collector 专用工作集约 12MB、CPU 约 0.1%；UI 专用工作集约 43MB。
+- 切换设置中的语言并重启后，界面在中/英之间切换；主题跟随系统。
 
 关键文档自检：
 
 - 需求文档包含 FR-019（帧级）、FR-020（LLM）、FR-021（AI 隐私/成本/安全）。
-- 开发文档包含 ADR-013（PresentMon）、ADR-014（LHM 边车）、ADR-015（AI 接口）。
+- 开发文档包含 ADR-013（PresentMon）、ADR-014（LHM 边车）、ADR-015（AI 接口）、ADR-021（UI 软件渲染）。
 - 调研文档包含 PresentMon / CapFrameX / LHM 的许可证与复用边界。
 - 提交规范包含 `Agent: Qoder` 强制规则与第三方/密钥禁令。
 
@@ -132,6 +154,7 @@ ls docs
 | --- | --- | --- | --- |
 | 2026-11-07 | Qoder | 完成需求访谈、四份文档、README 与 Git 初始化 | `docs: 初始化项目文档与仓库结构` |
 | 2026-11-07 | Qoder | 完成开源调研；引入 PresentMon 帧级真相、LHM 传感器边车、OpenAI 兼容 LLM 分析；修订需求/开发/README/提交规范 | `a56e465 docs: 引入帧级真相与 AI 分析架构` |
+| 2026-11-07 | Qoder | 完成 M1 基础闭环：采集进程、共享内存/管道、WPF 界面、托盘、i18n/主题、构建与测量脚本、20 项测试；完成性能初测与打包验证 | `feat(m1): 完成系统采集与界面基础闭环` |
 
 ## 10. 下次交接模板
 

@@ -54,6 +54,7 @@
 | ADR-018 | 帧环形缓冲 | 独立 65,536 槽位、按时间窗口截取 | 高刷新率下仍覆盖 3 分钟；与系统缓冲解耦 | 复用系统 4500 槽位（帧率下不足） |
 | ADR-019 | 权限模式 | 浅模式默认、深模式显式提权 | 不骚扰普通用户；帧数据按需启用 | 一律要求管理员 |
 | ADR-020 | 第三方分发 | 固定版本 + SHA256 + 许可证清单 | 可审计、可复现；降低上游漂移风险 | 运行时下载最新版 |
+| ADR-021 | UI 渲染模式 | 软件渲染（`RenderOptions.ProcessRenderMode = SoftwareOnly`） | 实测专用工作集由约 96MB 降至约 43MB，满足 UI 内存红线；界面仅 2Hz 刷新，CPU 代价可接受 | 默认硬件渲染（D3D 设备常驻内存偏高） |
 
 ## 3. 总体架构
 
@@ -1553,7 +1554,7 @@ AzureGameAssistant-<version>-win-x64/
 
 ### 20.5 待补充
 
-- `build/measure.ps1`、`build/package.ps1` 在 M1 补充。
+- `build/measure.ps1`、`build/package.ps1`、`build/run-dev.ps1` 已在 M1 提供。
 - PresentMon 版本与 SHA256 在 M2-0 锁定。
 - LHM 版本、三厂商真机矩阵在 M3-0 锁定。
 - 第三方许可证清单与 CI 检查在 M3 完成。

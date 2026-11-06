@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AppTitle" xml:space="preserve">
+    <value>蓝天游戏助手</value>
+  </data>
+  <data name="AppSubtitle" xml:space="preserve">
+    <value>实时系统负载时间轴与卡顿诊断</value>
+  </data>
+  <data name="StatusStarting" xml:space="preserve">
+    <value>正在启动采集进程…</value>
+  </data>
+  <data name="StatusConnected" xml:space="preserve">
+    <value>采集进程已连接</value>
+  </data>
+  <data name="StatusDisconnected" xml:space="preserve">
+    <value>采集进程未运行</value>
+  </data>
+  <data name="StatusCollectorMissing" xml:space="preserve">
+    <value>未找到采集进程可执行文件</value>
+  </data>
+  <data name="StatusCollectorFailed" xml:space="preserve">
+    <value>采集进程异常退出</value>
+  </data>
+  <data name="Pause" xml:space="preserve">
+    <value>暂停</value>
+  </data>
+  <data name="Resume" xml:space="preserve">
+    <value>继续</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="QuitApp" xml:space="preserve">
+    <value>退出</value>
+  </data>
+  <data name="OpenMain" xml:space="preserve">
+    <value>打开主界面</value>
+  </data>
+  <data name="MarkStutter" xml:space="preserve">
+    <value>标记卡顿</value>
+  </data>
+  <data name="MuteNotifications" xml:space="preserve">
+    <value>静音通知</value>
+  </data>
+  <data name="UnmuteNotifications" xml:space="preserve">
+    <value>恢复通知</value>
+  </data>
+  <data name="Cpu" xml:space="preserve">
+    <value>CPU</value>
+  </data>
+  <data name="Gpu" xml:space="preserve">
+    <value>GPU</value>
+  </data>
+  <data name="Memory" xml:space="preserve">
+    <value>可用内存</value>
+  </data>
+  <data name="Disk" xml:space="preserve">
+    <value>磁盘占用</value>
+  </data>
+  <data name="Jitter" xml:space="preserve">
+    <value>定时抖动</value>
+  </data>
+  <data name="CpuFrequencySub" xml:space="preserve">
+    <value>基础频率 {0}%</value>
+  </data>
+  <data name="GpuMemorySub" xml:space="preserve">
+    <value>专用显存 {0} MB</value>
+  </data>
+  <data name="MemorySub" xml:space="preserve">
+    <value>提交 {0} / {1} GB</value>
+  </data>
+  <data name="DiskSub" xml:space="preserve">
+    <value>延迟 {0} ms</value>
+  </data>
+  <data name="JitterSub" xml:space="preserve">
+    <value>采样间隔 {0} ms</value>
+  </data>
+  <data name="LiveTimeline" xml:space="preserve">
+    <value>实时时间轴</value>
+  </data>
+  <data name="WindowOneMinute" xml:space="preserve">
+    <value>1 分钟</value>
+  </data>
+  <data name="WindowFiveMinutes" xml:space="preserve">
+    <value>5 分钟</value>
+  </data>
+  <data name="WindowFifteenMinutes" xml:space="preserve">
+    <value>15 分钟</value>
+  </data>
+  <data name="Processes" xml:space="preserve">
+    <value>进程排行</value>
+  </data>
+  <data name="ColumnProcess" xml:space="preserve">
+    <value>进程</value>
+  </data>
+  <data name="ColumnPid" xml:space="preserve">
+    <value>PID</value>
+  </data>
+  <data name="ColumnCpu" xml:space="preserve">
+    <value>CPU</value>
+  </data>
+  <data name="ColumnGpu" xml:space="preserve">
+    <value>GPU</value>
+  </data>
+  <data name="ColumnMemory" xml:space="preserve">
+    <value>内存</value>
+  </data>
+  <data name="Foreground" xml:space="preserve">
+    <value>前台</value>
+  </data>
+  <data name="NoData" xml:space="preserve">
+    <value>等待采样数据…</value>
+  </data>
+  <data name="Status" xml:space="preserve">
+    <value>状态</value>
+  </data>
+  <data name="CollectorLabel" xml:space="preserve">
+    <value>采集进程</value>
+  </data>
+  <data name="SamplingLabel" xml:space="preserve">
+    <value>采样间隔</value>
+  </data>
+  <data name="UptimeLabel" xml:space="preserve">
+    <value>运行时长</value>
+  </data>
+  <data name="SamplesLabel" xml:space="preserve">
+    <value>采样数</value>
+  </data>
+  <data name="HeartbeatLabel" xml:space="preserve">
+    <value>心跳</value>
+  </data>
+  <data name="Unknown" xml:space="preserve">
+    <value>未知</value>
+  </data>
+  <data name="NotAvailable" xml:space="preserve">
+    <value>—</value>
+  </data>
+  <data name="SettingsTitle" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="SamplingSection" xml:space="preserve">
+    <value>采集</value>
+  </data>
+  <data name="NormalInterval" xml:space="preserve">
+    <value>常规采样间隔</value>
+  </data>
+  <data name="GameInterval" xml:space="preserve">
+    <value>游戏采样间隔</value>
+  </data>
+  <data name="InterfaceSection" xml:space="preserve">
+    <value>界面</value>
+  </data>
+  <data name="ThemeLabel" xml:space="preserve">
+    <value>主题</value>
+  </data>
+  <data name="ThemeAuto" xml:space="preserve">
+    <value>跟随系统</value>
+  </data>
+  <data name="ThemeLight" xml:space="preserve">
+    <value>浅色</value>
+  </data>
+  <data name="ThemeDark" xml:space="preserve">
+    <value>深色</value>
+  </data>
+  <data name="LanguageLabel" xml:space="preserve">
+    <value>语言</value>
+  </data>
+  <data name="LanguageAuto" xml:space="preserve">
+    <value>跟随系统</value>
+  </data>
+  <data name="English" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Chinese" xml:space="preserve">
+    <value>简体中文</value>
+  </data>
+  <data name="NotificationsLabel" xml:space="preserve">
+    <value>显示通知</value>
+  </data>
+  <data name="AutoStartLabel" xml:space="preserve">
+    <value>开机自启</value>
+  </data>
+  <data name="Apply" xml:space="preserve">
+    <value>应用</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="SettingsSaved" xml:space="preserve">
+    <value>设置已保存</value>
+  </data>
+  <data name="NeedsRestart" xml:space="preserve">
+    <value>采样间隔变更将在采集进程重启后生效。</value>
+  </data>
+  <data name="AboutSection" xml:space="preserve">
+    <value>关于</value>
+  </data>
+  <data name="VersionLabel" xml:space="preserve">
+    <value>版本</value>
+  </data>
+  <data name="LogsLabel" xml:space="preserve">
+    <value>日志</value>
+  </data>
+  <data name="DataLabel" xml:space="preserve">
+    <value>数据目录</value>
+  </data>
+  <data name="Open" xml:space="preserve">
+    <value>打开</value>
+  </data>
+  <data name="M1Notice" xml:space="preserve">
+    <value>帧级真相、卡顿判定与 AI 分析将在后续版本提供。</value>
+  </data>
+  <data name="Milliseconds" xml:space="preserve">
+    <value>{0} ms</value>
+  </data>
+  <data name="Seconds" xml:space="preserve">
+    <value>{0} 秒</value>
+  </data>
+  <data name="TrayTip" xml:space="preserve">
+    <value>蓝天游戏助手 — CPU {0}% · GPU {1}%</value>
+  </data>
+  <data name="Paused" xml:space="preserve">
+    <value>已暂停</value>
+  </data>
+  <data name="Live" xml:space="preserve">
+    <value>实时</value>
+  </data>
+  <data name="History" xml:space="preserve">
+    <value>历史</value>
+  </data>
+</root>

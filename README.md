@@ -3,7 +3,7 @@
 > 一款本地优先、低开销的 Windows 性能监控与卡顿归因工具。
 > 游戏或高负载工作突然掉帧时，它能告诉你：卡在哪一帧、当时谁在占资源、最可能的原因是什么。
 
-**当前状态：v0.0.2 · 文档阶段（尚未开始编码）**
+**当前状态：v0.1.0-dev · M1 基础闭环（系统指标采集 + 时间轴 + 托盘）**
 
 ---
 
@@ -83,7 +83,19 @@ AI 分析是可选功能，默认关闭。开启后：
 
 ## 开发与参与
 
-当前尚无代码。开发环境、构建命令、目录结构请见 [开发文档](docs/development.md)。
+当前 M1 已可运行：采集进程通过 PDH / NT API 采样并写入共享内存，界面进程显示实时卡片、时间轴、进程排行，支持托盘、暂停、设置与中英双语。
+
+```powershell
+dotnet build AzureGameAssistant.sln
+powershell -File build/run-dev.ps1            # 构建并启动界面
+powershell -File build/run-dev.ps1 -Tray      # 直接隐藏到托盘启动
+powershell -File build/measure.ps1 -DurationMinutes 1
+powershell -File build/package.ps1 -CollectorMode SelfContained   # 无 C++ 工具链时的测试包
+```
+
+NativeAOT 采集进程打包需要 Visual Studio Build Tools 的“使用 C++ 的桌面开发”工作负载；缺失时 `package.ps1` 会明确报错。
+
+开发环境、架构、构建命令与目录结构详见 [开发文档](docs/development.md)。
 
 所有提交、分支、Issue 与 PR 必须遵守 [提交规范](docs/commit-guidelines.md)；Agent 提交必须在提交信息尾部标注 `Agent: <名称>`，Qoder 的提交固定为 `Agent: Qoder`。
 
