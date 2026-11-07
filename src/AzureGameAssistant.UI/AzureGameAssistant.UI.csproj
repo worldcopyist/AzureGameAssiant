@@ -7,10 +7,15 @@
     <AssemblyName>AzureGameAssistant</AssemblyName>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ApplicationIcon>Assets\app-icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\AzureGameAssistant.Core\AzureGameAssistant.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\app-icon.ico" />
   </ItemGroup>
 
   <ItemGroup>

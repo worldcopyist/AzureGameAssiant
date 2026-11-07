@@ -27,7 +27,9 @@ public partial class App : Application
     private TelemetryService? _telemetry;
     private MainViewModel? _viewModel;
     private MainWindow? _window;
+    private OverlayWindow? _overlay;
     private TrayIconService? _tray;
+    private DispatcherTimer? _timer;
     private bool _shuttingDown;
 
     protected override void OnStartup(StartupEventArgs e)
@@ -76,13 +78,25 @@ public partial class App : Application
 
         _window = new MainWindow(_viewModel);
         _window.SettingsRequested += OnSettingsRequested;
+        _window.IsVisibleChanged += (_, _) => UpdateTimerState();
+        _window.StateChanged += (_, _) => UpdateTimerState();
         _window.Show();
+
+        _overlay = new OverlayWindow();
+        _overlay.ApplySettings(_settings.Overlay);
+        _overlay.IsVisibleChanged += (_, _) => UpdateTimerState();
 
         _tray = new TrayIconService(new WindowInteropHelper(_window).Handle);
         _tray.OpenRequested += (_, _) => ShowMainWindow();
         _tray.MenuRequested += OnTrayMenuRequested;
 
         LocalizationService.Instance.LanguageChanged += OnLanguageChanged;
+
+        _timer = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromMilliseconds(500),
+        };
+        _timer.Tick += OnRefreshTick;
 
         _launcher.Start();
 
@@ -91,7 +105,84 @@ public partial class App : Application
             _window.Hide();
         }
 
+        if (_settings.Overlay.Enabled)
+        {
+            _overlay.ShowOverlay();
+        }
+
+        UpdateTimerState();
         RefreshTrayTip();
+    }
+
+    private async void OnRefreshTick(object? sender, EventArgs e)
+    {
+        if (_viewModel is null)
+        {
+            return;
+        }
+
+        await _viewModel.RefreshAsync();
+
+        if (_window is { IsVisible: true } && _window.WindowState != WindowState.Minimized)
+        {
+            _window.RefreshChart();
+        }
+
+        _overlay?.Update(_viewModel.GetOverlayData());
+        UpdateTimerState();
+    }
+
+    private void UpdateTimerState()
+    {
+        if (_timer is null)
+        {
+            return;
+        }
+
+        bool mainVisible = _window is { IsVisible: true } && _window.WindowState != WindowState.Minimized;
+        bool overlayVisible = _overlay?.IsVisible == true;
+
+        if (mainVisible || overlayVisible)
+        {
+            if (!_timer.IsEnabled)
+            {
+                _timer.Start();
+            }
+        }
+        else if (_timer.IsEnabled)
+        {
+            _timer.Stop();
+        }
+    }
+
+    private void SetOverlayEnabled(bool enabled)
+    {
+        if (_overlay is null)
+        {
+            return;
+        }
+
+        if (enabled)
+        {
+            _overlay.ApplySettings(_settings.Overlay);
+            if (!_overlay.IsVisible)
+            {
+                _overlay.ShowOverlay();
+            }
+        }
+        else if (_overlay.IsVisible)
+        {
+            _overlay.Hide();
+        }
+
+        UpdateTimerState();
+    }
+
+    private void ToggleOverlay()
+    {
+        _settings.Overlay.Enabled = !_settings.Overlay.Enabled;
+        SaveSettingsQuietly("保存悬浮窗设置失败");
+        SetOverlayEnabled(_settings.Overlay.Enabled);
     }
 
     private void ShowMainWindow()
@@ -173,6 +264,9 @@ public partial class App : Application
         ThemeService.Apply(settings.Theme);
         LocalizationService.Instance.SetLanguage(settings.Language);
         _viewModel?.RefreshLocalization();
+        _viewModel?.RefreshDisplaySettings();
+        _window?.RefreshChart();
+        SetOverlayEnabled(settings.Overlay.Enabled);
 
         if (settings.AutoStart != autoStart)
         {
@@ -182,6 +276,22 @@ public partial class App : Application
         if (restart)
         {
             _ = RestartCollectorAsync();
+        }
+    }
+
+    private void SaveSettingsQuietly(string context)
+    {
+        try
+        {
+            _settingsService?.Save(_settings);
+        }
+        catch (IOException ex)
+        {
+            _logger?.Error(context, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger?.Error(context, ex);
         }
     }
 
@@ -209,6 +319,7 @@ public partial class App : Application
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
         _viewModel?.RefreshLocalization();
+        _overlay?.RefreshLocalization();
     }
 
     private void OnTelemetryUpdated(object? sender, EventArgs e) => RefreshTrayTip();
@@ -265,6 +376,14 @@ public partial class App : Application
 
         menu.Items.Add(new MenuItem
         {
+            Header = LocalizationService.Instance["TrayOverlay"],
+            IsCheckable = true,
+            IsChecked = _settings.Overlay.Enabled,
+            Command = new RelayCommand(ToggleOverlay),
+        });
+
+        menu.Items.Add(new MenuItem
+        {
             Header = LocalizationService.Instance[_settings.Notifications ? "MuteNotifications" : "UnmuteNotifications"],
             Command = new RelayCommand(ToggleNotifications),
         });
@@ -292,19 +411,7 @@ public partial class App : Application
     private void ToggleNotifications()
     {
         _settings.Notifications = !_settings.Notifications;
-
-        try
-        {
-            _settingsService?.Save(_settings);
-        }
-        catch (IOException ex)
-        {
-            _logger?.Error("保存通知设置失败", ex);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            _logger?.Error("保存通知设置失败", ex);
-        }
+        SaveSettingsQuietly("保存通知设置失败");
     }
 
     private async Task ShutdownAsync()
@@ -316,6 +423,14 @@ public partial class App : Application
 
         _shuttingDown = true;
         _logger?.Info("界面退出");
+
+        _timer?.Stop();
+
+        if (_overlay is not null)
+        {
+            _overlay.Close();
+            _overlay = null;
+        }
 
         if (_launcher is not null)
         {

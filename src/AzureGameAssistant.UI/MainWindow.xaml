@@ -4,10 +4,19 @@
         xmlns:svc="clr-namespace:AzureGameAssistant.UI.Services"
         xmlns:controls="clr-namespace:AzureGameAssistant.UI.Controls"
         Title="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AppTitle]}"
+        Icon="pack://application:,,,/Assets/app-icon.ico"
         Width="1080" Height="720" MinWidth="880" MinHeight="600"
         Background="{DynamicResource WindowBackgroundBrush}"
         Foreground="{DynamicResource TextPrimaryBrush}"
         WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+        <Style x:Key="ChartCard" TargetType="Border" BasedOn="{StaticResource Card}">
+            <Setter Property="Padding" Value="8" />
+            <Setter Property="Margin" Value="4" />
+        </Style>
+    </Window.Resources>
+
     <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -68,6 +77,7 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0" Style="{StaticResource Card}" Margin="0,0,8,0">
@@ -100,13 +110,22 @@
             <Border Grid.Column="3" Style="{StaticResource Card}" Margin="0,0,8,0">
                 <StackPanel>
                     <TextBlock Style="{StaticResource CardLabel}"
+                               Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Vram]}" />
+                    <TextBlock Style="{StaticResource CardValue}" Text="{Binding VramValue}" />
+                    <TextBlock Style="{StaticResource CardSub}" Text="{Binding VramSub}" />
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="4" Style="{StaticResource Card}" Margin="0,0,8,0">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardLabel}"
                                Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Disk]}" />
                     <TextBlock Style="{StaticResource CardValue}" Text="{Binding DiskValue}" />
                     <TextBlock Style="{StaticResource CardSub}" Text="{Binding DiskSub}" />
                 </StackPanel>
             </Border>
 
-            <Border Grid.Column="4" Style="{StaticResource Card}">
+            <Border Grid.Column="5" Style="{StaticResource Card}">
                 <StackPanel>
                     <TextBlock Style="{StaticResource CardLabel}"
                                Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Jitter]}" />
@@ -130,8 +149,7 @@
                     </Grid.ColumnDefinitions>
                     <TextBlock VerticalAlignment="Center" FontWeight="SemiBold"
                                Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[LiveTimeline]}" />
-                    <ComboBox Grid.Column="1" x:Name="WindowSelector" SelectedIndex="0"
-                              SelectionChanged="OnWindowChanged" MinWidth="100">
+                    <ComboBox Grid.Column="1" x:Name="WindowSelector" MinWidth="100">
                         <ComboBoxItem Tag="60"
                                       Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[WindowOneMinute]}" />
                         <ComboBoxItem Tag="300"
@@ -141,7 +159,100 @@
                     </ComboBox>
                 </Grid>
 
-                <controls:TimelineChart Grid.Row="1" x:Name="Chart" Margin="6,0,6,6" />
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              Padding="10,0,10,10">
+                    <UniformGrid x:Name="ChartGrid" Columns="2">
+                        <Border Style="{StaticResource ChartCard}"
+                                Visibility="{Binding ShowCpuChart, Converter={StaticResource BoolToVisibility}}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Grid Margin="4,0,4,2">
+                                    <TextBlock Style="{StaticResource CardLabel}" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource ChartCpuBrush}"
+                                               Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Cpu]}" />
+                                    <TextBlock HorizontalAlignment="Right" Style="{StaticResource MonoText}"
+                                               Text="{Binding CpuValue}" />
+                                </Grid>
+                                <controls:TimelineChart Grid.Row="1" x:Name="CpuChart" Metric="Cpu" MinHeight="170" />
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource ChartCard}"
+                                Visibility="{Binding ShowGpuChart, Converter={StaticResource BoolToVisibility}}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Grid Margin="4,0,4,2">
+                                    <TextBlock Style="{StaticResource CardLabel}" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource ChartGpuBrush}"
+                                               Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Gpu]}" />
+                                    <TextBlock HorizontalAlignment="Right" Style="{StaticResource MonoText}"
+                                               Text="{Binding GpuValue}" />
+                                </Grid>
+                                <controls:TimelineChart Grid.Row="1" x:Name="GpuChart" Metric="Gpu" MinHeight="170" />
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource ChartCard}"
+                                Visibility="{Binding ShowMemoryChart, Converter={StaticResource BoolToVisibility}}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Grid Margin="4,0,4,2">
+                                    <TextBlock Style="{StaticResource CardLabel}" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource ChartMemBrush}"
+                                               Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Memory]}" />
+                                    <TextBlock HorizontalAlignment="Right" Style="{StaticResource MonoText}"
+                                               Text="{Binding MemoryValue}" />
+                                </Grid>
+                                <controls:TimelineChart Grid.Row="1" x:Name="MemoryChart" Metric="Memory" MinHeight="170" />
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource ChartCard}"
+                                Visibility="{Binding ShowVramChart, Converter={StaticResource BoolToVisibility}}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Grid Margin="4,0,4,2">
+                                    <TextBlock Style="{StaticResource CardLabel}" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource ChartVramBrush}"
+                                               Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Vram]}" />
+                                    <TextBlock HorizontalAlignment="Right" Style="{StaticResource MonoText}"
+                                               Text="{Binding VramValue}" />
+                                </Grid>
+                                <controls:TimelineChart Grid.Row="1" x:Name="VramChart" Metric="Vram" MinHeight="170" />
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource ChartCard}"
+                                Visibility="{Binding ShowDiskChart, Converter={StaticResource BoolToVisibility}}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Grid Margin="4,0,4,2">
+                                    <TextBlock Style="{StaticResource CardLabel}" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource ChartDiskBrush}"
+                                               Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Disk]}" />
+                                    <TextBlock HorizontalAlignment="Right" Style="{StaticResource MonoText}"
+                                               Text="{Binding DiskValue}" />
+                                </Grid>
+                                <controls:TimelineChart Grid.Row="1" x:Name="DiskChart" Metric="Disk" MinHeight="170" />
+                            </Grid>
+                        </Border>
+                    </UniformGrid>
+                </ScrollViewer>
             </Grid>
         </Border>
 

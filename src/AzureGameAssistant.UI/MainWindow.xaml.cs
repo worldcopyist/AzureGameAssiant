@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Threading;
+using AzureGameAssistant.UI.Controls;
 using AzureGameAssistant.UI.ViewModels;
 
 namespace AzureGameAssistant.UI;
@@ -9,7 +9,7 @@ namespace AzureGameAssistant.UI;
 public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel;
-    private readonly DispatcherTimer _timer;
+    private readonly TimelineChart[] _charts;
 
     public MainWindow(MainViewModel viewModel)
     {
@@ -17,17 +17,13 @@ public partial class MainWindow : Window
         _viewModel = viewModel;
         DataContext = viewModel;
 
-        _timer = new DispatcherTimer(DispatcherPriority.Background)
-        {
-            Interval = TimeSpan.FromMilliseconds(500),
-        };
-        _timer.Tick += OnTick;
+        _charts = [CpuChart, GpuChart, MemoryChart, VramChart, DiskChart];
+
+        WindowSelector.SelectionChanged += OnWindowChanged;
+        WindowSelector.SelectedIndex = 0;
 
         Loaded += OnLoaded;
-        IsVisibleChanged += OnVisibleChanged;
-        StateChanged += OnStateChanged;
         Closing += OnClosing;
-        Closed += (_, _) => _timer.Stop();
     }
 
     public bool AllowClose { get; set; }
@@ -36,57 +32,54 @@ public partial class MainWindow : Window
 
     public void RefreshChart()
     {
-        Chart.SetSamples(_viewModel.TimelineBuffer, _viewModel.TimelineCount);
+        UpdateChartColumns();
+
+        if (!IsVisible || WindowState == WindowState.Minimized)
+        {
+            return;
+        }
+
+        foreach (TimelineChart chart in _charts)
+        {
+            chart.SetSamples(_viewModel.TimelineBuffer, _viewModel.TimelineCount);
+        }
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        RefreshChart();
-        _timer.Start();
-    }
-
-    private async void OnTick(object? sender, EventArgs e)
-    {
-        await _viewModel.RefreshAsync();
+        ApplyWindowSeconds(60);
         RefreshChart();
     }
 
-    private void OnVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+    private void UpdateChartColumns()
     {
-        if (IsVisible && WindowState != WindowState.Minimized)
+        int visible = 0;
+        foreach (TimelineChart chart in _charts)
         {
-            _timer.Start();
+            if (chart.IsVisible)
+            {
+                visible++;
+            }
         }
-        else
-        {
-            _timer.Stop();
-        }
+
+        ChartGrid.Columns = visible == 1 ? 1 : 2;
     }
 
-    private void OnStateChanged(object? sender, EventArgs e)
+    private void ApplyWindowSeconds(double seconds)
     {
-        if (WindowState == WindowState.Minimized)
+        foreach (TimelineChart chart in _charts)
         {
-            _timer.Stop();
-        }
-        else if (IsVisible)
-        {
-            _timer.Start();
+            chart.WindowSeconds = seconds;
         }
     }
 
     private void OnWindowChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (Chart is null)
-        {
-            return;
-        }
-
         if (WindowSelector.SelectedItem is ComboBoxItem item &&
             item.Tag is string tag &&
             double.TryParse(tag, NumberStyles.Integer, CultureInfo.InvariantCulture, out double seconds))
         {
-            Chart.WindowSeconds = seconds;
+            ApplyWindowSeconds(seconds);
         }
     }
 

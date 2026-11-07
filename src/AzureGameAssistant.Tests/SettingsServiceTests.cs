@@ -127,4 +127,42 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.Equal("auto", settings.Frames.Mode);
         Assert.Null(settings.Frames.TargetPid);
     }
+
+    [Fact]
+    public void Normalize_KeepsOneChartAndClampsOverlay()
+    {
+        var settings = new AppSettings
+        {
+            Charts = new ChartSettings
+            {
+                Cpu = false,
+                Gpu = false,
+                Memory = false,
+                Vram = false,
+                Disk = false,
+            },
+            Overlay = new OverlaySettings
+            {
+                Corner = "  topright ",
+                OffsetX = -5,
+                OffsetY = 99_999,
+                ShowFps = false,
+                ShowFrameTimes = false,
+                ShowCpu = false,
+                ShowGpu = false,
+                ShowTemperature = false,
+                ShowMemory = false,
+                ShowVram = false,
+            },
+        };
+
+        settings.Normalize();
+
+        Assert.True(settings.Charts.Cpu);
+        Assert.Equal("TopRight", settings.Overlay.Corner);
+        Assert.Equal(0, settings.Overlay.OffsetX);
+        Assert.Equal(4_000, settings.Overlay.OffsetY);
+        Assert.True(settings.Overlay.ShowCpu);
+        Assert.True(settings.Overlay.ShowGpu);
+    }
 }

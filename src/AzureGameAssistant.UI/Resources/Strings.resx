@@ -64,7 +64,7 @@
     <value>GPU</value>
   </data>
   <data name="Memory" xml:space="preserve">
-    <value>Memory available</value>
+    <value>Memory</value>
   </data>
   <data name="Disk" xml:space="preserve">
     <value>Disk busy</value>
@@ -239,5 +239,89 @@
   </data>
   <data name="History" xml:space="preserve">
     <value>History</value>
+  </data>
+  <data name="Vram" xml:space="preserve">
+    <value>VRAM</value>
+  </data>
+  <data name="VramSub" xml:space="preserve">
+    <value>Dedicated video memory</value>
+  </data>
+  <data name="VramTotalSub" xml:space="preserve">
+    <value>Total {0} GB</value>
+  </data>
+  <data name="ChartsSection" xml:space="preserve">
+    <value>Charts</value>
+  </data>
+  <data name="ChartCpuToggle" xml:space="preserve">
+    <value>CPU usage chart</value>
+  </data>
+  <data name="ChartGpuToggle" xml:space="preserve">
+    <value>GPU usage chart</value>
+  </data>
+  <data name="ChartMemoryToggle" xml:space="preserve">
+    <value>Memory usage chart</value>
+  </data>
+  <data name="ChartVramToggle" xml:space="preserve">
+    <value>VRAM usage chart</value>
+  </data>
+  <data name="ChartDiskToggle" xml:space="preserve">
+    <value>Disk busy chart</value>
+  </data>
+  <data name="OverlaySection" xml:space="preserve">
+    <value>Desktop overlay</value>
+  </data>
+  <data name="OverlayEnabled" xml:space="preserve">
+    <value>Show desktop overlay</value>
+  </data>
+  <data name="OverlayPosition" xml:space="preserve">
+    <value>Position</value>
+  </data>
+  <data name="OverlayTopLeft" xml:space="preserve">
+    <value>Top left</value>
+  </data>
+  <data name="OverlayTopRight" xml:space="preserve">
+    <value>Top right</value>
+  </data>
+  <data name="OverlayBottomLeft" xml:space="preserve">
+    <value>Bottom left</value>
+  </data>
+  <data name="OverlayBottomRight" xml:space="preserve">
+    <value>Bottom right</value>
+  </data>
+  <data name="OverlayOffsetX" xml:space="preserve">
+    <value>Horizontal margin (px)</value>
+  </data>
+  <data name="OverlayOffsetY" xml:space="preserve">
+    <value>Vertical margin (px)</value>
+  </data>
+  <data name="OverlayContent" xml:space="preserve">
+    <value>Fields</value>
+  </data>
+  <data name="OverlayFps" xml:space="preserve">
+    <value>Frame rate</value>
+  </data>
+  <data name="OverlayAvg" xml:space="preserve">
+    <value>Average FPS</value>
+  </data>
+  <data name="OverlayLow" xml:space="preserve">
+    <value>1% low FPS</value>
+  </data>
+  <data name="OverlayFrameTimes" xml:space="preserve">
+    <value>Average / 1% low frames</value>
+  </data>
+  <data name="OverlayTemperature" xml:space="preserve">
+    <value>GPU temperature</value>
+  </data>
+  <data name="OverlayTemp" xml:space="preserve">
+    <value>GPU temp</value>
+  </data>
+  <data name="OverlayMem" xml:space="preserve">
+    <value>Memory</value>
+  </data>
+  <data name="OverlayNotice" xml:space="preserve">
+    <value>FPS, frame statistics and temperature show real values once the M2/M3 capture pipelines are connected. The overlay is topmost and click-through.</value>
+  </data>
+  <data name="TrayOverlay" xml:space="preserve">
+    <value>Desktop overlay</value>
   </data>
 </root>

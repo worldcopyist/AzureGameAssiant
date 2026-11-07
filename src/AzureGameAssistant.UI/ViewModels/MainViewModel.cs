@@ -61,6 +61,16 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     public bool IsConnectedToCollector => _connected;
 
+    public bool ShowCpuChart => _settings.Charts.Cpu;
+
+    public bool ShowGpuChart => _settings.Charts.Gpu;
+
+    public bool ShowMemoryChart => _settings.Charts.Memory;
+
+    public bool ShowVramChart => _settings.Charts.Vram;
+
+    public bool ShowDiskChart => _settings.Charts.Disk;
+
     public bool HasCollectorProblem =>
         _launcher.State is CollectorState.Missing or CollectorState.Failed ||
         (!_connected && _launcher.State == CollectorState.Stopped);
@@ -84,6 +94,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private string _memorySub = string.Empty;
+
+    [ObservableProperty]
+    private string _vramValue = "—";
+
+    [ObservableProperty]
+    private string _vramSub = string.Empty;
 
     [ObservableProperty]
     private string _diskValue = "—";
@@ -203,11 +219,15 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         CpuSub = _loc.Format("CpuFrequencySub", sample.CpuFrequencyPct.ToString("F0"));
         GpuValue = sample.GpuUtilPct.ToString("F1") + "%";
         GpuSub = _loc.Format("GpuMemorySub", sample.GpuDedicatedMb.ToString());
-        MemoryValue = (sample.MemAvailableMb / 1024.0).ToString("F1") + " GB";
+        MemoryValue = TelemetryMath.MemoryUsagePct(sample).ToString("F1") + "%";
         MemorySub = _loc.Format(
             "MemorySub",
             (sample.MemCommitMb / 1024.0).ToString("F1"),
             (sample.MemCommitLimitMb / 1024.0).ToString("F1"));
+        VramValue = sample.GpuDedicatedMb > 0 ? FormatMegabytes(sample.GpuDedicatedMb) : _loc["NotAvailable"];
+        VramSub = TelemetryMath.TryGetVramTotalMb(sample, out double vramTotal)
+            ? _loc.Format("VramTotalSub", (vramTotal / 1024.0).ToString("F1"))
+            : _loc["VramSub"];
         DiskValue = sample.DiskBusyPct.ToString("F1") + "%";
         DiskSub = _loc.Format("DiskSub", sample.DiskLatencyMs.ToString("F0"));
         JitterValue = sample.TimerJitterMs.ToString("F2") + " ms";
@@ -299,6 +319,48 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             ? _telemetry.HeartbeatAgeMs.ToString("F0") + " ms"
             : _loc["NotAvailable"];
     }
+
+    public OverlayData GetOverlayData()
+    {
+        SampleRecord sample = _telemetry.Latest;
+        bool hasSample = _telemetry.Count > 0;
+
+        bool hasTemperature = false;
+        double temperature = 0;
+        double vramTotal = 0;
+        if (hasSample)
+        {
+            hasTemperature = TelemetryMath.TryGetGpuTemperature(sample, out temperature);
+            TelemetryMath.TryGetVramTotalMb(sample, out vramTotal);
+        }
+
+        return new OverlayData(
+            HasSample: hasSample,
+            HasFrames: false,
+            Fps: 0,
+            AverageFps: 0,
+            LowFps: 0,
+            CpuPct: hasSample ? sample.CpuUtilityPct : 0,
+            GpuPct: hasSample ? sample.GpuUtilPct : 0,
+            HasTemperature: hasTemperature,
+            TemperatureC: temperature,
+            MemoryPct: hasSample ? TelemetryMath.MemoryUsagePct(sample) : 0,
+            VramMb: hasSample ? sample.GpuDedicatedMb : 0,
+            VramTotalMb: vramTotal);
+    }
+
+    public void RefreshDisplaySettings()
+    {
+        OnPropertyChanged(nameof(ShowCpuChart));
+        OnPropertyChanged(nameof(ShowGpuChart));
+        OnPropertyChanged(nameof(ShowMemoryChart));
+        OnPropertyChanged(nameof(ShowVramChart));
+        OnPropertyChanged(nameof(ShowDiskChart));
+    }
+
+    private static string FormatMegabytes(double megabytes) => megabytes >= 1024
+        ? (megabytes / 1024.0).ToString("F1") + " GB"
+        : megabytes.ToString("F0") + " MB";
 
     private static string FormatUptime(double seconds)
     {

@@ -15,4 +15,6 @@
     <SolidColorBrush x:Key="ChartCpuBrush" Color="#2F8BFF" />
     <SolidColorBrush x:Key="ChartGpuBrush" Color="#1F9D55" />
     <SolidColorBrush x:Key="ChartMemBrush" Color="#E08A00" />
+    <SolidColorBrush x:Key="ChartVramBrush" Color="#7C5CE0" />
+    <SolidColorBrush x:Key="ChartDiskBrush" Color="#0F9C8A" />
 </ResourceDictionary>

@@ -17,6 +17,8 @@ public sealed class AppSettings
     public SessionSettings Sessions { get; set; } = new();
     public GameDetectionSettings GameDetection { get; set; } = new();
     public AiSettings Ai { get; set; } = new();
+    public ChartSettings Charts { get; set; } = new();
+    public OverlaySettings Overlay { get; set; } = new();
 
     public void Normalize()
     {
@@ -85,6 +87,34 @@ public sealed class AppSettings
             .Distinct(StringComparer.Ordinal)
             .ToList();
 
+        Charts ??= new ChartSettings();
+        if (!Charts.Cpu && !Charts.Gpu && !Charts.Memory && !Charts.Vram && !Charts.Disk)
+        {
+            Charts.Cpu = true;
+        }
+
+        Overlay ??= new OverlaySettings();
+        Overlay.Corner = Overlay.Corner?.Trim().ToLowerInvariant() switch
+        {
+            "topleft" => "TopLeft",
+            "topright" => "TopRight",
+            "bottomleft" => "BottomLeft",
+            _ => "BottomRight",
+        };
+        Overlay.OffsetX = Math.Clamp(Overlay.OffsetX, 0, 4_000);
+        Overlay.OffsetY = Math.Clamp(Overlay.OffsetY, 0, 4_000);
+        if (!Overlay.ShowFps &&
+            !Overlay.ShowFrameTimes &&
+            !Overlay.ShowCpu &&
+            !Overlay.ShowGpu &&
+            !Overlay.ShowTemperature &&
+            !Overlay.ShowMemory &&
+            !Overlay.ShowVram)
+        {
+            Overlay.ShowCpu = true;
+            Overlay.ShowGpu = true;
+        }
+
         Ai ??= new AiSettings();
         Ai.AutoAnalyzeMinScore = Math.Clamp(Ai.AutoAnalyzeMinScore, 0, 100);
         Ai.DailyBudget = Math.Max(0, Ai.DailyBudget);
@@ -151,6 +181,30 @@ public sealed class SensorSettings
 {
     public bool Enabled { get; set; }
     public int IntervalMs { get; set; } = 1_000;
+}
+
+public sealed class ChartSettings
+{
+    public bool Cpu { get; set; } = true;
+    public bool Gpu { get; set; } = true;
+    public bool Memory { get; set; } = true;
+    public bool Vram { get; set; } = true;
+    public bool Disk { get; set; }
+}
+
+public sealed class OverlaySettings
+{
+    public bool Enabled { get; set; } = true;
+    public string Corner { get; set; } = "BottomRight";
+    public int OffsetX { get; set; } = 16;
+    public int OffsetY { get; set; } = 16;
+    public bool ShowFps { get; set; } = true;
+    public bool ShowFrameTimes { get; set; } = true;
+    public bool ShowCpu { get; set; } = true;
+    public bool ShowGpu { get; set; } = true;
+    public bool ShowTemperature { get; set; } = true;
+    public bool ShowMemory { get; set; } = true;
+    public bool ShowVram { get; set; }
 }
 
 public sealed class SessionSettings

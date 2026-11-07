@@ -6,9 +6,20 @@ using AzureGameAssistant.UI.Services;
 
 namespace AzureGameAssistant.UI.Controls;
 
+public enum ChartMetric
+{
+    Combined,
+    Cpu,
+    Gpu,
+    Memory,
+    Vram,
+    Disk,
+}
+
 /// <summary>
 /// Custom painted timeline. Each pixel column aggregates the min/max of its time
-/// slice, so spikes survive downsampling without a charting dependency.
+/// slice, so spikes survive downsampling without a charting dependency. A single
+/// metric can be isolated for the per-hardware chart cards.
 /// </summary>
 public sealed class TimelineChart : FrameworkElement
 {
@@ -30,28 +41,27 @@ public sealed class TimelineChart : FrameworkElement
     private static readonly Brush FallbackCpu = Frozen(Color.FromRgb(0x2F, 0x8B, 0xFF));
     private static readonly Brush FallbackGpu = Frozen(Color.FromRgb(0x1F, 0x9D, 0x55));
     private static readonly Brush FallbackMem = Frozen(Color.FromRgb(0xE0, 0x8A, 0x00));
+    private static readonly Brush FallbackVram = Frozen(Color.FromRgb(0x7C, 0x5C, 0xE0));
+    private static readonly Brush FallbackDisk = Frozen(Color.FromRgb(0x0F, 0x9C, 0x8A));
     private static readonly Dictionary<(Brush, double), Pen> PenCache = new();
     private static readonly Dictionary<Brush, Pen> BandPenCache = new();
 
     private readonly List<Point> _linePoints = new(1200);
     private readonly List<Point> _bandPoints = new(1200);
+    private readonly Geometry?[] _lines = new Geometry?[5];
+    private readonly Geometry?[] _bands = new Geometry?[5];
+    private readonly double[] _seriesMax = new double[5];
 
     private SampleRecord[] _samples = Array.Empty<SampleRecord>();
     private int _count;
     private float[] _minValues = Array.Empty<float>();
     private float[] _maxValues = Array.Empty<float>();
 
+    private ChartMetric _metric = ChartMetric.Combined;
     private double _windowSeconds = 60;
     private double _panSeconds;
     private int _version;
 
-    private Geometry? _cpuLine;
-    private Geometry? _cpuBand;
-    private Geometry? _gpuLine;
-    private Geometry? _gpuBand;
-    private Geometry? _memLine;
-    private Geometry? _memBand;
-    private double _memMax = 1024;
     private RenderKey _lastKey;
 
     private Rect _plot;
@@ -67,6 +77,21 @@ public sealed class TimelineChart : FrameworkElement
         SnapsToDevicePixels = true;
         Focusable = false;
         Cursor = System.Windows.Input.Cursors.Cross;
+    }
+
+    public ChartMetric Metric
+    {
+        get => _metric;
+        set
+        {
+            if (_metric == value)
+            {
+                return;
+            }
+
+            _metric = value;
+            InvalidateVisual();
+        }
     }
 
     public double WindowSeconds
@@ -112,7 +137,8 @@ public sealed class TimelineChart : FrameworkElement
         var bounds = new Rect(RenderSize);
         dc.DrawRectangle(Brushes.Transparent, null, bounds);
 
-        if (bounds.Width < 120 || bounds.Height < 140)
+        bool combined = _metric == ChartMetric.Combined;
+        if (bounds.Width < 120 || bounds.Height < (combined ? 140 : 70))
         {
             return;
         }
@@ -134,26 +160,36 @@ public sealed class TimelineChart : FrameworkElement
         double endTicks = _samples[_count - 1].UtcTicks - (_panSeconds * TimeSpan.TicksPerSecond);
         double startTicks = endTicks - (_windowSeconds * TimeSpan.TicksPerSecond);
 
-        var key = new RenderKey((int)_plot.Width, (int)_plot.Height, _windowSeconds, _panSeconds, _version);
+        var key = new RenderKey((int)_plot.Width, (int)_plot.Height, _windowSeconds, _panSeconds, _version, _metric);
         if (key != _lastKey)
         {
             Rebuild(key, startTicks, endTicks);
             _lastKey = key;
         }
 
-        DrawTrack(dc, TrackRect(0), _cpuLine, _cpuBand, "100%", "0%", "ChartCpuBrush", FallbackCpu);
-        DrawTrack(dc, TrackRect(1), _gpuLine, _gpuBand, "100%", "0%", "ChartGpuBrush", FallbackGpu);
-
-        string memTop = _memMax.ToString("F0") + " MB";
-        DrawTrack(dc, TrackRect(2), _memLine, _memBand, memTop, "0", "ChartMemBrush", FallbackMem);
+        if (_metric == ChartMetric.Combined)
+        {
+            DrawMetric(dc, TrackRect(0, 3), 0);
+            DrawMetric(dc, TrackRect(1, 3), 1);
+            DrawMetric(dc, TrackRect(2, 3), 2);
+        }
+        else
+        {
+            DrawMetric(dc, TrackRect(0, 1), MetricIndex(_metric));
+        }
 
         DrawTimeAxis(dc, startTicks, endTicks);
         DrawHover(dc, startTicks, endTicks);
     }
 
-    private Rect TrackRect(int index)
+    private Rect TrackRect(int index, int count)
     {
-        double height = (_plot.Height - (TrackGap * 2)) / 3;
+        if (count <= 1)
+        {
+            return _plot;
+        }
+
+        double height = (_plot.Height - (TrackGap * (count - 1))) / count;
         return new Rect(_plot.Left, _plot.Top + (index * (height + TrackGap)), _plot.Width, height);
     }
 
@@ -163,11 +199,62 @@ public sealed class TimelineChart : FrameworkElement
         int width = Math.Max(1, key.Width - 1);
         EnsureBuffers(width);
 
-        _cpuLine = BuildSeries(TrackRect(0), startTicks, span, width, static s => s.CpuUtilityPct, 100, out _cpuBand);
-        _gpuLine = BuildSeries(TrackRect(1), startTicks, span, width, static s => s.GpuUtilPct, 100, out _gpuBand);
+        if (_metric == ChartMetric.Combined)
+        {
+            BuildMetric(0, TrackRect(0, 3), startTicks, endTicks, span, width);
+            BuildMetric(1, TrackRect(1, 3), startTicks, endTicks, span, width);
+            BuildMetric(2, TrackRect(2, 3), startTicks, endTicks, span, width);
+        }
+        else
+        {
+            BuildMetric(MetricIndex(_metric), TrackRect(0, 1), startTicks, endTicks, span, width);
+        }
+    }
 
-        _memMax = Math.Max(512, Math.Ceiling(WindowMemoryMax(startTicks, endTicks) / 512.0) * 512);
-        _memLine = BuildSeries(TrackRect(2), startTicks, span, width, static s => s.MemAvailableMb, _memMax, out _memBand);
+    private void BuildMetric(int index, Rect rect, double startTicks, double endTicks, double span, int width)
+    {
+        switch (index)
+        {
+            case 0:
+                _seriesMax[0] = 100;
+                _lines[0] = BuildSeries(rect, startTicks, span, width, static s => s.CpuUtilityPct, 100, out Geometry cpuBand);
+                _bands[0] = cpuBand;
+                break;
+
+            case 1:
+                _seriesMax[1] = 100;
+                _lines[1] = BuildSeries(rect, startTicks, span, width, static s => s.GpuUtilPct, 100, out Geometry gpuBand);
+                _bands[1] = gpuBand;
+                break;
+
+            case 2:
+                _seriesMax[2] = 100;
+                _lines[2] = BuildSeries(
+                    rect,
+                    startTicks,
+                    span,
+                    width,
+                    static s => TelemetryMath.MemoryUsagePct(s),
+                    100,
+                    out Geometry memBand);
+                _bands[2] = memBand;
+                break;
+
+            case 3:
+                double vramMax = Math.Max(
+                    256,
+                    Math.Ceiling(WindowMaximum(startTicks, endTicks, static s => s.GpuDedicatedMb) / 256.0) * 256);
+                _seriesMax[3] = vramMax;
+                _lines[3] = BuildSeries(rect, startTicks, span, width, static s => s.GpuDedicatedMb, vramMax, out Geometry vramBand);
+                _bands[3] = vramBand;
+                break;
+
+            default:
+                _seriesMax[4] = 100;
+                _lines[4] = BuildSeries(rect, startTicks, span, width, static s => s.DiskBusyPct, 100, out Geometry diskBand);
+                _bands[4] = diskBand;
+                break;
+        }
     }
 
     private Geometry BuildSeries(
@@ -300,19 +387,29 @@ public sealed class TimelineChart : FrameworkElement
         return line;
     }
 
-    private double WindowMemoryMax(double startTicks, double endTicks)
+    private double WindowMaximum(double startTicks, double endTicks, Func<SampleRecord, double> selector)
     {
         double max = 0;
         for (int i = 0; i < _count; i++)
         {
             SampleRecord sample = _samples[i];
-            if (sample.UtcTicks >= startTicks && sample.UtcTicks <= endTicks && sample.MemAvailableMb > max)
+            if (sample.UtcTicks >= startTicks && sample.UtcTicks <= endTicks)
             {
-                max = sample.MemAvailableMb;
+                max = Math.Max(max, selector(sample));
             }
         }
 
         return max;
+    }
+
+    private void DrawMetric(DrawingContext dc, Rect rect, int index)
+    {
+        string top = index == 3
+            ? _seriesMax[3].ToString("F0", CultureInfo.CurrentUICulture) + " MB"
+            : "100%";
+        string bottom = index == 3 ? "0" : "0%";
+
+        DrawTrack(dc, rect, _lines[index], _bands[index], top, bottom, BrushKey(index), Fallback(index));
     }
 
     private void DrawTrack(
@@ -353,9 +450,18 @@ public sealed class TimelineChart : FrameworkElement
         LocalizationService loc = LocalizationService.Instance;
         double x = LeftGutter;
         double y = 2;
-        x = DrawLegendItem(dc, x, y, loc["Cpu"], GetBrush("ChartCpuBrush", FallbackCpu));
-        x = DrawLegendItem(dc, x, y, loc["Gpu"], GetBrush("ChartGpuBrush", FallbackGpu));
-        DrawLegendItem(dc, x, y, loc["Memory"], GetBrush("ChartMemBrush", FallbackMem));
+
+        if (_metric == ChartMetric.Combined)
+        {
+            x = DrawLegendItem(dc, x, y, loc["Cpu"], GetBrush("ChartCpuBrush", FallbackCpu));
+            x = DrawLegendItem(dc, x, y, loc["Gpu"], GetBrush("ChartGpuBrush", FallbackGpu));
+            DrawLegendItem(dc, x, y, loc["Memory"], GetBrush("ChartMemBrush", FallbackMem));
+        }
+        else
+        {
+            int index = MetricIndex(_metric);
+            DrawLegendItem(dc, x, y, loc[LegendKey(index)], GetBrush(BrushKey(index), Fallback(index)));
+        }
 
         if (_panSeconds > 0.5)
         {
@@ -421,11 +527,11 @@ public sealed class TimelineChart : FrameworkElement
         Brush lineBrush = GetBrush("TextSecondaryBrush", FallbackText);
         dc.DrawLine(GetPen(lineBrush, 1), new Point(hover.X, _plot.Top), new Point(hover.X, _plot.Bottom));
 
-        LocalizationService loc = LocalizationService.Instance;
-        string text = string.Create(
-            CultureInfo.CurrentUICulture,
-            $"{FormatTime(sample.UtcTicks)}\nCPU {sample.CpuUtilityPct:F1}%   GPU {sample.GpuUtilPct:F1}%\n{loc["Memory"]} {sample.MemAvailableMb / 1024.0:F1} GB");
+        string detail = _metric == ChartMetric.Combined
+            ? DescribeSample(sample, 0) + "\n" + DescribeSample(sample, 1) + "\n" + DescribeSample(sample, 2)
+            : DescribeSample(sample, MetricIndex(_metric));
 
+        string text = FormatTime(sample.UtcTicks) + "\n" + detail;
         FormattedText formatted = Format(text, GetBrush("TextPrimaryBrush", FallbackText), 11);
         double width = formatted.Width + 14;
         double height = formatted.Height + 10;
@@ -445,6 +551,40 @@ public sealed class TimelineChart : FrameworkElement
 
         dc.DrawText(formatted, new Point(left + 7, top + 5));
     }
+
+    private string DescribeSample(in SampleRecord sample, int index)
+    {
+        LocalizationService loc = LocalizationService.Instance;
+
+        switch (index)
+        {
+            case 0:
+                return $"CPU {sample.CpuUtilityPct:F1}%";
+
+            case 1:
+                return $"GPU {sample.GpuUtilPct:F1}%";
+
+            case 2:
+                return $"{loc["Memory"]} {TelemetryMath.MemoryUsagePct(sample):F1}%  " +
+                       $"{FormatMb(sample.MemCommitMb)} / {FormatMb(sample.MemCommitLimitMb)}";
+
+            case 3:
+                string vram = $"{loc["Vram"]} {FormatMb(sample.GpuDedicatedMb)}";
+                if (TelemetryMath.TryGetVramTotalMb(sample, out double total))
+                {
+                    vram += $" / {FormatMb(total)}";
+                }
+
+                return vram;
+
+            default:
+                return $"{loc["Disk"]} {sample.DiskBusyPct:F1}%";
+        }
+    }
+
+    private static string FormatMb(double megabytes) => megabytes >= 1024
+        ? (megabytes / 1024.0).ToString("F1", CultureInfo.CurrentUICulture) + " GB"
+        : megabytes.ToString("F0", CultureInfo.CurrentUICulture) + " MB";
 
     private void OnHoverChanged(Point point)
     {
@@ -583,6 +723,43 @@ public sealed class TimelineChart : FrameworkElement
 
     private Brush GetBrush(string key, Brush fallback) => TryFindResource(key) as Brush ?? fallback;
 
+    private static int MetricIndex(ChartMetric metric) => metric switch
+    {
+        ChartMetric.Cpu => 0,
+        ChartMetric.Gpu => 1,
+        ChartMetric.Memory => 2,
+        ChartMetric.Vram => 3,
+        ChartMetric.Disk => 4,
+        _ => 0,
+    };
+
+    private static string LegendKey(int index) => index switch
+    {
+        0 => "Cpu",
+        1 => "Gpu",
+        2 => "Memory",
+        3 => "Vram",
+        _ => "Disk",
+    };
+
+    private static string BrushKey(int index) => index switch
+    {
+        0 => "ChartCpuBrush",
+        1 => "ChartGpuBrush",
+        2 => "ChartMemBrush",
+        3 => "ChartVramBrush",
+        _ => "ChartDiskBrush",
+    };
+
+    private static Brush Fallback(int index) => index switch
+    {
+        0 => FallbackCpu,
+        1 => FallbackGpu,
+        2 => FallbackMem,
+        3 => FallbackVram,
+        _ => FallbackDisk,
+    };
+
     private static Pen GetPen(Brush brush, double thickness)
     {
         if (!PenCache.TryGetValue((brush, thickness), out Pen? pen))
@@ -620,5 +797,11 @@ public sealed class TimelineChart : FrameworkElement
         return brush;
     }
 
-    private readonly record struct RenderKey(int Width, int Height, double WindowSeconds, double PanSeconds, int Version);
+    private readonly record struct RenderKey(
+        int Width,
+        int Height,
+        double WindowSeconds,
+        double PanSeconds,
+        int Version,
+        ChartMetric Metric);
 }

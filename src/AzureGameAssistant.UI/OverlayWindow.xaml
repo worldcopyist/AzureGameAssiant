@@ -1,0 +1,31 @@
+<Window x:Class="AzureGameAssistant.UI.OverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Azure Game Assistant Overlay"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ShowInTaskbar="False" ShowActivated="False" Topmost="True"
+        ResizeMode="NoResize" SizeToContent="WidthAndHeight"
+        WindowStartupLocation="Manual"
+        Focusable="False" IsHitTestVisible="False"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
+        Opacity="0.94">
+    <Window.Resources>
+        <Style x:Key="OverlayLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Foreground" Value="#9AA8B8" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="OverlayValue" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#F2F6FA" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+        </Style>
+    </Window.Resources>
+
+    <Border Background="#D9121822" BorderBrush="#40FFFFFF" BorderThickness="1"
+            CornerRadius="8" Padding="10,7">
+        <StackPanel x:Name="Rows" />
+    </Border>
+</Window>

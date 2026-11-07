@@ -3,7 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:svc="clr-namespace:AzureGameAssistant.UI.Services"
         Title="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[SettingsTitle]}"
-        Width="560" Height="660" MinWidth="520" MinHeight="520"
+        Icon="pack://application:,,,/Assets/app-icon.ico"
+        Width="580" Height="780" MinWidth="540" MinHeight="560"
         Background="{DynamicResource WindowBackgroundBrush}"
         Foreground="{DynamicResource TextPrimaryBrush}"
         WindowStartupLocation="CenterOwner"
@@ -42,6 +43,23 @@
                 </Border>
 
                 <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,8"
+                           Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartsSection]}" />
+                <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                    <WrapPanel>
+                        <CheckBox Margin="0,0,24,8" IsChecked="{Binding ChartCpu, Mode=TwoWay}"
+                                  Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartCpuToggle]}" />
+                        <CheckBox Margin="0,0,24,8" IsChecked="{Binding ChartGpu, Mode=TwoWay}"
+                                  Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartGpuToggle]}" />
+                        <CheckBox Margin="0,0,24,8" IsChecked="{Binding ChartMemory, Mode=TwoWay}"
+                                  Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartMemoryToggle]}" />
+                        <CheckBox Margin="0,0,24,8" IsChecked="{Binding ChartVram, Mode=TwoWay}"
+                                  Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartVramToggle]}" />
+                        <CheckBox Margin="0,0,24,8" IsChecked="{Binding ChartDisk, Mode=TwoWay}"
+                                  Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartDiskToggle]}" />
+                    </WrapPanel>
+                </Border>
+
+                <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,8"
                            Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[InterfaceSection]}" />
                 <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                     <Grid>
@@ -75,6 +93,66 @@
                                   IsChecked="{Binding AutoStart, Mode=TwoWay}"
                                   Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AutoStartLabel]}" />
                     </Grid>
+                </Border>
+
+                <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,8"
+                           Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[OverlaySection]}" />
+                <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                    <StackPanel>
+                        <CheckBox IsChecked="{Binding OverlayEnabled, Mode=TwoWay}"
+                                  Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[OverlayEnabled]}" />
+
+                        <Grid Margin="0,12,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[OverlayPosition]}" />
+                            <ComboBox Grid.Column="1" ItemsSource="{Binding OverlayCornerOptions}"
+                                      DisplayMemberPath="Display" SelectedValuePath="Value"
+                                      SelectedValue="{Binding OverlayCorner, Mode=TwoWay}" />
+
+                            <TextBlock Grid.Row="1" Margin="0,10,0,0" VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[OverlayOffsetX]}" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Width="76" Margin="0,10,0,0"
+                                     Text="{Binding OverlayOffsetX, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBlock Grid.Row="2" Margin="0,10,0,0" VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[OverlayOffsetY]}" />
+                            <TextBox Grid.Row="2" Grid.Column="1" Width="76" Margin="0,10,0,0"
+                                     Text="{Binding OverlayOffsetY, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+
+                        <TextBlock Style="{StaticResource SectionTitle}" Margin="0,16,0,8"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[OverlayContent]}" />
+                        <WrapPanel>
+                            <CheckBox Margin="0,0,24,8" IsChecked="{Binding OverlayFps, Mode=TwoWay}"
+                                      Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[OverlayFps]}" />
+                            <CheckBox Margin="0,0,24,8" IsChecked="{Binding OverlayFrameTimes, Mode=TwoWay}"
+                                      Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[OverlayFrameTimes]}" />
+                            <CheckBox Margin="0,0,24,8" IsChecked="{Binding OverlayCpu, Mode=TwoWay}"
+                                      Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Cpu]}" />
+                            <CheckBox Margin="0,0,24,8" IsChecked="{Binding OverlayGpu, Mode=TwoWay}"
+                                      Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Gpu]}" />
+                            <CheckBox Margin="0,0,24,8" IsChecked="{Binding OverlayTemperature, Mode=TwoWay}"
+                                      Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[OverlayTemperature]}" />
+                            <CheckBox Margin="0,0,24,8" IsChecked="{Binding OverlayMemory, Mode=TwoWay}"
+                                      Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Memory]}" />
+                            <CheckBox Margin="0,0,24,8" IsChecked="{Binding OverlayVram, Mode=TwoWay}"
+                                      Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Vram]}" />
+                        </WrapPanel>
+
+                        <TextBlock Margin="0,4,0,0" FontSize="11" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[OverlayNotice]}" />
+                    </StackPanel>
                 </Border>
 
                 <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,8"

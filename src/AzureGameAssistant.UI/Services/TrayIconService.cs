@@ -15,6 +15,7 @@ public sealed class TrayIconService : IDisposable
 
     private readonly HwndSource _source;
     private readonly IntPtr _icon;
+    private readonly bool _ownsIcon;
     private string _tip = string.Empty;
     private bool _added;
     private bool _disposed;
@@ -24,8 +25,32 @@ public sealed class TrayIconService : IDisposable
         _source = HwndSource.FromHwnd(windowHandle)
             ?? throw new InvalidOperationException("主窗口句柄不可用");
         _source.AddHook(WndProc);
-        _icon = NativeMethods.LoadIconW(IntPtr.Zero, (IntPtr)NativeMethods.IdiApplication);
+        _icon = LoadApplicationIcon(out _ownsIcon);
         Add("Azure Game Assistant");
+    }
+
+    private static IntPtr LoadApplicationIcon(out bool owned)
+    {
+        owned = false;
+        string? executable = Environment.ProcessPath;
+        if (executable is not null &&
+            NativeMethods.ExtractIconExW(executable, 0, out IntPtr large, out IntPtr small, 1) > 0)
+        {
+            IntPtr chosen = small != IntPtr.Zero ? small : large;
+            IntPtr unused = chosen == small ? large : small;
+            if (unused != IntPtr.Zero)
+            {
+                NativeMethods.DestroyIcon(unused);
+            }
+
+            if (chosen != IntPtr.Zero)
+            {
+                owned = true;
+                return chosen;
+            }
+        }
+
+        return NativeMethods.LoadIconW(IntPtr.Zero, (IntPtr)NativeMethods.IdiApplication);
     }
 
     public event EventHandler? OpenRequested;
@@ -148,6 +173,11 @@ public sealed class TrayIconService : IDisposable
             NativeMethods.NotifyIconData data = CreateData(0);
             NativeMethods.ShellNotifyIcon(NativeMethods.NimDelete, ref data);
             _added = false;
+        }
+
+        if (_ownsIcon && _icon != IntPtr.Zero)
+        {
+            NativeMethods.DestroyIcon(_icon);
         }
     }
 }

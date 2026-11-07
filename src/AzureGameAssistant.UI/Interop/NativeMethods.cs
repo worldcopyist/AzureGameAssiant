@@ -24,6 +24,11 @@ internal static partial class NativeMethods
 
     public const int SwRestore = 9;
 
+    public const int GwlExStyle = -20;
+    public const int WsExTransparent = 0x00000020;
+    public const int WsExToolWindow = 0x00000080;
+    public const int WsExNoActivate = 0x08000000;
+
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     public unsafe struct NotifyIconData
     {
@@ -55,6 +60,19 @@ internal static partial class NativeMethods
 
     [LibraryImport("user32.dll", SetLastError = true)]
     public static partial IntPtr LoadIconW(IntPtr instance, IntPtr iconName);
+
+    [LibraryImport("shell32.dll", StringMarshalling = StringMarshalling.Utf16)]
+    public static partial uint ExtractIconExW(string file, int index, out IntPtr large, out IntPtr small, uint count);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool DestroyIcon(IntPtr icon);
+
+    [LibraryImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)]
+    public static partial IntPtr GetWindowLongPtrW(IntPtr window, int index);
+
+    [LibraryImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
+    public static partial IntPtr SetWindowLongPtrW(IntPtr window, int index, IntPtr value);
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

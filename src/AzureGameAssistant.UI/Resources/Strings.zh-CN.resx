@@ -64,7 +64,7 @@
     <value>GPU</value>
   </data>
   <data name="Memory" xml:space="preserve">
-    <value>可用内存</value>
+    <value>内存</value>
   </data>
   <data name="Disk" xml:space="preserve">
     <value>磁盘占用</value>
@@ -239,5 +239,89 @@
   </data>
   <data name="History" xml:space="preserve">
     <value>历史</value>
+  </data>
+  <data name="Vram" xml:space="preserve">
+    <value>显存</value>
+  </data>
+  <data name="VramSub" xml:space="preserve">
+    <value>专用显存</value>
+  </data>
+  <data name="VramTotalSub" xml:space="preserve">
+    <value>共 {0} GB</value>
+  </data>
+  <data name="ChartsSection" xml:space="preserve">
+    <value>折线图</value>
+  </data>
+  <data name="ChartCpuToggle" xml:space="preserve">
+    <value>CPU 占用折线图</value>
+  </data>
+  <data name="ChartGpuToggle" xml:space="preserve">
+    <value>GPU 占用折线图</value>
+  </data>
+  <data name="ChartMemoryToggle" xml:space="preserve">
+    <value>内存占用折线图</value>
+  </data>
+  <data name="ChartVramToggle" xml:space="preserve">
+    <value>显存占用折线图</value>
+  </data>
+  <data name="ChartDiskToggle" xml:space="preserve">
+    <value>磁盘占用折线图</value>
+  </data>
+  <data name="OverlaySection" xml:space="preserve">
+    <value>桌面悬浮窗</value>
+  </data>
+  <data name="OverlayEnabled" xml:space="preserve">
+    <value>显示桌面悬浮窗</value>
+  </data>
+  <data name="OverlayPosition" xml:space="preserve">
+    <value>显示位置</value>
+  </data>
+  <data name="OverlayTopLeft" xml:space="preserve">
+    <value>左上角</value>
+  </data>
+  <data name="OverlayTopRight" xml:space="preserve">
+    <value>右上角</value>
+  </data>
+  <data name="OverlayBottomLeft" xml:space="preserve">
+    <value>左下角</value>
+  </data>
+  <data name="OverlayBottomRight" xml:space="preserve">
+    <value>右下角</value>
+  </data>
+  <data name="OverlayOffsetX" xml:space="preserve">
+    <value>水平边距（像素）</value>
+  </data>
+  <data name="OverlayOffsetY" xml:space="preserve">
+    <value>垂直边距（像素）</value>
+  </data>
+  <data name="OverlayContent" xml:space="preserve">
+    <value>显示内容</value>
+  </data>
+  <data name="OverlayFps" xml:space="preserve">
+    <value>帧率</value>
+  </data>
+  <data name="OverlayAvg" xml:space="preserve">
+    <value>平均帧</value>
+  </data>
+  <data name="OverlayLow" xml:space="preserve">
+    <value>1% Low 帧</value>
+  </data>
+  <data name="OverlayFrameTimes" xml:space="preserve">
+    <value>平均帧 / Low 帧</value>
+  </data>
+  <data name="OverlayTemperature" xml:space="preserve">
+    <value>GPU 温度</value>
+  </data>
+  <data name="OverlayTemp" xml:space="preserve">
+    <value>GPU 温度</value>
+  </data>
+  <data name="OverlayMem" xml:space="preserve">
+    <value>内存</value>
+  </data>
+  <data name="OverlayNotice" xml:space="preserve">
+    <value>FPS、帧统计与温度将在 M2/M3 采集链路接入后显示真实数据；悬浮窗始终置顶且不拦截鼠标。</value>
+  </data>
+  <data name="TrayOverlay" xml:space="preserve">
+    <value>桌面悬浮窗</value>
   </data>
 </root>

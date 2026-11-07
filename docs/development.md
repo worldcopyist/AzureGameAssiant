@@ -1094,18 +1094,18 @@ internal sealed record AiProviderProfile(
 ### 11.1 结构
 
 - `App.xaml`：资源、主题、全局异常处理。
-- `MainWindow`：实时概览卡片、时间轴、帧轨、事件列表、详情面板。
-- `EventDetailView`：本地报告 / AI 报告两个页签；帧证据区。
-- `AiConsentWindow`：首次开启、更换供应商、完整数据上传的确认与预览。
-- `SettingsWindow`：分页设置（采集、判定、帧、传感器、界面、存储、AI、关于）。
-- `FloatingBarWindow`：M3，置顶小条。
-- `AboutWindow`：版本、隐私声明、第三方许可证、日志目录入口。
+- `MainWindow`：六张概览卡片（CPU / GPU / 内存 / 显存 / 磁盘 / 定时抖动）、可开关的分指标折线图、Top-5 进程、采集状态；M2 增加事件列表与详情面板。
+- `OverlayWindow`：桌面悬浮数据窗（M1 基础版）；置顶、鼠标穿透、四角定位、内容项开关。
+- `EventDetailView`：本地报告 / AI 报告两个页签；帧证据区（M2）。
+- `AiConsentWindow`：首次开启、更换供应商、完整数据上传的确认与预览（M3）。
+- `SettingsWindow`：采样、折线图、界面、悬浮窗、关于；M2/M3 继续追加判定、帧、传感器、存储、AI 分组。
+- `AboutWindow`：M2/M3，版本、隐私声明、第三方许可证、日志目录入口。
 
 ### 11.2 MVVM
 
 - 使用 `CommunityToolkit.Mvvm` 的 `ObservableObject`、`RelayCommand`。
 - ViewModel 不直接引用 `System.Windows` 类型；服务通过构造函数注入（手写轻量容器，不引入 DI 框架）。
-- 采样刷新由 `DispatcherTimer`（500ms）驱动；窗口不可见时停止。
+- 采样刷新由 `App` 持有的 `DispatcherTimer`（500ms）驱动；主窗口可见或悬浮窗可见时运行，二者都隐藏时停止。
 - 所有 UI 更新合并到一次 `PropertyChanged` 批次，避免每字段刷新。
 - AI 请求通过 `CancellationTokenSource` 支持取消；结果通过 `Dispatcher` 回到 UI 线程。
 
@@ -1113,7 +1113,12 @@ internal sealed record AiProviderProfile(
 
 - `TimelineChart : FrameworkElement`，重写 `OnRender(DrawingContext)`。
 - 每个像素列取该列时间范围内采样的 min/max，绘制为竖线段 + 折线；事件标记绘制在独立层。
-- 帧轨作为独立子轨：frametime 折线 + 尖峰标记 + 显示空洞标记；与系统轨共用横轴。
+- `ChartMetric` 枚举（Combined / Cpu / Gpu / Memory / Vram / Disk）：单指标模式只画一条全高曲线，Combined 模式保留 CPU/GPU/内存三轨。
+- 主窗口使用 `UniformGrid` 承载五个独立图表卡；可见图数量 >1 时两列，仅 1 张时单列占满；图区可纵向滚动。
+- 纵轴口径：CPU/GPU/磁盘固定 0–100%；内存为提交占比 0–100%；显存按 MB 自动取整（256MB 粒度，最小 256MB）。
+- 每个图表卡头部显示指标名与当前值；单图模式图例只显示该指标；悬停提示按指标显示百分比或“已用 / 总量”。
+- 图表开关由 `settings.json` 的 `charts` 节点控制，设置保存后调用 `RefreshChart()` 重新绑定可见性并重排。
+- 帧轨（M2）作为独立子轨：frametime 折线 + 尖峰标记 + 显示空洞标记；与系统轨共用横轴。
 - 几何缓存：仅在数据或视口变化时重建 `StreamGeometry`；画笔/画刷静态冻结（`Freeze()`）。
 - 交互：滚轮缩放、左键拖动平移、悬停十字线与浮动提示、双击回到实时。
 - 渲染节流：非交互状态最多 10fps；窗口最小化/隐藏时停止定时器。
@@ -1124,15 +1129,19 @@ internal sealed record AiProviderProfile(
 - `Shell_NotifyIconW` + 隐藏窗口接收 `WM_*` 回调。
 - 右键菜单使用 WPF `ContextMenu`，在鼠标位置打开。
 - 通知使用托盘气泡（`NIF_INFO`）；系统关闭通知时改为托盘图标闪烁。
-- 菜单项：打开主界面、标记卡顿、暂停/恢复、静音通知、设置、退出。
+- 菜单项：打开主界面、标记卡顿、暂停/恢复、桌面悬浮窗开关、静音通知、设置、退出。
 - 深模式/浅模式在菜单顶部显示状态；点击可打开权限说明。
+- 托盘图标优先从当前 EXE 提取（`ExtractIconExW`），失败时回退 `IDI_APPLICATION`；窗口与 EXE 使用同一多尺寸 ICO。
 
-### 11.5 悬浮条（M3）
+### 11.5 桌面悬浮数据窗（M1 基础版）
 
-- 无边框、透明、`Topmost`、`ShowInTaskbar=false`。
-- 可拖动；位置按显示器保存；鼠标穿透通过 `WS_EX_TRANSPARENT` 切换。
-- 只显示 CPU / GPU / 内存数值、最近 frametime 与迷你曲线，复用时间轴降采样逻辑。
-- 不抢焦点：`ShowActivated=false`；避免在全屏独占游戏中强制置顶引发闪烁。
+- `OverlayWindow`：无边框、透明（`AllowsTransparency`）、`Topmost`、`ShowInTaskbar=false`、`ShowActivated=false`、`Focusable=false`。
+- Win32 扩展样式追加 `WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE`：鼠标穿透、不进入 Alt+Tab、不抢焦点。
+- 位置：`SystemParameters.WorkArea` 四角 + 水平/垂直偏移；`SizeChanged` 后重新定位；当前仅主显示器。
+- 内容：FPS、平均帧、1% Low、CPU、GPU、GPU 温度、内存、显存；按设置顺序生成行，缺失数据显示“—”。
+- 数据：主窗口与悬浮窗共用 `MainViewModel.GetOverlayData()` 与 500ms 刷新节拍；主窗口隐藏后计时器仍为悬浮窗运行。
+- 帧率、平均帧、Low 帧与温度字段已预留，M2 PresentMon / M3 LHM 接入后自动显示数值，无需改悬浮窗。
+- 托盘菜单与设置页均可开关；M3 再评估拖动、透明度与多显示器位置记忆。
 
 ### 11.6 国际化与主题
 
@@ -1148,6 +1157,7 @@ internal sealed record AiProviderProfile(
 - UI 是唯一写入方；采集进程启动时读取，之后只接收管道补丁。
 - 写入采用临时文件 + 原子替换；读取失败时备份为 `settings.corrupt-<timestamp>.json` 并回退默认值。
 - `schemaVersion` 与迁移函数集中管理。
+- 加载时归一化：悬浮窗角落名转 PascalCase；偏移量限制 0–4000；内容项全部关闭时强制打开 CPU 与 GPU，避免出现空窗口。
 
 ```json
 {
@@ -1202,6 +1212,26 @@ internal sealed record AiProviderProfile(
         "outputPricePerMillion": 0.0
       }
     ]
+  },
+  "charts": {
+    "cpu": true,
+    "gpu": true,
+    "memory": true,
+    "vram": true,
+    "disk": false
+  },
+  "overlay": {
+    "enabled": true,
+    "corner": "BottomRight",
+    "offsetX": 16,
+    "offsetY": 16,
+    "showFps": true,
+    "showFrameTimes": true,
+    "showCpu": true,
+    "showGpu": true,
+    "showTemperature": true,
+    "showMemory": true,
+    "showVram": false
   }
 }
 ```
@@ -1273,11 +1303,13 @@ AzureGameAssistant/
 │  ├─ AzureGameAssistant.Core/          # 数据模型、环形缓冲、判定、会话、设置、日志（无 UI 依赖）
 │  ├─ AzureGameAssistant.Collector/     # NativeAOT 采集进程
 │  ├─ AzureGameAssistant.Sensors/       # LHM 边车（可选）
-│  ├─ AzureGameAssistant.UI/            # WPF 界面 + AI 分析
+│  ├─ AzureGameAssistant.UI/            # WPF 界面 + AI 分析；Assets/app-icon.ico、OverlayWindow
 │  └─ AzureGameAssistant.Tests/         # xUnit 单元与集成测试
 ├─ build/
+│  ├─ make-icon.ps1
 │  ├─ measure.ps1
 │  ├─ package.ps1
+│  ├─ run-dev.ps1
 │  └─ version.props
 └─ artifacts/                           # 构建产物（git 忽略）
 ```
@@ -1310,6 +1342,9 @@ AzureGameAssistant/
 ```powershell
 dotnet restore AzureGameAssistant.sln
 dotnet build AzureGameAssistant.sln -c Release
+
+# 更换图标源图后重新生成多尺寸 ICO（16–256px，PNG 载荷）
+powershell -File build/make-icon.ps1 -Source <source.png>
 
 dotnet publish src/AzureGameAssistant.Collector/AzureGameAssistant.Collector.csproj `
   -c Release -r win-x64 -p:PublishAot=true -o artifacts/collector
@@ -1381,6 +1416,7 @@ AzureGameAssistant-<version>-win-x64/
 | 系统 | Win10 22H2、Win11 22H2+ |
 | 显卡 | NVIDIA、AMD、Intel 核显、混合显卡 |
 | 显示器 | 单屏、双屏、不同 DPI |
+| 悬浮窗 | 四角、偏移、内容开关、鼠标穿透、主窗口隐藏 |
 | 游戏状态 | DX11、DX12、无边框窗口、全屏独占 |
 | 权限 | 普通用户、管理员、Performance Log Users |
 | 模型 | 至少 3 家云 + Ollama / LM Studio |
