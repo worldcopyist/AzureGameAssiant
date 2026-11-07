@@ -1773,3 +1773,40 @@ Agent 配置示例（stdio）：
 
 - `McpServerTests` 覆盖版本协商、工具清单、通知无响应、协议错误码、未知工具、工具信封与 schema 边界。
 - 手工冒烟：`initialize` + `get_collector_status` 对运行中的采集进程返回 `sampleCount` / `frameCount` / `degraded`；`get_history` 返回聚合桶。
+
+## 22. 长时诊断记录
+
+### 22.1 目标与边界
+
+- 为长时间游戏实测（如三角洲行动数小时）保留可分析的连续性、帧率、资源与链路状态数据，用于后续优化可用性与测量准确性。
+- 默认关闭；只在用户勾选“记录长时运行诊断数据”后运行，记录间隔 5 / 10 / 30 秒，可在运行中切换（保存设置后自动开始/停止，不重启采集进程）。
+- 不记录窗口标题、命令行、完整路径、用户名与 API Key；只记录指标、帧统计、进程名与状态。
+- 体量有界：默认 5 秒间隔约 0.3–0.5 MB/小时；单会话只追加；每行 flush，进程被强杀时已写数据仍可读取。
+
+### 22.2 文件布局
+
+```
+%LOCALAPPDATA%\AzureGameAssistant\diagnostics\diag-YYYYMMDD-HHmmss\
+├─ context.json      # 应用/OS/CPU/GPU/内存、采样、传感器、帧、图表、悬浮窗与 AI 开关快照
+├─ samples.csv       # 每个记录间隔一行指标、帧统计与 UI 自身开销
+├─ processes.csv     # 每 30 秒 Top-5 进程（CPU/GPU/工作集）
+├─ events.jsonl      # 会话起止、采集连接/PID、帧状态、数据缺口、温度可用性变化
+└─ summary.txt       # 退出时生成：覆盖率、缺口、帧采集中断、帧率分位、温度覆盖、UI 进程统计
+```
+
+### 22.3 关键列
+
+- 采样：`sample_age_s`、`cpu_pct`、`cpu_freq_pct`、`gpu_pct`、`gpu_dedicated_mb`、`gpu_shared_mb`。
+- 内存：`mem_used_pct` / `mem_used_mb` / `mem_total_mb` / `mem_available_mb`（物理口径）、`commit_mb` / `commit_limit_mb`、`pagefile_pct`。
+- 磁盘/抖动：`disk_busy_pct`、`disk_latency_ms`、`jitter_ms`。
+- 帧：`fps_inst`、`fps_avg`、`fps_1low`、`fps_01low`、`frame_time_last_ms`、`frames_delta`、`spikes_delta`、`frames_fresh`。
+- 传感器：`gpu_temp_c`、`gpu_hotspot_c`、`cpu_temp_c`、`vram_used_mb`、`vram_total_mb`。
+- 链路：`collector_connected`、`heartbeat_ms`、`write_index`、`collector_pid`、`collector_error`、`frame_state`、`target_pid`、`frame_error`。
+- UI 自身：`ui_ws_mb`、`ui_private_mb`、`ui_cpu_pct`、`ui_handles`；`top1_*` 为当行 CPU 最高的进程。
+
+### 22.4 实现与验证
+
+- `DiagnosticsSnapshot`（Core.Diagnostics）由 `MainViewModel.CreateDiagnosticsSnapshot` 每个 500ms 刷新节拍组装；`LongRunRecorder` 负责节流写盘、状态变化事件与摘要。
+- `UiProcessProbe` 用差分 `TotalProcessorTime` 计算 UI 进程 CPU；不额外启动线程或计时器。
+- 设置页“诊断记录”提供开关、间隔与“打开记录目录”；`App` 在启动、设置保存与退出时管理记录器生命周期。
+- 测试：`LongRunRecorderTests` 覆盖行数/表头、CSV 转义、缺口事件、采集 PID 重启事件、摘要内容；`SettingsServiceTests` 覆盖默认值与持久化。

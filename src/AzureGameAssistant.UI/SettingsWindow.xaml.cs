@@ -150,13 +150,23 @@ public partial class SettingsWindow : Window
 
     private void OnOpenLogs(object sender, RoutedEventArgs e)
     {
+        OpenFolder(AppPaths.LogsDirectory);
+    }
+
+    private void OnOpenDiagnosticsFolder(object sender, RoutedEventArgs e)
+    {
+        OpenFolder(AppPaths.DiagnosticsDirectory);
+    }
+
+    private static void OpenFolder(string directory)
+    {
         try
         {
-            Directory.CreateDirectory(AppPaths.LogsDirectory);
+            Directory.CreateDirectory(directory);
             Process.Start(new ProcessStartInfo
             {
                 FileName = "explorer.exe",
-                Arguments = AppPaths.LogsDirectory,
+                Arguments = directory,
                 UseShellExecute = true,
             });
         }

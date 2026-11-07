@@ -12,6 +12,7 @@ public static class AppPaths
     public static string AiDirectory => Path.Combine(RootDirectory, "ai");
     public static string AiReportsDirectory => Path.Combine(AiDirectory, "reports");
     public static string AiUsagePath => Path.Combine(AiDirectory, "usage.json");
+    public static string DiagnosticsDirectory => Path.Combine(RootDirectory, "diagnostics");
 
     public static void EnsureDirectories()
     {
@@ -20,5 +21,6 @@ public static class AppPaths
         Directory.CreateDirectory(LogsDirectory);
         Directory.CreateDirectory(AiDirectory);
         Directory.CreateDirectory(AiReportsDirectory);
+        Directory.CreateDirectory(DiagnosticsDirectory);
     }
 }

@@ -22,6 +22,7 @@ public sealed class AppSettings
     public AiSettings Ai { get; set; } = new();
     public ChartSettings Charts { get; set; } = new();
     public OverlaySettings Overlay { get; set; } = new();
+    public DiagnosticsSettings Diagnostics { get; set; } = new();
 
     public void Normalize()
     {
@@ -101,6 +102,14 @@ public sealed class AppSettings
         {
             Charts.Cpu = true;
         }
+
+        Diagnostics ??= new DiagnosticsSettings();
+        Diagnostics.IntervalSeconds = Diagnostics.IntervalSeconds switch
+        {
+            < 7 => 5,
+            < 20 => 10,
+            _ => 30,
+        };
 
         Overlay ??= new OverlaySettings();
         Overlay.Corner = Overlay.Corner?.Trim().ToLowerInvariant() switch
@@ -225,6 +234,12 @@ public sealed class ChartSettings
     public bool Vram { get; set; } = true;
     public bool Disk { get; set; }
     public bool Frames { get; set; } = true;
+}
+
+public sealed class DiagnosticsSettings
+{
+    public bool LongRunRecord { get; set; }
+    public int IntervalSeconds { get; set; } = 5;
 }
 
 public sealed class OverlaySettings

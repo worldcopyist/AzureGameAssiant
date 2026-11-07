@@ -204,6 +204,21 @@
   <data name="NeedsRestart" xml:space="preserve">
     <value>Sampling changes apply after the collector restarts.</value>
   </data>
+  <data name="DiagnosticsSection" xml:space="preserve">
+    <value>Diagnostics</value>
+  </data>
+  <data name="LongRunRecordLabel" xml:space="preserve">
+    <value>Record long-run diagnostics</value>
+  </data>
+  <data name="LongRunIntervalLabel" xml:space="preserve">
+    <value>Sample interval (seconds)</value>
+  </data>
+  <data name="LongRunHint" xml:space="preserve">
+    <value>Writes a bounded CSV/event record under %LOCALAPPDATA%\AzureGameAssistant\diagnostics for later accuracy and usability tuning. Contains metrics, frame stats, process names and sensor coverage; never window titles, paths or API keys. A summary is written when the app exits.</value>
+  </data>
+  <data name="OpenDiagnosticsFolder" xml:space="preserve">
+    <value>Open record folder</value>
+  </data>
   <data name="AboutSection" xml:space="preserve">
     <value>About</value>
   </data>

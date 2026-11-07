@@ -4,6 +4,7 @@ using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AzureGameAssistant.Ai;
+using AzureGameAssistant.Core.Diagnostics;
 using AzureGameAssistant.Core.Frames;
 using AzureGameAssistant.Core.Models;
 using AzureGameAssistant.Core.Settings;
@@ -38,6 +39,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private long _lastFrameIndex = -1;
     private DateTime _lastFrameAt = DateTime.MinValue;
     private FrameStatsSnapshot _frameSnapshot;
+    private long _framesSeen;
+    private long _spikesSeen;
     private bool _connected;
     private bool _helloDone;
     private string _appVersion = string.Empty;
@@ -772,6 +775,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             {
                 FrameRecord frame = _frameBuffer[i];
                 bool spike = _frameStats.Add(frame.FrameTimeMs);
+                _framesSeen++;
+                if (spike)
+                {
+                    _spikesSeen++;
+                }
+
                 long utcTicks = anchor.QpcTicks > 0
                     ? FrameTimeline.ToUtcTicks(frame.QpcTicks, anchor.QpcTicks, anchor.UtcTicks, qpcTicksPerSecond)
                     : 0;
@@ -884,8 +893,83 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             : _loc["NotAvailable"];
     }
 
-    public OverlayData GetOverlayData()
+    /// <summary>
+    /// Snapshot for the long-run diagnostics recorder. Process names only, no
+    /// window titles or paths.
+    /// </summary>
+    public DiagnosticsSnapshot CreateDiagnosticsSnapshot(UiProcessMetrics ui)
     {
+        SampleRecord sample = _telemetry.Latest;
+        bool hasSample = _telemetry.Count > 0;
+
+        double gpuTemperature = 0;
+        double cpuTemperature = 0;
+        double vramTotal = 0;
+        bool hasGpuTemperature = hasSample && TelemetryMath.TryGetGpuTemperature(sample, out gpuTemperature);
+        bool hasCpuTemperature = hasSample && TelemetryMath.TryGetCpuTemperature(sample, out cpuTemperature);
+        if (hasSample)
+        {
+            TelemetryMath.TryGetVramTotalMb(sample, out vramTotal);
+        }
+
+        double gpuHotspot = hasSample && TelemetryMath.HasVendorData(sample) ? sample.V0.HotSpotC : 0;
+        double heartbeat = _telemetry.IsOpen && !double.IsInfinity(_telemetry.HeartbeatAgeMs)
+            ? _telemetry.HeartbeatAgeMs
+            : 0;
+
+        var processes = new List<ProcessDiagnostic>(5);
+        if (hasSample)
+        {
+            ProcessSlot[] slots = [sample.P0, sample.P1, sample.P2, sample.P3, sample.P4];
+            foreach (ProcessSlot slot in slots)
+            {
+                if (slot.Pid == 0)
+                {
+                    continue;
+                }
+
+                processes.Add(new ProcessDiagnostic(
+                    slot.Pid,
+                    _names.GetName(slot.Pid),
+                    slot.CpuPct,
+                    slot.GpuPct,
+                    slot.WorkingSetMb));
+            }
+        }
+
+        bool framesFresh = _frameSnapshot.FrameCount > 0 &&
+            (DateTime.UtcNow - _lastFrameAt).TotalSeconds < 2.0;
+
+        return new DiagnosticsSnapshot(
+            DateTime.UtcNow,
+            _uptimeSeconds,
+            _samplingIntervalMs,
+            hasSample,
+            sample,
+            _connected,
+            heartbeat,
+            _telemetry.WriteIndex,
+            _collectorPid,
+            _collectorError,
+            _frameState,
+            _frameTargetPid,
+            _frameError,
+            framesFresh,
+            _frameSnapshot,
+            _framesSeen,
+            _spikesSeen,
+            hasGpuTemperature,
+            gpuTemperature,
+            gpuHotspot,
+            hasCpuTemperature,
+            cpuTemperature,
+            sample.GpuDedicatedMb,
+            vramTotal,
+            ui,
+            processes);
+    }
+
+    public OverlayData GetOverlayData()    {
         SampleRecord sample = _telemetry.Latest;
         bool hasSample = _telemetry.Count > 0;
 

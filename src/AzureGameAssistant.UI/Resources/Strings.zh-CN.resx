@@ -204,6 +204,21 @@
   <data name="NeedsRestart" xml:space="preserve">
     <value>采样间隔变更将在采集进程重启后生效。</value>
   </data>
+  <data name="DiagnosticsSection" xml:space="preserve">
+    <value>诊断记录</value>
+  </data>
+  <data name="LongRunRecordLabel" xml:space="preserve">
+    <value>记录长时运行诊断数据</value>
+  </data>
+  <data name="LongRunIntervalLabel" xml:space="preserve">
+    <value>记录间隔（秒）</value>
+  </data>
+  <data name="LongRunHint" xml:space="preserve">
+    <value>在 %LOCALAPPDATA%\AzureGameAssistant\diagnostics 下按会话写入 CSV 与事件记录，用于后续优化可用性与测量准确性。只包含指标、帧统计、进程名与传感器覆盖情况，不含窗口标题、路径或 API Key；退出软件时生成 summary.txt。</value>
+  </data>
+  <data name="OpenDiagnosticsFolder" xml:space="preserve">
+    <value>打开记录目录</value>
+  </data>
   <data name="AboutSection" xml:space="preserve">
     <value>关于</value>
   </data>

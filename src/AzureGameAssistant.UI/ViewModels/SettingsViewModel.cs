@@ -42,6 +42,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         ChartVram = settings.Charts.Vram;
         ChartDisk = settings.Charts.Disk;
         ChartFrames = settings.Charts.Frames;
+        LongRunRecord = settings.Diagnostics.LongRunRecord;
+        LongRunIntervalSeconds = settings.Diagnostics.IntervalSeconds;
 
         OverlayEnabled = settings.Overlay.Enabled;
         OverlayCorner = settings.Overlay.Corner;
@@ -233,6 +235,14 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private bool _chartFrames;
 
+    public IReadOnlyList<int> LongRunIntervalOptions { get; } = [5, 10, 30];
+
+    [ObservableProperty]
+    private bool _longRunRecord;
+
+    [ObservableProperty]
+    private int _longRunIntervalSeconds = 5;
+
     [ObservableProperty]
     private bool _overlayEnabled;
 
@@ -388,6 +398,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         settings.Charts.Vram = ChartVram;
         settings.Charts.Disk = ChartDisk;
         settings.Charts.Frames = ChartFrames;
+        settings.Diagnostics.LongRunRecord = LongRunRecord;
+        settings.Diagnostics.IntervalSeconds = LongRunIntervalSeconds;
 
         settings.Overlay.Enabled = OverlayEnabled;
         settings.Overlay.Corner = OverlayCorner;

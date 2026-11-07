@@ -42,6 +42,8 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.False(result.Settings.Ai.Enabled);
         Assert.True(result.Settings.Charts.Cpu);
         Assert.False(result.Settings.Charts.Separate);
+        Assert.False(result.Settings.Diagnostics.LongRunRecord);
+        Assert.Equal(5, result.Settings.Diagnostics.IntervalSeconds);
         Assert.True(result.Settings.Overlay.Enabled);
         Assert.Equal("TopLeft", result.Settings.Overlay.Corner);
         Assert.Equal("Default", result.Settings.Overlay.Theme);
@@ -57,6 +59,8 @@ public sealed class SettingsServiceTests : IDisposable
         settings.Sampling.GameMs = 250;
         settings.Theme = "dark";
         settings.Charts.Separate = true;
+        settings.Diagnostics.LongRunRecord = true;
+        settings.Diagnostics.IntervalSeconds = 30;
         settings.GameDetection.Exclude.Add("obs.exe");
 
         service.Save(settings);
@@ -67,6 +71,8 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.Equal(250, result.Settings.Sampling.GameMs);
         Assert.Equal("Dark", result.Settings.Theme);
         Assert.True(result.Settings.Charts.Separate);
+        Assert.True(result.Settings.Diagnostics.LongRunRecord);
+        Assert.Equal(30, result.Settings.Diagnostics.IntervalSeconds);
         Assert.Contains("obs.exe", result.Settings.GameDetection.Exclude);
     }
 

@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
@@ -7,6 +8,8 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using AzureGameAssistant.Ai;
 using AzureGameAssistant.Core;
+using AzureGameAssistant.Core.Diagnostics;
+using AzureGameAssistant.Core.Hardware;
 using AzureGameAssistant.Core.Logging;
 using AzureGameAssistant.Core.Models;
 using AzureGameAssistant.Core.Settings;
@@ -36,6 +39,8 @@ public partial class App : Application
     private AiAnalysisService? _ai;
     private AiAnalysisWindow? _aiWindow;
     private DispatcherTimer? _timer;
+    private LongRunRecorder? _recorder;
+    private UiProcessProbe? _uiProbe;
     private bool _shuttingDown;
     private int _appliedNormalMs = 1_000;
     private int _appliedSensorIntervalMs = 1_000;
@@ -143,6 +148,8 @@ public partial class App : Application
 
         _launcher.Start();
 
+        StartLongRunRecorder();
+
         if (e.Args.Any(arg => string.Equals(arg, "--tray", StringComparison.OrdinalIgnoreCase)))
         {
             _window.Hide();
@@ -168,7 +175,138 @@ public partial class App : Application
 
         _window?.RefreshChart();
         _overlay?.Update(_viewModel.GetOverlayData());
+        RecordLongRunSample();
         UpdateTimerState();
+    }
+
+    private void RecordLongRunSample()
+    {
+        if (_recorder is null || _uiProbe is null || _viewModel is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _recorder.Record(_viewModel.CreateDiagnosticsSnapshot(_uiProbe.Sample()));
+        }
+        catch (Exception ex)
+        {
+            _logger?.Error("写入长时诊断记录失败", ex);
+        }
+    }
+
+    private void StartLongRunRecorder()
+    {
+        if (!_settings.Diagnostics.LongRunRecord || _recorder is not null)
+        {
+            return;
+        }
+
+        try
+        {
+            string directory = Path.Combine(
+                AppPaths.DiagnosticsDirectory,
+                "diag-" + DateTime.Now.ToString("yyyyMMdd-HHmmss"));
+            _recorder = new LongRunRecorder(directory, _settings.Diagnostics.IntervalSeconds, BuildDiagnosticsContext());
+            _uiProbe = new UiProcessProbe();
+            _logger?.Info("长时诊断记录开始：" + directory);
+        }
+        catch (Exception ex)
+        {
+            _logger?.Error("启动长时诊断记录失败", ex);
+            _recorder?.Dispose();
+            _recorder = null;
+            _uiProbe?.Dispose();
+            _uiProbe = null;
+        }
+    }
+
+    private void SyncLongRunRecorder()
+    {
+        bool wanted = _settings.Diagnostics.LongRunRecord;
+        if (wanted && _recorder is not null && _recorder.IntervalSeconds == _settings.Diagnostics.IntervalSeconds)
+        {
+            return;
+        }
+
+        StopLongRunRecorder("settings");
+        if (wanted)
+        {
+            StartLongRunRecorder();
+        }
+    }
+
+    private void StopLongRunRecorder(string reason)
+    {
+        if (_recorder is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _recorder.Stop(reason);
+        }
+        catch (Exception ex)
+        {
+            _logger?.Error("结束长时诊断记录失败", ex);
+        }
+
+        _recorder.Dispose();
+        _recorder = null;
+        _uiProbe?.Dispose();
+        _uiProbe = null;
+        _logger?.Info("长时诊断记录结束：" + reason);
+    }
+
+    private string BuildDiagnosticsContext()
+    {
+        SystemInventorySnapshot inventory = SystemInventory.Capture();
+        string version = typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.1.0";
+        var context = new
+        {
+            app = new { version, theme = _settings.Theme, language = _settings.Language, uiRenderMode = "software" },
+            os = inventory.Os,
+            cpu = inventory.Cpu,
+            logicalProcessors = inventory.LogicalProcessors,
+            physicalMemoryGb = inventory.MemoryGb,
+            gpu = inventory.Gpu,
+            gpuDriver = inventory.Driver,
+            sampling = new { normalMs = _settings.Sampling.NormalMs, gameMs = _settings.Sampling.GameMs },
+            sensors = new
+            {
+                enabled = _settings.Sensors.Enabled,
+                intervalMs = _settings.Sensors.IntervalMs,
+                cpuMode = _settings.Sensors.CpuMode,
+            },
+            frames = new
+            {
+                enabled = _settings.Frames.Enabled,
+                autoCapture = _settings.Frames.AutoCapture,
+                mode = _settings.Frames.Mode,
+            },
+            charts = new
+            {
+                separate = _settings.Charts.Separate,
+                cpu = _settings.Charts.Cpu,
+                gpu = _settings.Charts.Gpu,
+                memory = _settings.Charts.Memory,
+                vram = _settings.Charts.Vram,
+                disk = _settings.Charts.Disk,
+                frames = _settings.Charts.Frames,
+            },
+            overlay = new
+            {
+                enabled = _settings.Overlay.Enabled,
+                corner = _settings.Overlay.Corner,
+                theme = _settings.Overlay.Theme,
+            },
+            ai = new { enabled = _settings.Ai.Enabled },
+            diagnostics = new { intervalSeconds = _settings.Diagnostics.IntervalSeconds, schema = 1 },
+        };
+
+        return JsonSerializer.Serialize(context, new JsonSerializerOptions { WriteIndented = true });
     }
 
     private void UpdateTimerState()
@@ -356,6 +494,8 @@ public partial class App : Application
         {
             AutoStartService.SetEnabled(settings.AutoStart);
         }
+
+        SyncLongRunRecorder();
 
         if (restart)
         {
@@ -661,6 +801,7 @@ public partial class App : Application
         _logger?.Info("界面退出");
 
         _timer?.Stop();
+        StopLongRunRecorder("exit");
 
         if (_overlay is not null)
         {

@@ -345,6 +345,32 @@
                 </Border>
 
                 <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,8"
+                           Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[DiagnosticsSection]}" />
+                <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                    <StackPanel>
+                        <CheckBox IsChecked="{Binding LongRunRecord, Mode=TwoWay}"
+                                  Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[LongRunRecordLabel]}" />
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[LongRunIntervalLabel]}" />
+                            <ComboBox Grid.Column="1" MinWidth="90" ItemsSource="{Binding LongRunIntervalOptions}"
+                                      SelectedItem="{Binding LongRunIntervalSeconds, Mode=TwoWay}" />
+                        </Grid>
+                        <TextBlock Margin="0,8,0,0" FontSize="11" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[LongRunHint]}" />
+                        <Button Style="{StaticResource FlatButton}" Padding="8,2" Margin="0,10,0,0"
+                                HorizontalAlignment="Left"
+                                Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[OpenDiagnosticsFolder]}"
+                                Click="OnOpenDiagnosticsFolder" />
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,8"
                            Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AboutSection]}" />
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
