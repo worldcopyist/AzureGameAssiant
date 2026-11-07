@@ -22,7 +22,7 @@
 | 最新里程碑 | M2-0 PresentMon 版本锁定与 CLI 核验完成；M2-1 帧解析、帧统计与监督器完成；M2-2 悬浮窗帧显示完成；K-12 NativeAOT 与默认打包流程完成 |
 | 可运行产物 | `build/run-dev.ps1` 可启动；`build/package.ps1` 默认 AOT 流程可生成便携 ZIP（含 PresentMon） |
 | 代码分支 | `main`（`feat/m1-foundation` 已 squash 合入，分支保留） |
-| 当前提交 | `c69fb04 feat(ui): 悬浮窗接入帧率与低帧显示` |
+| 当前提交 | `f451778 build: 打通 NativeAOT 打包并校验 PresentMon 完整性` |
 | 未提交变更 | K-12 验证记录、打包布局与 PresentMon 哈希校验、交接/开发文档更新 |
 | 阻塞事项 | 3 款游戏 PresentMon 实测与反作弊评估待用户游戏环境；帧采集目标 PID 尚无界面入口（K-24） |
 
@@ -276,7 +276,7 @@ powershell -File build/package.ps1          # 默认 NativeAOT 便携包
 | 2026-11-07 | Qoder | 帧共享内存改为独立 seqlock，新增批量写帧与整批读取；补充布局测试，测试增至 36 项 | `feat(frames): 帧区独立 seqlock 与批量读写` |
 | 2026-11-07 | Qoder | 接入 PresentMon 监督器：job object、批写、退避与权限降级；采集进程按目标 PID 启动帧采集并发布能力位 | `feat(collector): 接入 PresentMon 监督器` |
 | 2026-11-07 | Qoder | 悬浮窗接入帧统计：增量读取帧区、FPS/平均帧/1% Low 显示与 2 秒失效；合成帧实机验证通过 | `feat(ui): 悬浮窗接入帧率与低帧显示` |
-| 2026-11-07 | Qoder | 完成 K-12：安装 VS C++ 工具链到 F 盘，打通 NativeAOT 发布与默认打包；修正 PresentMon 包内路径，增加打包与运行时哈希校验；AOT 浅模式专用工作集 10.1MB；测试增至 39 项 | 本次提交 |
+| 2026-11-07 | Qoder | 完成 K-12：安装 VS C++ 工具链到 F 盘，打通 NativeAOT 发布与默认打包；修正 PresentMon 包内路径，增加打包与运行时哈希校验；AOT 浅模式专用工作集 10.1MB；测试增至 39 项 | `f451778` |
 
 ## 10. 下次交接模板
 
