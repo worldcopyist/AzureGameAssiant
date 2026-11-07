@@ -79,6 +79,7 @@ public struct SharedHeader
     public long WriteSequence;
     public long WriteIndex;
     public long EventWriteIndex;
+    public long FrameWriteSequence;
     public long FrameWriteIndex;
     public long HeartbeatQpc;
     public int CollectorPid;

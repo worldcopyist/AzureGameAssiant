@@ -190,7 +190,7 @@
 - 名称：`Local\AzureGameAssistant.Telemetry.v2`
 - 大小：8MB（固定），创建时 `PAGE_READWRITE`，UI 以只读映射打开。
 - 结构：Header + Sample 环形数组 + Event 环形数组 + Frame 环形数组。
-- 同步：单写者 seqlock。写者将 `Sequence` 加 1（变奇数）→ 写入 → 再加 1（变偶数）；读者读两次序号，奇数或前后不一致则重试。
+- 同步：采样区与帧区各自独立 seqlock。写者将 `Sequence` 加 1（变奇数）→ 写入 → 再加 1（变偶数）；读者读两次序号，奇数或前后不一致则重试。帧按批写入，一次只取一次锁，避免逐帧加锁放大重试。
 
 ```csharp
 [StructLayout(LayoutKind.Sequential, Pack = 8)]
@@ -203,9 +203,10 @@ internal struct SharedHeader
     public int EventCapacity;       // 256
     public int FrameStride;
     public int FrameCapacity;       // 65536
-    public long WriteSequence;      // seqlock
+    public long WriteSequence;      // 采样区 seqlock
     public long WriteIndex;
     public long EventWriteIndex;
+    public long FrameWriteSequence; // 帧区 seqlock
     public long FrameWriteIndex;
     public long HeartbeatQpc;
     public int CollectorPid;

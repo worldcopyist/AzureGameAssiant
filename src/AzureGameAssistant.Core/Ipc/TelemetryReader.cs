@@ -17,6 +17,7 @@ public sealed unsafe class TelemetryReader : IDisposable
     private IntPtr _view;
     private SharedHeader* _header;
     private byte* _sampleBase;
+    private byte* _frameBase;
     private long _frequency;
 
     public bool IsOpen => _view != IntPtr.Zero;
@@ -66,6 +67,7 @@ public sealed unsafe class TelemetryReader : IDisposable
 
         _header = (SharedHeader*)_view;
         _sampleBase = (byte*)_view + TelemetryLayout.SampleRegionOffset;
+        _frameBase = (byte*)_view + TelemetryLayout.FrameRegionOffset;
 
         if (!TryReadHeader(out SharedHeader header) || !ValidateHeader(header))
         {
@@ -192,6 +194,89 @@ public sealed unsafe class TelemetryReader : IDisposable
         return 0;
     }
 
+    public bool TryReadLatestFrame(out FrameRecord frame)
+    {
+        frame = default;
+
+        if (_header == null)
+        {
+            return false;
+        }
+
+        for (int attempt = 0; attempt < ReadRetryLimit; attempt++)
+        {
+            long before = Volatile.Read(ref _header->FrameWriteSequence);
+            if ((before & 1) != 0)
+            {
+                Thread.SpinWait(64);
+                continue;
+            }
+
+            long writeIndex = Volatile.Read(ref _header->FrameWriteIndex);
+            if (writeIndex <= 0)
+            {
+                return false;
+            }
+
+            long slot = (writeIndex - 1) % TelemetryLayout.FrameCapacity;
+            FrameRecord copy = *(FrameRecord*)(_frameBase + (slot * TelemetryLayout.FrameStride));
+
+            long after = Volatile.Read(ref _header->FrameWriteSequence);
+            if (before == after && Volatile.Read(ref _header->FrameWriteIndex) == writeIndex)
+            {
+                frame = copy;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Copies the newest frames into <paramref name="destination"/>, oldest
+    /// first, using the frame region's own seqlock.
+    /// </summary>
+    public int ReadFrames(Span<FrameRecord> destination)
+    {
+        if (_header == null || destination.IsEmpty)
+        {
+            return 0;
+        }
+
+        for (int attempt = 0; attempt < ReadRetryLimit; attempt++)
+        {
+            long before = Volatile.Read(ref _header->FrameWriteSequence);
+            if ((before & 1) != 0)
+            {
+                Thread.SpinWait(128);
+                continue;
+            }
+
+            long writeIndex = Volatile.Read(ref _header->FrameWriteIndex);
+            int available = (int)Math.Min(writeIndex, TelemetryLayout.FrameCapacity);
+            int count = Math.Min(available, destination.Length);
+
+            for (int i = 0; i < count; i++)
+            {
+                long frameIndex = writeIndex - count + i;
+                long slot = frameIndex % TelemetryLayout.FrameCapacity;
+                var source = new ReadOnlySpan<byte>(
+                    _frameBase + (slot * TelemetryLayout.FrameStride),
+                    TelemetryLayout.FrameStride);
+
+                destination[i] = MemoryMarshal.Read<FrameRecord>(source);
+            }
+
+            long after = Volatile.Read(ref _header->FrameWriteSequence);
+            if (before == after && writeIndex == Volatile.Read(ref _header->FrameWriteIndex))
+            {
+                return count;
+            }
+        }
+
+        return 0;
+    }
+
     public long WriteIndex
     {
         get
@@ -202,6 +287,19 @@ public sealed unsafe class TelemetryReader : IDisposable
             }
 
             return Volatile.Read(ref _header->WriteIndex);
+        }
+    }
+
+    public long FrameWriteIndex
+    {
+        get
+        {
+            if (_header == null)
+            {
+                return 0;
+            }
+
+            return Volatile.Read(ref _header->FrameWriteIndex);
         }
     }
 
@@ -254,5 +352,6 @@ public sealed unsafe class TelemetryReader : IDisposable
 
         _header = null;
         _sampleBase = null;
+        _frameBase = null;
     }
 }

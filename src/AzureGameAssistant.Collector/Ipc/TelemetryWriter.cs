@@ -12,6 +12,7 @@ internal sealed unsafe class TelemetryWriter : IDisposable
     private IntPtr _view;
     private SharedHeader* _header;
     private byte* _sampleBase;
+    private byte* _frameBase;
 
     public TelemetryWriter(FileLogger logger, int samplingIntervalMs, int capabilityFlags)
     {
@@ -55,6 +56,7 @@ internal sealed unsafe class TelemetryWriter : IDisposable
         NativeMemory.Clear((void*)_view, TelemetryLayout.MapSize);
         _header = (SharedHeader*)_view;
         _sampleBase = (byte*)_view + TelemetryLayout.SampleRegionOffset;
+        _frameBase = (byte*)_view + TelemetryLayout.FrameRegionOffset;
 
         *_header = new SharedHeader
         {
@@ -92,8 +94,29 @@ internal sealed unsafe class TelemetryWriter : IDisposable
         Interlocked.Increment(ref _header->WriteSequence);
     }
 
-    public void Heartbeat(long qpc, int modeFlags)
+    public void WriteFrames(ReadOnlySpan<FrameRecord> frames)
     {
+        if (_view == IntPtr.Zero || frames.IsEmpty)
+        {
+            return;
+        }
+
+        int count = Math.Min(frames.Length, TelemetryLayout.FrameCapacity);
+        ReadOnlySpan<FrameRecord> source = frames[^count..];
+        long index = _header->FrameWriteIndex;
+
+        Interlocked.Increment(ref _header->FrameWriteSequence);
+        for (int i = 0; i < count; i++)
+        {
+            long slot = (index + i) % TelemetryLayout.FrameCapacity;
+            *(FrameRecord*)(_frameBase + (slot * TelemetryLayout.FrameStride)) = source[i];
+        }
+
+        _header->FrameWriteIndex = index + count;
+        Interlocked.Increment(ref _header->FrameWriteSequence);
+    }
+
+    public void Heartbeat(long qpc, int modeFlags)    {
         if (_view == IntPtr.Zero)
         {
             return;
