@@ -22,8 +22,8 @@
 | 最新里程碑 | 折线图默认统一单窗口（仅“布局设计”下可脱离）；自动采集只对游戏类前台进程；PresentMon 残留 ETW 会话清理与停帧重启；三角洲行动帧率恢复；MCP 接入 Qoder App |
 | 可运行产物 | `build/run-dev.ps1` 可启动；`build/package.ps1` 默认 AOT 流程可生成便携 ZIP（含 PresentMon）；`build/publish-mcp.ps1` 生成 `artifacts/mcp/AzureGameAssistant.Mcp.exe`；二号屏桌面快捷方式指向 Release |
 | 代码分支 | `main`（`feat/m1-foundation` 已 squash 合入，分支保留） |
-| 当前提交 | `3f6c19e` |
-| 未提交变更 | 折线图单窗与布局设计、游戏类前台自动采集、PresentMon ETW 会话修复、相关文档（本次提交） |
+| 当前提交 | `b5f9579` |
+| 未提交变更 | 无 |
 | 阻塞事项 | 3 款游戏 PresentMon 实测与反作弊评估待用户游戏环境（已测明日方舟、三角洲行动）；AI 窗口待本轮重启 Release 后点击验证；MCP 已在 Qoder App 注册，注册前建立的会话需新开会话才会出现工具；深模式内存/CPU 与 60 分钟连续性待专项测量 |
 
 ## 2. 环境
@@ -389,7 +389,7 @@ MCP 冒烟（无需 Agent 客户端，直接走 stdio）：
 | 2026-11-07 | Qoder | 完成 M3-1：启动自动提权与单实例接管、内置权限自检窗口、前台游戏自动帧采集；CPU 温度新增 ACPI/驱动/关闭三档来源；设置保存后正确重启采集进程；Release 构建 0 警告、53 项测试通过；实机验证自动采集明日方舟帧率与自检结果 | `feat(ui): 启动自动提权、权限自检与前台自动帧采集` |
 | 2026-11-07 | Qoder | 经用户确认安装 PawnIO 2.2.0（SHA256 + Authenticode 校验）并切到驱动模式；CPU 温度实测 47°C、Package 45W，权限自检转为 OK；登记第三方声明与 ACE 风险/回退方式 | `docs(handoff): 记录 PawnIO 安装与 CPU 温度验证` |
 | 2026-11-07 | Qoder | 接入 AI 手动分析（OpenAI 兼容）：供应商预设与地址校验、Credential Manager、事实层/脱敏/预览/同意、SSE 客户端、严格 JSON 与危险建议过滤、预算与本地兜底、报告落盘；新增 MCP 只读 stdio 服务与发布脚本；测试增至 106 项 | `817c051` |
-| 2026-11-07 | Qoder | 折线图默认统一单窗口（仅“布局设计”下可脱离）；自动采集仅针对全屏或 GPU≥5% 的游戏类前台进程；修复三角洲行动帧率：清理残留 ETW 会话并移除 `--stop_existing_session`，加入 20 秒首帧/10 秒停帧看门狗；MCP 登记到 Qoder App；实机 75 秒连续 8,379 帧 | `<本次提交>` |
+| 2026-11-07 | Qoder | 折线图默认统一单窗口（仅“布局设计”下可脱离）；自动采集仅针对全屏或 GPU≥5% 的游戏类前台进程；修复三角洲行动帧率：清理残留 ETW 会话并移除 `--stop_existing_session`，加入 20 秒首帧/10 秒停帧看门狗；MCP 登记到 Qoder App；实机 75 秒连续 8,379 帧，重启后约 60 FPS / 1% low 51.6 | `b5f9579` |
 
 ## 10. 下次交接模板
 
