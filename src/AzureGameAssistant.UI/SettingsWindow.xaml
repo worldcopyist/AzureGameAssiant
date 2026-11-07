@@ -131,6 +131,41 @@
                         </Grid>
 
                         <TextBlock Style="{StaticResource SectionTitle}" Margin="0,16,0,8"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[OverlayAppearance]}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[OverlayTheme]}" />
+                            <ComboBox Grid.Column="1" ItemsSource="{Binding OverlayThemeOptions}"
+                                      DisplayMemberPath="Display" SelectedValuePath="Value"
+                                      SelectedValue="{Binding OverlayTheme, Mode=TwoWay}" />
+
+                            <TextBlock Grid.Row="1" Margin="0,10,0,0" VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[OverlayColor]}" />
+                            <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,10,0,0">
+                                <TextBox Width="92" IsEnabled="{Binding IsOverlayCustomTheme}"
+                                         ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[OverlayColorHint]}"
+                                         Text="{Binding OverlayColor, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <Border Width="24" Height="24" Margin="6,0,0,0" CornerRadius="3"
+                                        BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}"
+                                        Background="{Binding OverlayColorPreview}" />
+                            </StackPanel>
+
+                            <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Margin="0,4,0,0" FontSize="11"
+                                       TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[OverlayColorHint]}" />
+                        </Grid>
+
+                        <TextBlock Style="{StaticResource SectionTitle}" Margin="0,16,0,8"
                                    Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[OverlayContent]}" />
                         <WrapPanel>
                             <CheckBox Margin="0,0,24,8" IsChecked="{Binding OverlayFps, Mode=TwoWay}"

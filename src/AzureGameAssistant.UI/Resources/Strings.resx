@@ -267,6 +267,15 @@
   <data name="ChartDiskToggle" xml:space="preserve">
     <value>Disk busy chart</value>
   </data>
+  <data name="ChartDetach" xml:space="preserve">
+    <value>Pop out to a separate window</value>
+  </data>
+  <data name="ChartDetachedHint" xml:space="preserve">
+    <value>Chart is shown in a separate window</value>
+  </data>
+  <data name="ChartRestore" xml:space="preserve">
+    <value>Dock chart</value>
+  </data>
   <data name="OverlaySection" xml:space="preserve">
     <value>Desktop overlay</value>
   </data>
@@ -317,6 +326,30 @@
   </data>
   <data name="OverlayMem" xml:space="preserve">
     <value>Memory</value>
+  </data>
+  <data name="OverlayAppearance" xml:space="preserve">
+    <value>Text appearance</value>
+  </data>
+  <data name="OverlayTheme" xml:space="preserve">
+    <value>Color theme</value>
+  </data>
+  <data name="OverlayThemeDefault" xml:space="preserve">
+    <value>White (default)</value>
+  </data>
+  <data name="OverlayThemeLight" xml:space="preserve">
+    <value>Dark text (light wallpaper)</value>
+  </data>
+  <data name="OverlayThemeAzure" xml:space="preserve">
+    <value>Azure</value>
+  </data>
+  <data name="OverlayThemeCustom" xml:space="preserve">
+    <value>Custom color</value>
+  </data>
+  <data name="OverlayColor" xml:space="preserve">
+    <value>Custom color</value>
+  </data>
+  <data name="OverlayColorHint" xml:space="preserve">
+    <value>Hex #RRGGBB, used by the Custom color theme. Labels reuse the color at reduced opacity.</value>
   </data>
   <data name="OverlayNotice" xml:space="preserve">
     <value>FPS, frame statistics and temperature show real values once the M2/M3 capture pipelines are connected. The overlay is topmost and click-through.</value>

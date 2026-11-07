@@ -1,6 +1,9 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
+using System.Windows.Media;
+using System.Windows.Media.Effects;
 using AzureGameAssistant.Core.Settings;
 using AzureGameAssistant.UI.Interop;
 using AzureGameAssistant.UI.Services;
@@ -23,6 +26,7 @@ public partial class OverlayWindow : Window
     public void ApplySettings(OverlaySettings settings)
     {
         _settings = settings;
+        ApplyAppearance();
         RebuildRows();
     }
 
@@ -71,6 +75,65 @@ public partial class OverlayWindow : Window
         return data.VramTotalMb > 0
             ? used + " / " + (data.VramTotalMb / 1024.0).ToString("F1") + " GB"
             : used;
+    }
+
+    private void ApplyAppearance()
+    {
+        (Color value, Color label, Color shadow) = ResolveAppearance(_settings);
+        Resources["OverlayValueBrush"] = FrozenBrush(value);
+        Resources["OverlayLabelBrush"] = FrozenBrush(label);
+        Resources["OverlayTextShadow"] = new DropShadowEffect
+        {
+            Color = shadow,
+            BlurRadius = 3,
+            ShadowDepth = 0,
+            Opacity = 0.9,
+        };
+    }
+
+    private static (Color Value, Color Label, Color Shadow) ResolveAppearance(OverlaySettings settings)
+    {
+        switch (settings.Theme)
+        {
+            case "Light":
+                return (Color.FromRgb(0x10, 0x14, 0x18), Color.FromRgb(0x46, 0x52, 0x5F), Colors.White);
+
+            case "Azure":
+                return (Color.FromRgb(0x5F, 0xC0, 0xFF), Color.FromRgb(0xB9, 0xE2, 0xFF), Colors.Black);
+
+            case "Custom":
+                Color value = TryParseColor(settings.Color, out Color custom) ? custom : Colors.White;
+                Color label = Color.FromArgb(0xC8, value.R, value.G, value.B);
+                Color shadow = Luminance(value) > 0.55 ? Colors.Black : Colors.White;
+                return (value, label, shadow);
+
+            default:
+                return (Colors.White, Color.FromRgb(0xD6, 0xDE, 0xE8), Colors.Black);
+        }
+    }
+
+    private static bool TryParseColor(string? text, out Color color)
+    {
+        color = Colors.White;
+        string value = (text ?? string.Empty).Trim().TrimStart('#');
+        if (value.Length != 6 ||
+            !uint.TryParse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint rgb))
+        {
+            return false;
+        }
+
+        color = Color.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb);
+        return true;
+    }
+
+    private static double Luminance(in Color color) =>
+        ((0.2126 * color.R) + (0.7152 * color.G) + (0.0722 * color.B)) / 255.0;
+
+    private static SolidColorBrush FrozenBrush(in Color color)
+    {
+        var brush = new SolidColorBrush(color);
+        brush.Freeze();
+        return brush;
     }
 
     private void RebuildRows()

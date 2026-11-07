@@ -43,6 +43,8 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.True(result.Settings.Charts.Cpu);
         Assert.True(result.Settings.Overlay.Enabled);
         Assert.Equal("TopLeft", result.Settings.Overlay.Corner);
+        Assert.Equal("Default", result.Settings.Overlay.Theme);
+        Assert.Equal("#FFFFFF", result.Settings.Overlay.Color);
     }
 
     [Fact]
@@ -129,6 +131,8 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.Equal("auto", settings.Language);
         Assert.Equal("auto", settings.Frames.Mode);
         Assert.Null(settings.Frames.TargetPid);
+        Assert.Equal("Default", settings.Overlay.Theme);
+        Assert.Equal("#FFFFFF", settings.Overlay.Color);
     }
 
     [Fact]
@@ -156,6 +160,8 @@ public sealed class SettingsServiceTests : IDisposable
                 ShowTemperature = false,
                 ShowMemory = false,
                 ShowVram = false,
+                Theme = " custom ",
+                Color = " 00ff7f ",
             },
         };
 
@@ -167,5 +173,21 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.Equal(4_000, settings.Overlay.OffsetY);
         Assert.True(settings.Overlay.ShowCpu);
         Assert.True(settings.Overlay.ShowGpu);
+        Assert.Equal("Custom", settings.Overlay.Theme);
+        Assert.Equal("#00FF7F", settings.Overlay.Color);
+    }
+
+    [Fact]
+    public void Normalize_InvalidOverlayColorFallsBackToWhite()
+    {
+        var settings = new AppSettings
+        {
+            Overlay = new OverlaySettings { Theme = "neon", Color = "#12ZZ34" },
+        };
+
+        settings.Normalize();
+
+        Assert.Equal("Default", settings.Overlay.Theme);
+        Assert.Equal("#FFFFFF", settings.Overlay.Color);
     }
 }

@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using AzureGameAssistant.UI.Controls;
+using AzureGameAssistant.UI.Services;
 using AzureGameAssistant.UI.ViewModels;
 
 namespace AzureGameAssistant.UI;
@@ -10,6 +11,7 @@ public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel;
     private readonly TimelineChart[] _charts;
+    private readonly Dictionary<ChartMetric, DetachedChart> _detached = new();
 
     public MainWindow(MainViewModel viewModel)
     {
@@ -30,18 +32,54 @@ public partial class MainWindow : Window
 
     public event EventHandler? SettingsRequested;
 
+    public bool HasVisibleCharts
+    {
+        get
+        {
+            foreach (DetachedChart entry in _detached.Values)
+            {
+                if (entry.Window.IsVisible)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
+
     public void RefreshChart()
     {
-        UpdateChartColumns();
-
-        if (!IsVisible || WindowState == WindowState.Minimized)
+        bool mainVisible = IsVisible && WindowState != WindowState.Minimized;
+        if (!mainVisible && !HasVisibleCharts)
         {
             return;
+        }
+
+        if (mainVisible)
+        {
+            UpdateChartColumns();
         }
 
         foreach (TimelineChart chart in _charts)
         {
             chart.SetSamples(_viewModel.TimelineBuffer, _viewModel.TimelineCount);
+        }
+    }
+
+    public void RefreshLocalization()
+    {
+        LocalizationService loc = LocalizationService.Instance;
+        foreach (DetachedChart entry in _detached.Values)
+        {
+            entry.Hint.Text = loc["ChartDetachedHint"];
+            entry.DockButton.Content = loc["ChartRestore"];
+            entry.Window.Title = loc[ChartLabelKey(entry.Metric)] + " · " + loc["AppTitle"];
+        }
+
+        foreach (TimelineChart chart in _charts)
+        {
+            chart.InvalidateVisual();
         }
     }
 
@@ -83,6 +121,105 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnDetachChart(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string tag } button ||
+            !Enum.TryParse(tag, out ChartMetric metric) ||
+            _detached.ContainsKey(metric))
+        {
+            return;
+        }
+
+        TimelineChart? chart = ChartFor(metric);
+        if (chart?.Parent is not Grid parent)
+        {
+            return;
+        }
+
+        parent.Children.Remove(chart);
+
+        var hint = new TextBlock
+        {
+            Text = LocalizationService.Instance["ChartDetachedHint"],
+            HorizontalAlignment = HorizontalAlignment.Center,
+            TextAlignment = TextAlignment.Center,
+            TextWrapping = TextWrapping.Wrap,
+            MaxWidth = 260,
+        };
+        hint.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+
+        var dock = new Button
+        {
+            Content = LocalizationService.Instance["ChartRestore"],
+            Style = (Style)FindResource("FlatButton"),
+            Padding = new Thickness(10, 3, 10, 3),
+            Margin = new Thickness(0, 8, 0, 0),
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        dock.Click += (_, _) =>
+        {
+            if (_detached.TryGetValue(metric, out DetachedChart? entry))
+            {
+                entry.Window.Close();
+            }
+        };
+
+        var placeholder = new StackPanel
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        placeholder.Children.Add(hint);
+        placeholder.Children.Add(dock);
+        Grid.SetRow(placeholder, 1);
+        parent.Children.Add(placeholder);
+
+        string title = LocalizationService.Instance[ChartLabelKey(metric)] + " · " +
+                       LocalizationService.Instance["AppTitle"];
+        var window = new ChartWindow(chart, title);
+        _detached[metric] = new DetachedChart(metric, window, parent, chart, placeholder, hint, dock, button);
+        window.Closed += (_, _) => RestoreChart(metric);
+        window.Show();
+
+        button.IsEnabled = false;
+        RefreshChart();
+        UpdateChartColumns();
+    }
+
+    private void RestoreChart(ChartMetric metric)
+    {
+        if (!_detached.Remove(metric, out DetachedChart? entry))
+        {
+            return;
+        }
+
+        entry.Window.ReleaseChart();
+        entry.Parent.Children.Remove(entry.Placeholder);
+        entry.Parent.Children.Add(entry.Chart);
+        Grid.SetRow(entry.Chart, 1);
+        entry.DetachButton.IsEnabled = true;
+        UpdateChartColumns();
+    }
+
+    private TimelineChart? ChartFor(ChartMetric metric) => metric switch
+    {
+        ChartMetric.Cpu => CpuChart,
+        ChartMetric.Gpu => GpuChart,
+        ChartMetric.Memory => MemoryChart,
+        ChartMetric.Vram => VramChart,
+        ChartMetric.Disk => DiskChart,
+        _ => null,
+    };
+
+    private static string ChartLabelKey(ChartMetric metric) => metric switch
+    {
+        ChartMetric.Cpu => "Cpu",
+        ChartMetric.Gpu => "Gpu",
+        ChartMetric.Memory => "Memory",
+        ChartMetric.Vram => "Vram",
+        _ => "Disk",
+    };
+
     private void OnSettingsClick(object sender, RoutedEventArgs e) =>
         SettingsRequested?.Invoke(this, EventArgs.Empty);
 
@@ -96,4 +233,14 @@ public partial class MainWindow : Window
         e.Cancel = true;
         Hide();
     }
+
+    private sealed record DetachedChart(
+        ChartMetric Metric,
+        ChartWindow Window,
+        Grid Parent,
+        TimelineChart Chart,
+        StackPanel Placeholder,
+        TextBlock Hint,
+        Button DockButton,
+        Button DetachButton);
 }

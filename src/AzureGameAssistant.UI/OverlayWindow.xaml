@@ -10,21 +10,23 @@
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
         Opacity="1">
     <Window.Resources>
+        <SolidColorBrush x:Key="OverlayValueBrush" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="OverlayLabelBrush" Color="#D6DEE8" />
         <DropShadowEffect x:Key="OverlayTextShadow" Color="Black" BlurRadius="3"
                           ShadowDepth="0" Opacity="0.9" />
         <Style x:Key="OverlayLabel" TargetType="TextBlock">
             <Setter Property="FontSize" Value="11" />
-            <Setter Property="Foreground" Value="#D6DEE8" />
+            <Setter Property="Foreground" Value="{DynamicResource OverlayLabelBrush}" />
             <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Effect" Value="{StaticResource OverlayTextShadow}" />
+            <Setter Property="Effect" Value="{DynamicResource OverlayTextShadow}" />
         </Style>
         <Style x:Key="OverlayValue" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="Foreground" Value="{DynamicResource OverlayValueBrush}" />
             <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Effect" Value="{StaticResource OverlayTextShadow}" />
+            <Setter Property="Effect" Value="{DynamicResource OverlayTextShadow}" />
         </Style>
     </Window.Resources>
 

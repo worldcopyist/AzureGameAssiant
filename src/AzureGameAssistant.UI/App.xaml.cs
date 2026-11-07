@@ -123,11 +123,7 @@ public partial class App : Application
 
         await _viewModel.RefreshAsync();
 
-        if (_window is { IsVisible: true } && _window.WindowState != WindowState.Minimized)
-        {
-            _window.RefreshChart();
-        }
-
+        _window?.RefreshChart();
         _overlay?.Update(_viewModel.GetOverlayData());
         UpdateTimerState();
     }
@@ -141,8 +137,9 @@ public partial class App : Application
 
         bool mainVisible = _window is { IsVisible: true } && _window.WindowState != WindowState.Minimized;
         bool overlayVisible = _overlay?.IsVisible == true;
+        bool chartsVisible = _window?.HasVisibleCharts == true;
 
-        if (mainVisible || overlayVisible)
+        if (mainVisible || overlayVisible || chartsVisible)
         {
             if (!_timer.IsEnabled)
             {
@@ -319,6 +316,7 @@ public partial class App : Application
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
         _viewModel?.RefreshLocalization();
+        _window?.RefreshLocalization();
         _overlay?.RefreshLocalization();
     }
 

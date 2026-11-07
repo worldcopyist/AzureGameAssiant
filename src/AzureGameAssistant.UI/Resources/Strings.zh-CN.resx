@@ -267,6 +267,15 @@
   <data name="ChartDiskToggle" xml:space="preserve">
     <value>磁盘占用折线图</value>
   </data>
+  <data name="ChartDetach" xml:space="preserve">
+    <value>弹出为独立窗口</value>
+  </data>
+  <data name="ChartDetachedHint" xml:space="preserve">
+    <value>图表已在独立窗口中显示</value>
+  </data>
+  <data name="ChartRestore" xml:space="preserve">
+    <value>收回图表</value>
+  </data>
   <data name="OverlaySection" xml:space="preserve">
     <value>桌面悬浮窗</value>
   </data>
@@ -317,6 +326,30 @@
   </data>
   <data name="OverlayMem" xml:space="preserve">
     <value>内存</value>
+  </data>
+  <data name="OverlayAppearance" xml:space="preserve">
+    <value>文字外观</value>
+  </data>
+  <data name="OverlayTheme" xml:space="preserve">
+    <value>颜色主题</value>
+  </data>
+  <data name="OverlayThemeDefault" xml:space="preserve">
+    <value>白色（默认）</value>
+  </data>
+  <data name="OverlayThemeLight" xml:space="preserve">
+    <value>深色文字（浅色壁纸）</value>
+  </data>
+  <data name="OverlayThemeAzure" xml:space="preserve">
+    <value>天空蓝</value>
+  </data>
+  <data name="OverlayThemeCustom" xml:space="preserve">
+    <value>自定义颜色</value>
+  </data>
+  <data name="OverlayColor" xml:space="preserve">
+    <value>自定义颜色</value>
+  </data>
+  <data name="OverlayColorHint" xml:space="preserve">
+    <value>十六进制格式 #RRGGBB，仅在“自定义颜色”主题下生效；标签使用同色低透明度。</value>
   </data>
   <data name="OverlayNotice" xml:space="preserve">
     <value>FPS、帧统计与温度将在 M2/M3 采集链路接入后显示真实数据；悬浮窗始终置顶且不拦截鼠标。</value>

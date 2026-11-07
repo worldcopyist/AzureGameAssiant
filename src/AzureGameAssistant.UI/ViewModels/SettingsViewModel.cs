@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Reflection;
+using System.Windows.Media;
 using AzureGameAssistant.Core;
 using AzureGameAssistant.Core.Settings;
 using AzureGameAssistant.UI.Services;
@@ -39,6 +41,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         OverlayTemperature = settings.Overlay.ShowTemperature;
         OverlayMemory = settings.Overlay.ShowMemory;
         OverlayVram = settings.Overlay.ShowVram;
+        OverlayTheme = settings.Overlay.Theme;
+        OverlayColor = settings.Overlay.Color;
 
         ThemeOptions =
         [
@@ -61,6 +65,14 @@ public sealed partial class SettingsViewModel : ObservableObject
             new SelectOption("BottomLeft", loc["OverlayBottomLeft"]),
             new SelectOption("BottomRight", loc["OverlayBottomRight"]),
         ];
+
+        OverlayThemeOptions =
+        [
+            new SelectOption("Default", loc["OverlayThemeDefault"]),
+            new SelectOption("Light", loc["OverlayThemeLight"]),
+            new SelectOption("Azure", loc["OverlayThemeAzure"]),
+            new SelectOption("Custom", loc["OverlayThemeCustom"]),
+        ];
     }
 
     public IReadOnlyList<int> IntervalOptions { get; } = [100, 200, 250, 500, 1000, 2000, 5000, 10000];
@@ -70,6 +82,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     public IReadOnlyList<SelectOption> LanguageOptions { get; }
 
     public IReadOnlyList<SelectOption> OverlayCornerOptions { get; }
+
+    public IReadOnlyList<SelectOption> OverlayThemeOptions { get; }
 
     public string AppVersion { get; } =
         Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.1.0";
@@ -144,6 +158,23 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private bool _overlayVram;
 
+    [ObservableProperty]
+    private string _overlayTheme = "Default";
+
+    [ObservableProperty]
+    private string _overlayColor = "#FFFFFF";
+
+    public bool IsOverlayCustomTheme => string.Equals(OverlayTheme, "Custom", StringComparison.Ordinal);
+
+    public Brush OverlayColorPreview =>
+        TryParseColor(OverlayColor, out Color color)
+            ? FrozenBrush(color)
+            : Brushes.Transparent;
+
+    partial void OnOverlayThemeChanged(string value) => OnPropertyChanged(nameof(IsOverlayCustomTheme));
+
+    partial void OnOverlayColorChanged(string value) => OnPropertyChanged(nameof(OverlayColorPreview));
+
     public void ApplyTo(AppSettings settings)
     {
         settings.Sampling.NormalMs = NormalMs;
@@ -170,5 +201,28 @@ public sealed partial class SettingsViewModel : ObservableObject
         settings.Overlay.ShowTemperature = OverlayTemperature;
         settings.Overlay.ShowMemory = OverlayMemory;
         settings.Overlay.ShowVram = OverlayVram;
+        settings.Overlay.Theme = OverlayTheme;
+        settings.Overlay.Color = OverlayColor;
+    }
+
+    private static bool TryParseColor(string? text, out Color color)
+    {
+        color = Colors.White;
+        string value = (text ?? string.Empty).Trim().TrimStart('#');
+        if (value.Length != 6 ||
+            !uint.TryParse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint rgb))
+        {
+            return false;
+        }
+
+        color = Color.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb);
+        return true;
+    }
+
+    private static SolidColorBrush FrozenBrush(in Color color)
+    {
+        var brush = new SolidColorBrush(color);
+        brush.Freeze();
+        return brush;
     }
 }

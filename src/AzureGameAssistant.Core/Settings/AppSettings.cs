@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace AzureGameAssistant.Core.Settings;
 
 public sealed class AppSettings
@@ -103,6 +105,14 @@ public sealed class AppSettings
         };
         Overlay.OffsetX = Math.Clamp(Overlay.OffsetX, 0, 4_000);
         Overlay.OffsetY = Math.Clamp(Overlay.OffsetY, 0, 4_000);
+        Overlay.Theme = Overlay.Theme?.Trim().ToLowerInvariant() switch
+        {
+            "light" => "Light",
+            "azure" => "Azure",
+            "custom" => "Custom",
+            _ => "Default",
+        };
+        Overlay.Color = NormalizeColor(Overlay.Color);
         if (!Overlay.ShowFps &&
             !Overlay.ShowFrameTimes &&
             !Overlay.ShowCpu &&
@@ -144,6 +154,18 @@ public sealed class AppSettings
         {
             Ai.ActiveProvider = Ai.ActiveProvider?.Trim().ToLowerInvariant() ?? string.Empty;
         }
+    }
+
+    private static string NormalizeColor(string? value)
+    {
+        string text = (value ?? string.Empty).Trim().TrimStart('#');
+        if (text.Length == 6 &&
+            uint.TryParse(text, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _))
+        {
+            return "#" + text.ToUpperInvariant();
+        }
+
+        return "#FFFFFF";
     }
 }
 
@@ -205,6 +227,8 @@ public sealed class OverlaySettings
     public bool ShowTemperature { get; set; } = true;
     public bool ShowMemory { get; set; } = true;
     public bool ShowVram { get; set; }
+    public string Theme { get; set; } = "Default";
+    public string Color { get; set; } = "#FFFFFF";
 }
 
 public sealed class SessionSettings

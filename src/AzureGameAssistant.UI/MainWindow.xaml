@@ -170,11 +170,19 @@
                                     <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
                                 <Grid Margin="4,0,4,2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
                                     <TextBlock Style="{StaticResource CardLabel}" FontWeight="SemiBold"
                                                Foreground="{DynamicResource ChartCpuBrush}"
                                                Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Cpu]}" />
-                                    <TextBlock HorizontalAlignment="Right" Style="{StaticResource MonoText}"
+                                    <TextBlock Grid.Column="1" Margin="0,0,6,0" Style="{StaticResource MonoText}"
                                                Text="{Binding CpuValue}" />
+                                    <Button Grid.Column="2" Style="{StaticResource FlatButton}" Padding="6,0" FontSize="10"
+                                            Content="↗" Tag="Cpu" Click="OnDetachChart"
+                                            ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartDetach]}" />
                                 </Grid>
                                 <controls:TimelineChart Grid.Row="1" x:Name="CpuChart" Metric="Cpu" MinHeight="170" />
                             </Grid>
@@ -188,11 +196,19 @@
                                     <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
                                 <Grid Margin="4,0,4,2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
                                     <TextBlock Style="{StaticResource CardLabel}" FontWeight="SemiBold"
                                                Foreground="{DynamicResource ChartGpuBrush}"
                                                Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Gpu]}" />
-                                    <TextBlock HorizontalAlignment="Right" Style="{StaticResource MonoText}"
+                                    <TextBlock Grid.Column="1" Margin="0,0,6,0" Style="{StaticResource MonoText}"
                                                Text="{Binding GpuValue}" />
+                                    <Button Grid.Column="2" Style="{StaticResource FlatButton}" Padding="6,0" FontSize="10"
+                                            Content="↗" Tag="Gpu" Click="OnDetachChart"
+                                            ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartDetach]}" />
                                 </Grid>
                                 <controls:TimelineChart Grid.Row="1" x:Name="GpuChart" Metric="Gpu" MinHeight="170" />
                             </Grid>
@@ -206,11 +222,19 @@
                                     <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
                                 <Grid Margin="4,0,4,2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
                                     <TextBlock Style="{StaticResource CardLabel}" FontWeight="SemiBold"
                                                Foreground="{DynamicResource ChartMemBrush}"
                                                Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Memory]}" />
-                                    <TextBlock HorizontalAlignment="Right" Style="{StaticResource MonoText}"
+                                    <TextBlock Grid.Column="1" Margin="0,0,6,0" Style="{StaticResource MonoText}"
                                                Text="{Binding MemoryValue}" />
+                                    <Button Grid.Column="2" Style="{StaticResource FlatButton}" Padding="6,0" FontSize="10"
+                                            Content="↗" Tag="Memory" Click="OnDetachChart"
+                                            ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartDetach]}" />
                                 </Grid>
                                 <controls:TimelineChart Grid.Row="1" x:Name="MemoryChart" Metric="Memory" MinHeight="170" />
                             </Grid>
@@ -224,11 +248,19 @@
                                     <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
                                 <Grid Margin="4,0,4,2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
                                     <TextBlock Style="{StaticResource CardLabel}" FontWeight="SemiBold"
                                                Foreground="{DynamicResource ChartVramBrush}"
                                                Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Vram]}" />
-                                    <TextBlock HorizontalAlignment="Right" Style="{StaticResource MonoText}"
+                                    <TextBlock Grid.Column="1" Margin="0,0,6,0" Style="{StaticResource MonoText}"
                                                Text="{Binding VramValue}" />
+                                    <Button Grid.Column="2" Style="{StaticResource FlatButton}" Padding="6,0" FontSize="10"
+                                            Content="↗" Tag="Vram" Click="OnDetachChart"
+                                            ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartDetach]}" />
                                 </Grid>
                                 <controls:TimelineChart Grid.Row="1" x:Name="VramChart" Metric="Vram" MinHeight="170" />
                             </Grid>
@@ -242,11 +274,19 @@
                                     <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
                                 <Grid Margin="4,0,4,2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
                                     <TextBlock Style="{StaticResource CardLabel}" FontWeight="SemiBold"
                                                Foreground="{DynamicResource ChartDiskBrush}"
                                                Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Disk]}" />
-                                    <TextBlock HorizontalAlignment="Right" Style="{StaticResource MonoText}"
+                                    <TextBlock Grid.Column="1" Margin="0,0,6,0" Style="{StaticResource MonoText}"
                                                Text="{Binding DiskValue}" />
+                                    <Button Grid.Column="2" Style="{StaticResource FlatButton}" Padding="6,0" FontSize="10"
+                                            Content="↗" Tag="Disk" Click="OnDetachChart"
+                                            ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartDetach]}" />
                                 </Grid>
                                 <controls:TimelineChart Grid.Row="1" x:Name="DiskChart" Metric="Disk" MinHeight="170" />
                             </Grid>
