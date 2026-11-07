@@ -1,7 +1,9 @@
 using System.Diagnostics;
 using System.Windows;
+using AzureGameAssistant.Ai;
 using AzureGameAssistant.Core;
 using AzureGameAssistant.Core.Settings;
+using AzureGameAssistant.UI.Services;
 using AzureGameAssistant.UI.ViewModels;
 using System.IO;
 
@@ -30,6 +32,35 @@ public partial class SettingsWindow : Window
     }
 
     private void OnCancel(object sender, RoutedEventArgs e) => Close();
+
+    private void OnSaveAiKey(object sender, RoutedEventArgs e)
+    {
+        string key = AiKeyBox.Password.Trim();
+        if (key.Length == 0)
+        {
+            return;
+        }
+
+        if (!CredentialStore.Shared.Save(_viewModel.AiActiveProvider, key))
+        {
+            MessageBox.Show(
+                LocalizationService.Instance["AiKeySaveFailed"],
+                Title,
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        AiKeyBox.Clear();
+        _viewModel.RefreshKeyStatus();
+    }
+
+    private void OnDeleteAiKey(object sender, RoutedEventArgs e)
+    {
+        CredentialStore.Shared.Delete(_viewModel.AiActiveProvider);
+        AiKeyBox.Clear();
+        _viewModel.RefreshKeyStatus();
+    }
 
     private void OnOpenLogs(object sender, RoutedEventArgs e)
     {

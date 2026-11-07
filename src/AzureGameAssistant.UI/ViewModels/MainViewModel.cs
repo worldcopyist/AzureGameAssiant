@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using AzureGameAssistant.Ai;
 using AzureGameAssistant.Core.Frames;
 using AzureGameAssistant.Core.Models;
 using AzureGameAssistant.Core.Settings;
@@ -103,6 +104,35 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public FrameTimePoint[] FrameTimelineBuffer => _frameTimelineBuffer;
 
     public int CopyFrameTimeline() => _frameTimeline.CopyTo(_frameTimelineBuffer);
+
+    /// <summary>
+    /// Snapshots the recent sample ring and frame ring for the AI fact layer.
+    /// Only process names (never paths or titles) are resolved.
+    /// </summary>
+    public FactsInput CreateFactsInput(string locale)
+    {
+        int sampleCount = Math.Min(TimelineCount, _timeline.Length);
+        var samples = sampleCount > 0 ? _timeline.AsSpan(0, sampleCount).ToArray() : [];
+
+        long frameEnd = _telemetry.FrameWriteIndex;
+        long frameStart = Math.Max(0, frameEnd - 4_096);
+        var frameBuffer = new FrameRecord[(int)Math.Max(0, frameEnd - frameStart)];
+        int frameCount = frameBuffer.Length > 0 ? _telemetry.ReadFrames(frameStart, frameBuffer) : 0;
+
+        var names = new Dictionary<uint, string>();
+        SampleRecord latest = sampleCount > 0 ? samples[^1] : _telemetry.Latest;
+        ProcessSlot[] slots = [latest.P0, latest.P1, latest.P2, latest.P3, latest.P4];
+        foreach (ProcessSlot slot in slots)
+        {
+            if (slot.Pid != 0 && !names.ContainsKey(slot.Pid))
+            {
+                names[slot.Pid] = _names.GetName(slot.Pid);
+            }
+        }
+
+        string mode = _frameState == "capturing" || _settings.Sensors.Enabled ? "deep" : "shallow";
+        return new FactsInput(samples, frameBuffer.AsSpan(0, frameCount).ToArray(), names, mode, locale);
+    }
 
     public SampleRecord Latest => _telemetry.Latest;
 

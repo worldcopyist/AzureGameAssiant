@@ -11,6 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\AzureGameAssistant.Ai\AzureGameAssistant.Ai.csproj" />
     <ProjectReference Include="..\AzureGameAssistant.Core\AzureGameAssistant.Core.csproj" />
   </ItemGroup>
 

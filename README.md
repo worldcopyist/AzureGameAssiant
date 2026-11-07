@@ -3,7 +3,7 @@
 > 一款本地优先、低开销的 Windows 性能监控与卡顿归因工具。
 > 游戏或高负载工作突然掉帧时，它能告诉你：卡在哪一帧、当时谁在占资源、最可能的原因是什么。
 
-**当前状态：v0.1.0-dev · M1 基础闭环（系统指标采集 + 时间轴 + 托盘）**
+**当前状态：v0.1.0-dev · 系统 / 帧 / 传感器采集、AI 手动分析（OpenAI 兼容）与 MCP 只读服务已落地**
 
 ---
 
@@ -23,6 +23,7 @@
 - **进程级 + 帧级归因**：CPU / GPU / 显存 / 内存 / 磁盘 / 帧节奏 / 着色器编译 / 资产流送 / 热降频，生成中英文报告。
 - **厂商原生 GPU 传感器**：可选边车复用 LibreHardwareMonitor（内部调用 NVML / ADL / IGCL），读取温度、功耗、频率、风扇、显存；不加载内核驱动。
 - **可选 LLM 深度分析**：支持 OpenAI 兼容接口与本地模型（Ollama / LM Studio），基于脱敏事实层生成结构化报告与优化建议；默认关闭、默认手动触发、有预算上限。
+- **Agent 接入（MCP）**：提供只读 stdio 服务，Qoder、Claude Desktop 等 Agent 可直接读取硬件快照、历史、帧统计与诊断结果；固定 6 个有界工具，不修改系统。
 - **时间轴回放**：多指标与帧轨共用一条时间轴，事件标记、缩放、悬停查看同一时刻的全部数值。
 - **默认不联网**：无遥测、无崩溃上报、无自动更新；AI 分析仅在用户显式开启后使用。
 
@@ -48,6 +49,7 @@
 - **界面进程**：C# / .NET 8 + WPF，MVVM，自绘时间轴（不引入重型图表库）。
 - **进程通信**：共享内存（系统/帧/传感器遥测）+ 命名管道（控制命令）。
 - **AI 分析**：OpenAI 兼容接口，BYOK，API Key 存 Windows Credential Manager。
+- **Agent 接入**：MCP stdio JSON-RPC 2.0，独立只读进程，不向采集进程引入网络依赖。
 - **存储**：gzip 压缩的 JSONL 会话文件，原子写入。
 - **目标系统**：Windows 10 1909+ / Windows 11，x64。
 
@@ -67,7 +69,7 @@
 | --- | --- | --- |
 | M1 | v0.1 | PDH + GPU Engine 采集、进程排行、系统环形缓冲、主窗口时间轴、托盘、自启、设置、日志 |
 | M2 | v0.5 | PresentMon 帧级真相、帧信号判定、会话落盘、事件列表、帧级归因、热键、游戏自动识别、双语与明暗主题 |
-| M3 | v1.0 | 厂商传感器边车、LLM 深度分析、悬浮条、Markdown + PNG 导出、留存清理、性能验收、便携 ZIP |
+| M3 | v1.0 | 厂商传感器边车、LLM 深度分析、MCP 只读数据服务、悬浮条、Markdown + PNG 导出、留存清理、性能验收、便携 ZIP |
 
 ## 隐私
 
@@ -81,6 +83,30 @@ AI 分析是可选功能，默认关闭。开启后：
 - API Key 存入 Windows Credential Manager，不写入配置、日志或报告；
 - 可改用 Ollama / LM Studio 等本地模型，完全离线。
 
+当前 AI 分析为**手动触发**：主界面“AI 分析”按钮打开预览与同意窗口，确认后才发起请求；严重事件自动分析尚未实现，不存在后台自动上传。
+
+## Agent 接入（MCP）
+
+先构建只读 MCP 服务：
+
+```powershell
+powershell -File build/publish-mcp.ps1
+```
+
+产物为 `artifacts/mcp/AzureGameAssistant.Mcp.exe`。在 Agent 的 MCP 配置中登记 stdio 命令：
+
+```json
+{
+  "mcpServers": {
+    "azure-game-assistant": {
+      "command": "C:\\path\\to\\AzureGameAssistant.Mcp.exe"
+    }
+  }
+}
+```
+
+可用工具：`get_hardware_snapshot`、`get_history`、`get_frame_stats`、`list_processes`、`diagnose`、`get_collector_status`。全部只读、参数有界；需先启动蓝天游戏助手采集进程。管理员身份可额外读取运行时长与最近错误，非管理员仍可读取共享内存数据（状态标记 `degraded`）。
+
 ## 开发与参与
 
 当前 M1 已可运行：采集进程通过 PDH / NT API 采样并写入共享内存，界面进程显示实时卡片、时间轴、进程排行，支持托盘、暂停、设置与中英双语。
@@ -90,6 +116,7 @@ dotnet build AzureGameAssistant.sln
 powershell -File build/run-dev.ps1            # 构建并启动界面
 powershell -File build/run-dev.ps1 -Tray      # 直接隐藏到托盘启动
 powershell -File build/measure.ps1 -DurationMinutes 1
+powershell -File build/publish-mcp.ps1         # 生成 Agent 可接入的 MCP 服务
 powershell -File build/package.ps1 -CollectorMode SelfContained   # 无 C++ 工具链时的测试包
 ```
 

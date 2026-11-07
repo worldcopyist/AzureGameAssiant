@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
+using AzureGameAssistant.Ai;
 using AzureGameAssistant.Core;
 using AzureGameAssistant.Core.Logging;
 using AzureGameAssistant.Core.Models;
@@ -32,6 +33,8 @@ public partial class App : Application
     private MainWindow? _window;
     private OverlayWindow? _overlay;
     private TrayIconService? _tray;
+    private AiAnalysisService? _ai;
+    private AiAnalysisWindow? _aiWindow;
     private DispatcherTimer? _timer;
     private bool _shuttingDown;
     private int _appliedNormalMs = 1_000;
@@ -117,6 +120,7 @@ public partial class App : Application
 
         _window = new MainWindow(_viewModel);
         _window.SettingsRequested += OnSettingsRequested;
+        _window.AiAnalysisRequested += OnAiAnalysisRequested;
         _window.IsVisibleChanged += (_, _) => UpdateTimerState();
         _window.StateChanged += (_, _) => UpdateTimerState();
         _window.Show();
@@ -257,6 +261,48 @@ public partial class App : Application
         };
 
         window.SaveRequested += OnSettingsSaved;
+        window.ShowDialog();
+    }
+
+    private void OnAiAnalysisRequested(object? sender, EventArgs e)
+    {
+        if (_viewModel is null || _window is null || _settingsService is null)
+        {
+            return;
+        }
+
+        if (!_settings.Ai.Enabled)
+        {
+            MessageBox.Show(
+                LocalizationService.Instance["AiDisabledHint"],
+                LocalizationService.Instance["AiWindowTitle"],
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+
+            OnSettingsRequested(this, EventArgs.Empty);
+            return;
+        }
+
+        if (_aiWindow is { IsVisible: true })
+        {
+            _aiWindow.Activate();
+            return;
+        }
+
+        ShowMainWindow();
+        _ai ??= new AiAnalysisService();
+
+        var window = new AiAnalysisWindow(
+            _settings,
+            _settingsService,
+            _ai,
+            _viewModel.CreateFactsInput(LocalizationService.Instance.CurrentLanguage))
+        {
+            Owner = _window,
+        };
+
+        _aiWindow = window;
+        window.Closed += (_, _) => _aiWindow = null;
         window.ShowDialog();
     }
 
@@ -649,10 +695,14 @@ public partial class App : Application
             _window = null;
         }
 
+        _aiWindow?.Close();
+        _aiWindow = null;
+        _ai?.Dispose();
         _viewModel?.Dispose();
         _client?.Dispose();
         _launcher?.Dispose();
         _telemetry?.Dispose();
+        _ai = null;
         _viewModel = null;
         _client = null;
         _launcher = null;

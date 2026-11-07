@@ -32,6 +32,8 @@ public partial class MainWindow : Window
 
     public event EventHandler? SettingsRequested;
 
+    public event EventHandler? AiAnalysisRequested;
+
     public bool HasVisibleCharts
     {
         get
@@ -226,6 +228,9 @@ public partial class MainWindow : Window
 
     private void OnSettingsClick(object sender, RoutedEventArgs e) =>
         SettingsRequested?.Invoke(this, EventArgs.Empty);
+
+    private void OnAiAnalyzeClick(object sender, RoutedEventArgs e) =>
+        AiAnalysisRequested?.Invoke(this, EventArgs.Empty);
 
     private void OnFrameTargetDropDownOpened(object? sender, EventArgs e) =>
         _viewModel.RefreshFrameTargetsCommand.Execute(null);

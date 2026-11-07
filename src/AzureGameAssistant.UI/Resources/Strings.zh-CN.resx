@@ -585,4 +585,280 @@
   <data name="CpuTempModeHint" xml:space="preserve">
     <value>ACPI 不需要驱动，但许多桌面主板不提供该接口。驱动模式会加载已签名的 LibreHardwareMonitor 模块；只有在你接受该驱动时才启用，且不要在反作弊游戏运行时切换。</value>
   </data>
+  <data name="AiSection" xml:space="preserve">
+    <value>AI 分析</value>
+  </data>
+  <data name="AiEnableLabel" xml:space="preserve">
+    <value>启用 AI 分析</value>
+  </data>
+  <data name="AiEnableHint" xml:space="preserve">
+    <value>默认关闭。只有在你点击运行并确认预览内容后，才会向大模型发送数据。</value>
+  </data>
+  <data name="AiProviderLabel" xml:space="preserve">
+    <value>服务商</value>
+  </data>
+  <data name="AiBaseUrlLabel" xml:space="preserve">
+    <value>接口地址</value>
+  </data>
+  <data name="AiModelLabel" xml:space="preserve">
+    <value>模型</value>
+  </data>
+  <data name="AiApiKeyLabel" xml:space="preserve">
+    <value>API Key</value>
+  </data>
+  <data name="AiKeySave" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="AiKeyDelete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="AiKeySaveFailed" xml:space="preserve">
+    <value>无法将 API Key 保存到 Windows 凭据管理器。</value>
+  </data>
+  <data name="AiKeySavedStatus" xml:space="preserve">
+    <value>已保存到 Windows 凭据管理器</value>
+  </data>
+  <data name="AiKeyMissingStatus" xml:space="preserve">
+    <value>该服务商尚未保存密钥</value>
+  </data>
+  <data name="AiKeyNotRequired" xml:space="preserve">
+    <value>该服务商不需要密钥</value>
+  </data>
+  <data name="AiRedactLabel" xml:space="preserve">
+    <value>脱敏路径、用户名与标识符</value>
+  </data>
+  <data name="AiHideProcessLabel" xml:space="preserve">
+    <value>用 process_1、process_2… 代替进程名</value>
+  </data>
+<data name="AiThresholdLabel" xml:space="preserve">
+    <value>自动分析阈值（0–100）</value>
+  </data>
+  <data name="AiBudgetSection" xml:space="preserve">
+    <value>费用限制</value>
+  </data>
+  <data name="AiDailyBudgetLabel" xml:space="preserve">
+    <value>每日预算（美元，0 = 不限）</value>
+  </data>
+  <data name="AiMonthlyBudgetLabel" xml:space="preserve">
+    <value>每月预算（美元，0 = 不限）</value>
+  </data>
+  <data name="AiBudgetHint" xml:space="preserve">
+    <value>估算基于服务商配置的每百万 Token 价格；价格为 0 时不估算费用。</value>
+  </data>
+  <data name="AiConsentHint" xml:space="preserve">
+    <value>分析窗口中的预览就是会离开本机的全部内容。密钥只存放在 Windows 凭据管理器，不写入设置、日志或报告。</value>
+  </data>
+  <data name="AiWindowTitle" xml:space="preserve">
+    <value>AI 分析</value>
+  </data>
+  <data name="AiWindowSubtitle" xml:space="preserve">
+    <value>基于本地采集的硬件数据分析可能的瓶颈并给出优化建议。建议仅供参考，不会自动修改系统。</value>
+  </data>
+  <data name="AiRequestSummary" xml:space="preserve">
+    <value>本次请求</value>
+  </data>
+  <data name="AiEndpointLabel" xml:space="preserve">
+    <value>接口地址</value>
+  </data>
+  <data name="AiTokensLabel" xml:space="preserve">
+    <value>Token</value>
+  </data>
+  <data name="AiCostLabel" xml:space="preserve">
+    <value>预计费用</value>
+  </data>
+  <data name="AiBudgetLabel" xml:space="preserve">
+    <value>预算</value>
+  </data>
+  <data name="AiRedactionLabel" xml:space="preserve">
+    <value>脱敏</value>
+  </data>
+  <data name="AiKeyLabel" xml:space="preserve">
+    <value>API Key</value>
+  </data>
+  <data name="AiPreviewTitle" xml:space="preserve">
+    <value>发送内容预览</value>
+  </data>
+  <data name="AiPreviewHint" xml:space="preserve">
+    <value>这是脱敏后随提示词一起发送的完整 JSON。可复制后确认再同意。</value>
+  </data>
+  <data name="AiCopy" xml:space="preserve">
+    <value>复制</value>
+  </data>
+  <data name="AiCopied" xml:space="preserve">
+    <value>已复制</value>
+  </data>
+  <data name="AiOpenReports" xml:space="preserve">
+    <value>报告目录</value>
+  </data>
+  <data name="AiRun" xml:space="preserve">
+    <value>开始分析</value>
+  </data>
+  <data name="AiRunLocal" xml:space="preserve">
+    <value>运行本地分析</value>
+  </data>
+  <data name="AiCancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="AiClose" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="AiNoData" xml:space="preserve">
+    <value>还没有采样数据。请让助手采集几秒后再分析。</value>
+  </data>
+  <data name="AiLocalFallback" xml:space="preserve">
+    <value>本地规则报告</value>
+  </data>
+  <data name="AiSummary" xml:space="preserve">
+    <value>结论</value>
+  </data>
+  <data name="AiEvidence" xml:space="preserve">
+    <value>依据</value>
+  </data>
+  <data name="AiSuspects" xml:space="preserve">
+    <value>可疑进程</value>
+  </data>
+  <data name="AiFrames" xml:space="preserve">
+    <value>帧分析</value>
+  </data>
+  <data name="AiRecommendations" xml:space="preserve">
+    <value>优化建议</value>
+  </data>
+  <data name="AiWarnings" xml:space="preserve">
+    <value>警告</value>
+  </data>
+  <data name="AiLimitations" xml:space="preserve">
+    <value>局限性</value>
+  </data>
+  <data name="AiResultTitle" xml:space="preserve">
+    <value>分析完成</value>
+  </data>
+  <data name="AiReady" xml:space="preserve">
+    <value>就绪</value>
+  </data>
+  <data name="AiRunning" xml:space="preserve">
+    <value>正在请求模型…</value>
+  </data>
+  <data name="AiReceiving" xml:space="preserve">
+    <value>已接收 {0} 个字符</value>
+  </data>
+  <data name="AiCancelled" xml:space="preserve">
+    <value>已取消</value>
+  </data>
+  <data name="AiAnalyzeButton" xml:space="preserve">
+    <value>AI 分析</value>
+  </data>
+  <data name="AiDisabledHint" xml:space="preserve">
+    <value>AI 分析未启用。请先在设置中启用并配置服务商。</value>
+  </data>
+  <data name="AiTokenSummary" xml:space="preserve">
+    <value>约 {0} 输入 / 最多 {1} 输出 Token</value>
+  </data>
+  <data name="AiCostEstimate" xml:space="preserve">
+    <value>最多约 {0}</value>
+  </data>
+  <data name="AiCostUnknown" xml:space="preserve">
+    <value>未配置价格</value>
+  </data>
+  <data name="AiBudgetLine" xml:space="preserve">
+    <value>今日 {0} / {1} · 本月 {2} / {3}</value>
+  </data>
+  <data name="AiBudgetUnlimited" xml:space="preserve">
+    <value>不限</value>
+  </data>
+  <data name="AiRedactionHits" xml:space="preserve">
+    <value>已脱敏 {0} 处（{1}）</value>
+  </data>
+  <data name="AiRedactionNone" xml:space="preserve">
+    <value>无需脱敏</value>
+  </data>
+  <data name="AiConfigError" xml:space="preserve">
+    <value>无法构建请求：{0}</value>
+  </data>
+  <data name="AiConsentLabel" xml:space="preserve">
+    <value>我同意把预览中的数据发送给 {0}，并知悉报告仅供参考。</value>
+  </data>
+  <data name="AiConfidence" xml:space="preserve">
+    <value>置信度 {0}</value>
+  </data>
+  <data name="AiConfidenceHigh" xml:space="preserve">
+    <value>高</value>
+  </data>
+  <data name="AiConfidenceMedium" xml:space="preserve">
+    <value>中</value>
+  </data>
+  <data name="AiConfidenceLow" xml:space="preserve">
+    <value>低</value>
+  </data>
+  <data name="AiExpectedEffect" xml:space="preserve">
+    <value>预期效果</value>
+  </data>
+  <data name="AiHowTo" xml:space="preserve">
+    <value>如何尝试</value>
+  </data>
+  <data name="AiRollback" xml:space="preserve">
+    <value>回滚方式</value>
+  </data>
+  <data name="AiRoleForeground" xml:space="preserve">
+    <value>前台</value>
+  </data>
+  <data name="AiRoleBackground" xml:space="preserve">
+    <value>后台</value>
+  </data>
+  <data name="AiRoleOther" xml:space="preserve">
+    <value>其他</value>
+  </data>
+  <data name="AiFrameCpuBound" xml:space="preserve">
+    <value>CPU 受限</value>
+  </data>
+  <data name="AiFrameGpuBound" xml:space="preserve">
+    <value>GPU 受限</value>
+  </data>
+  <data name="AiFramePacing" xml:space="preserve">
+    <value>帧节奏问题</value>
+  </data>
+  <data name="AiRiskLow" xml:space="preserve">
+    <value>低风险</value>
+  </data>
+  <data name="AiRiskMedium" xml:space="preserve">
+    <value>中风险</value>
+  </data>
+  <data name="AiRiskHigh" xml:space="preserve">
+    <value>高风险</value>
+  </data>
+  <data name="AiSavedReport" xml:space="preserve">
+    <value>已保存到 {0}</value>
+  </data>
+  <data name="AiCauseCpuContention" xml:space="preserve">
+    <value>CPU 争用</value>
+  </data>
+  <data name="AiCauseGpuBound" xml:space="preserve">
+    <value>GPU 受限</value>
+  </data>
+  <data name="AiCauseVramPressure" xml:space="preserve">
+    <value>显存压力</value>
+  </data>
+  <data name="AiCauseMemoryPressure" xml:space="preserve">
+    <value>内存压力</value>
+  </data>
+  <data name="AiCauseDiskBound" xml:space="preserve">
+    <value>磁盘受限</value>
+  </data>
+  <data name="AiCauseSystemScheduling" xml:space="preserve">
+    <value>系统调度 / 计时器抖动</value>
+  </data>
+  <data name="AiCauseFramePacing" xml:space="preserve">
+    <value>帧节奏</value>
+  </data>
+  <data name="AiCauseShaderCompilation" xml:space="preserve">
+    <value>着色器编译卡顿</value>
+  </data>
+  <data name="AiCauseAssetStreaming" xml:space="preserve">
+    <value>资源流式加载</value>
+  </data>
+  <data name="AiCauseThermalThrottle" xml:space="preserve">
+    <value>温度降频</value>
+  </data>
+  <data name="AiCauseUnknown" xml:space="preserve">
+    <value>原因未确定</value>
+  </data>
 </root>

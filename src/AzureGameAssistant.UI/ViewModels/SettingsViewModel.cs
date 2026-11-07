@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Reflection;
 using System.Windows.Media;
+using AzureGameAssistant.Ai;
 using AzureGameAssistant.Core;
 using AzureGameAssistant.Core.Settings;
 using AzureGameAssistant.UI.Services;
@@ -15,8 +16,15 @@ public sealed record SelectOption(string Value, string Display)
 
 public sealed partial class SettingsViewModel : ObservableObject
 {
+    private readonly LocalizationService _loc;
+    private readonly List<AiProviderSettings> _aiProviders;
+    private readonly Dictionary<string, AiProviderDraft> _aiDrafts = new(StringComparer.OrdinalIgnoreCase);
+    private string _loadedProvider;
+
     public SettingsViewModel(AppSettings settings, LocalizationService loc, bool autoStartEnabled)
     {
+        _loc = loc;
+        _aiProviders = settings.Ai.Providers;
         NormalMs = settings.Sampling.NormalMs;
         GameMs = settings.Sampling.GameMs;
         Theme = settings.Theme;
@@ -85,6 +93,29 @@ public sealed partial class SettingsViewModel : ObservableObject
             new SelectOption("driver", loc["CpuTempModeDriver"]),
             new SelectOption("off", loc["CpuTempModeOff"]),
         ];
+
+        AiEnabled = settings.Ai.Enabled;
+        AiActiveProvider = settings.Ai.ActiveProvider;
+        AiRedact = settings.Ai.Redact;
+        AiHideProcessNames = settings.Ai.HideProcessNames;
+        AiDailyBudget = settings.Ai.DailyBudget;
+        AiMonthlyBudget = settings.Ai.MonthlyBudget;
+
+        var providerOptions = AiProviderPresets.All
+            .Select(preset => new SelectOption(preset.Id, preset.DisplayName))
+            .ToList();
+        foreach (AiProviderSettings provider in _aiProviders)
+        {
+            if (!AiProviderPresets.IsKnown(provider.Id) &&
+                providerOptions.All(option => !string.Equals(option.Value, provider.Id, StringComparison.OrdinalIgnoreCase)))
+            {
+                providerOptions.Add(new SelectOption(provider.Id, provider.Id));
+            }
+        }
+
+        AiProviderOptions = providerOptions;
+        _loadedProvider = AiActiveProvider;
+        LoadAiProvider(AiActiveProvider);
     }
 
     public IReadOnlyList<int> IntervalOptions { get; } = [100, 200, 250, 500, 1000, 2000, 5000, 10000];
@@ -98,6 +129,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     public IReadOnlyList<SelectOption> OverlayThemeOptions { get; }
 
     public IReadOnlyList<SelectOption> CpuModeOptions { get; }
+
+    public IReadOnlyList<SelectOption> AiProviderOptions { get; }
 
     public string AppVersion { get; } =
         Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.1.0";
@@ -132,6 +165,38 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private string _cpuMode = "acpi";
+
+    [ObservableProperty]
+    private bool _aiEnabled;
+
+    [ObservableProperty]
+    private string _aiActiveProvider = "deepseek";
+
+    [ObservableProperty]
+    private string _aiBaseUrl = string.Empty;
+
+    [ObservableProperty]
+    private string _aiModel = string.Empty;
+
+    [ObservableProperty]
+    private bool _aiRedact = true;
+
+    [ObservableProperty]
+    private bool _aiHideProcessNames;
+
+    [ObservableProperty]
+    private double _aiDailyBudget;
+
+    [ObservableProperty]
+    private double _aiMonthlyBudget;
+
+    [ObservableProperty]
+    private bool _aiRequiresKey = true;
+
+    [ObservableProperty]
+    private string _aiKeyStatus = string.Empty;
+
+    public bool AiKeyInputEnabled => AiRequiresKey;
 
     [ObservableProperty]
     private bool _chartCpu;
@@ -204,6 +269,82 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     partial void OnOverlayColorChanged(string value) => OnPropertyChanged(nameof(OverlayColorPreview));
 
+    partial void OnAiActiveProviderChanged(string value)
+    {
+        CaptureAiProvider(_loadedProvider);
+        _loadedProvider = value;
+        LoadAiProvider(value);
+    }
+
+    partial void OnAiRequiresKeyChanged(bool value) => OnPropertyChanged(nameof(AiKeyInputEnabled));
+
+    public void RefreshKeyStatus()
+    {
+        if (!AiRequiresKey)
+        {
+            AiKeyStatus = _loc["AiKeyNotRequired"];
+            return;
+        }
+
+        AiKeyStatus = CredentialStore.Shared.Exists(AiActiveProvider)
+            ? _loc["AiKeySavedStatus"]
+            : _loc["AiKeyMissingStatus"];
+    }
+
+    private void LoadAiProvider(string? id)
+    {
+        string key = (id ?? string.Empty).Trim().ToLowerInvariant();
+        AiProviderPreset preset = AiProviderPresets.Resolve(key);
+
+        if (_aiDrafts.TryGetValue(key, out AiProviderDraft draft))
+        {
+            AiBaseUrl = draft.BaseUrl;
+            AiModel = draft.Model;
+            AiRequiresKey = draft.RequiresKey;
+            RefreshKeyStatus();
+            return;
+        }
+
+        AiProviderSettings? configured = _aiProviders.FirstOrDefault(provider =>
+            string.Equals(provider.Id, key, StringComparison.OrdinalIgnoreCase));
+
+        AiBaseUrl = !string.IsNullOrWhiteSpace(configured?.BaseUrl) ? configured!.BaseUrl : preset.BaseUrl;
+        AiModel = !string.IsNullOrWhiteSpace(configured?.Model) ? configured!.Model : preset.SuggestedModel;
+        AiRequiresKey = AiProviderPresets.IsKnown(key) ? preset.RequiresKey : configured?.RequiresKey ?? true;
+        RefreshKeyStatus();
+    }
+
+    private void CaptureAiProvider(string? id)
+    {
+        string key = (id ?? string.Empty).Trim().ToLowerInvariant();
+        string baseUrl = (AiBaseUrl ?? string.Empty).Trim().TrimEnd('/');
+        if (key.Length == 0 || baseUrl.Length == 0)
+        {
+            return;
+        }
+
+        _aiDrafts[key] = new AiProviderDraft(baseUrl, (AiModel ?? string.Empty).Trim(), AiRequiresKey);
+    }
+
+    private void FlushAiProviders()
+    {
+        foreach ((string id, AiProviderDraft draft) in _aiDrafts)
+        {
+            AiProviderSettings? entry = _aiProviders.FirstOrDefault(provider =>
+                string.Equals(provider.Id, id, StringComparison.OrdinalIgnoreCase));
+
+            if (entry is null)
+            {
+                entry = new AiProviderSettings { Id = id };
+                _aiProviders.Add(entry);
+            }
+
+            entry.BaseUrl = draft.BaseUrl;
+            entry.Model = draft.Model;
+            entry.RequiresKey = draft.RequiresKey;
+        }
+    }
+
     public void ApplyTo(AppSettings settings)
     {
         settings.Sampling.NormalMs = NormalMs;
@@ -237,7 +378,18 @@ public sealed partial class SettingsViewModel : ObservableObject
         settings.Overlay.ShowVram = OverlayVram;
         settings.Overlay.Theme = OverlayTheme;
         settings.Overlay.Color = OverlayColor;
+
+        settings.Ai.Enabled = AiEnabled;
+        settings.Ai.ActiveProvider = (AiActiveProvider ?? string.Empty).Trim().ToLowerInvariant();
+        settings.Ai.Redact = AiRedact;
+        settings.Ai.HideProcessNames = AiHideProcessNames;
+        settings.Ai.DailyBudget = double.IsFinite(AiDailyBudget) ? Math.Max(0, AiDailyBudget) : 0;
+        settings.Ai.MonthlyBudget = double.IsFinite(AiMonthlyBudget) ? Math.Max(0, AiMonthlyBudget) : 0;
+        CaptureAiProvider(AiActiveProvider);
+        FlushAiProviders();
     }
+
+    private readonly record struct AiProviderDraft(string BaseUrl, string Model, bool RequiresKey);
 
     private static bool TryParseColor(string? text, out Color color)
     {

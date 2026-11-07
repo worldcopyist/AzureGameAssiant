@@ -3,7 +3,7 @@
 | 项目 | 内容 |
 | --- | --- |
 | 文档编号 | AGS-DEV-001 |
-| 版本 | v1.3 |
+| 版本 | v1.4 |
 | 状态 | 已确认 |
 | 作者 | Qoder |
 | 适用版本 | v0.1 – v1.0 |
@@ -57,6 +57,7 @@
 | ADR-021 | UI 渲染模式 | 软件渲染（`RenderOptions.ProcessRenderMode = SoftwareOnly`） | 实测专用工作集由约 96MB 降至约 43MB，满足 UI 内存红线；界面仅 2Hz 刷新，CPU 代价可接受 | 默认硬件渲染（D3D 设备常驻内存偏高） |
 | ADR-022 | CPU 温度来源 | 默认 ACPI WMI 热区（用户态）；可选 `driver` 模式由用户自行安装 PawnIO 后读取；缺失显示“—” | 默认满足“无注入、无反作弊风险”约束；把驱动风险留给用户显式选择，程序绝不自动安装 | 默认加载 WinRing0/SMN 等内核驱动（有反作弊风险） |
 | ADR-023 | 权限自检 | 内置只读诊断窗口：管理员/性能日志用户/文件哈希/ETW 探针/心跳/帧状态/传感器/CPU 温度 | 缺失权限可自查、可复制报告；ETW 探针只创建并立即停止随机会话，不接触游戏进程 | 只写日志让用户猜、打开第三方工具检查 |
+| ADR-024 | Agent 数据接入 | 独立 MCP stdio 进程，只读共享内存，固定 6 个有界工具 | 复用既有遥测，不向采集进程引入网络或协议依赖；只读边界清晰，反作弊风险与主程序一致 | 把 MCP 嵌进采集进程、开放写操作、HTTP/SSE 监听端口 |
 
 ## 3. 总体架构
 
@@ -107,6 +108,7 @@
 - 采集进程**不发起任何网络请求**，不包含 AI 代码。
 - PresentMon 与传感器边车是**独立进程**；任一崩溃不影响采集主进程。
 - AI 只在 UI 进程运行；模型输出不执行、不自动应用。
+- MCP 服务是**独立只读进程**：只读共享内存与只读状态查询，不持有写权限，不随 UI 启动。
 
 ## 4. 进程模型与生命周期
 
@@ -1129,6 +1131,24 @@ internal sealed record AiProviderProfile(
 | 内容被安全策略拦截 | 提示模型拒绝 | 展示本地报告 |
 | 预算不足 | 提示已达预算 | 不发起请求 |
 
+### 10.12 实现现状（2026-11-07）
+
+| 能力 | 落地位置 | 状态 |
+| --- | --- | --- |
+| 供应商预设与地址校验 | `AiProviders.cs` | 完成：9 个预设；强制 HTTPS，回环允许 HTTP |
+| Key 存储 | `CredentialStore.cs` + 设置页 | 完成：Credential Manager，目标 `AzureGameAssistant/Ai/<id>` |
+| 事实层 | `FactsBuilder.cs` / `FactsDocument.cs` | 完成：固定白名单；环境、指标、帧、传感器、进程、数据缺口 |
+| 脱敏 | `Redactor.cs` | 完成：路径、用户名、机器名、IP/MAC、邮箱；对序列化后的 JSON 做最后一步 |
+| 提示词与严格 JSON | `PromptBuilder.cs`、`AiReportValidator` | 完成：数据区隔离、未知枚举归一、危险建议过滤 |
+| HTTP 客户端 | `OpenAiCompatibleClient.cs` | 完成：SSE 流式 + JSON 回落；60s 超时；429/5xx/超时重试 1 次；401/403 不重试 |
+| 预算与用量 | `AiBudget.cs` | 完成：UTF8/3 估算 token，日/月滚动，原子落盘 |
+| 本地兜底 | `LocalReportBuilder.cs` | 完成 |
+| UI | `AiAnalysisWindow`、设置页 AI 分组、主界面“AI 分析” | 完成，单元测试通过；因当前运行实例已提权并占用 Release 产物，本机未做点击级验证 |
+| 严重事件自动分析 | — | 未实现：当前没有写入评分事件的判定源；不提供开关，避免出现无效控件或后台请求 |
+
+- 报告目录：`%LOCALAPPDATA%\AzureGameAssistant\ai\reports\`；解析失败原文：`%LOCALAPPDATA%\AzureGameAssistant\logs\ai-parse-*.log`（不含 Key）。
+- 当前 UI 用“主窗口已有采样环 + 最近 4096 帧”构造 `FactsInput`，尚未绑定会话文件或具体卡顿事件；按事件分析需事件源落地后接入 FR-020。
+
 ## 11. 界面层
 
 ### 11.1 结构
@@ -1138,7 +1158,7 @@ internal sealed record AiProviderProfile(
 - `ChartWindow`：单张折线图的脱离小窗；复用同一 `TimelineChart` 实例，关闭后图表归还主窗口卡片。
 - `OverlayWindow`：桌面悬浮数据窗（M1 基础版）；置顶、鼠标穿透、四角定位、内容项开关、文字配色主题。
 - `EventDetailView`：本地报告 / AI 报告两个页签；帧证据区（M2）。
-- `AiConsentWindow`：首次开启、更换供应商、完整数据上传的确认与预览（M3）。
+- `AiConsentWindow`：首次开启、更换供应商、完整数据上传的确认与预览（M3）。当前由 `AiAnalysisWindow` 内联的同意区与请求预览承担，未单独提供确认窗口。
 - `SettingsWindow`：采样、折线图、界面、悬浮窗、关于；M2/M3 继续追加判定、帧、传感器、存储、AI 分组。
 - `AboutWindow`：M2/M3，版本、隐私声明、第三方许可证、日志目录入口。
 
@@ -1375,12 +1395,14 @@ AzureGameAssistant/
 │  ├─ AzureGameAssistant.Core/          # 数据模型、环形缓冲、判定、会话、设置、日志（无 UI 依赖）
 │  ├─ AzureGameAssistant.Collector/     # NativeAOT 采集进程；Frames/ 为 PresentMon 监督与解析
 │  ├─ AzureGameAssistant.Sensors/       # LHM 边车（可选）
-│  ├─ AzureGameAssistant.UI/            # WPF 界面 + AI 分析；Assets/app-icon.ico、OverlayWindow、ChartWindow
+│  ├─ AzureGameAssistant.Mcp/           # MCP stdio 只读硬件数据服务（Agent 接入）
+│  ├─ AzureGameAssistant.UI/            # WPF 界面 + AI 分析；Assets/app-icon.ico、OverlayWindow、ChartWindow、AiAnalysisWindow
 │  └─ AzureGameAssistant.Tests/         # xUnit 单元与集成测试
 ├─ build/
 │  ├─ make-icon.ps1
 │  ├─ measure.ps1
 │  ├─ package.ps1
+│  ├─ publish-mcp.ps1
 │  ├─ run-dev.ps1
 │  └─ version.props
 └─ artifacts/                           # 构建产物（git 忽略）
@@ -1406,6 +1428,7 @@ AzureGameAssistant/
 | Core | `net8.0` | 类库 |
 | Collector | `net8.0` | NativeAOT，win-x64 |
 | Sensors | `net8.0-windows` | 自包含，win-x64 |
+| Mcp | `net8.0` | 单文件，win-x64（默认框架依赖；可切换自包含） |
 | UI | `net8.0-windows` | 自包含，win-x64，ReadyToRun |
 | Tests | `net8.0` | 不发布 |
 
@@ -1427,6 +1450,9 @@ dotnet publish src/AzureGameAssistant.Sensors/AzureGameAssistant.Sensors.csproj 
 dotnet publish src/AzureGameAssistant.UI/AzureGameAssistant.UI.csproj `
   -c Release -r win-x64 --self-contained true `
   -p:PublishReadyToRun=true -p:PublishSingleFile=false -o artifacts/ui
+
+# MCP 只读服务（Agent 接入用）
+powershell -File build/publish-mcp.ps1
 ```
 
 ### 14.4 便携包
@@ -1472,6 +1498,9 @@ AzureGameAssistant-<version>-win-x64/
 | `FactsBuilder` | 字段白名单、缺失值、token 裁剪顺序 |
 | `AiReportValidator` | schema、危险建议过滤、证据引用校验、修复重试 |
 | `CostEstimator` | token 估算、费用计算、预算停止 |
+| `OpenAiCompatibleClient` | JSON/SSE 解析、401 不重试、429 重试、非 JSON 不重试、取消 |
+| `AiAnalysisService` | 未启用、缺少 Key、预算停止、成功落盘与用量、连续无效输出兜底与解析日志 |
+| `McpServer` / `ToolCatalog` | 版本协商、工具清单、通知无响应、错误码、参数与 schema 边界 |
 | `CredentialStore` | 写入/读取/删除（集成测试，需真实凭据管理器） |
 
 ### 15.2 集成测试
@@ -1481,6 +1510,7 @@ AzureGameAssistant-<version>-win-x64/
 - PresentMon：用固定 CSV 回放测试解析与状态机；真机用 1 款 DX11、1 款 DX12 游戏验证。
 - 传感器边车：无 GPU 环境返回退出码 4；有 GPU 环境验证 1 秒节拍与降级。
 - AI：本地 `HttpListener` 模拟 OpenAI 兼容服务，覆盖 200/401/429/500/超时/非 JSON/危险建议。
+- MCP：`McpServer.HandleAsync` 直测协议闭环；发布后以 stdio 管道对运行中的采集进程做快照、历史与状态冒烟。
 - IPC 测试：管道握手、命令往返、共享内存 seqlock 读写、版本不匹配拒绝。
 - UI 冒烟：启动 → 托盘 → 打开主窗口 → 切换语言/主题 → 打开事件 → AI 预览 → 退出（手工为主，M3 评估自动化）。
 
@@ -1526,10 +1556,11 @@ AzureGameAssistant-<version>-win-x64/
 2. 传感器边车、共享内存、降级矩阵、会话厂商字段。
 3. **M3-0 AI 验证**：OpenAI 兼容接口、3 家云 + 1 个本地模型、schema 与危险建议过滤。
 4. AI 设置页、凭据存储、事实层、脱敏、预览、报告展示与本地兜底。
-5. 悬浮条、Markdown + PNG 导出。
-6. 性能调优与全量 NFR 测量、8 小时稳定性、睡眠唤醒、多显示器/DPI 验收。
-7. 便携 ZIP、第三方声明、文档同步。
-8. 出口：全部 NFR 通过；三家传感器至少各验证一次；AI 默认零外发且预算生效；文档与实现一致。
+5. MCP 只读硬件数据服务：stdio JSON-RPC、固定 6 个有界工具、单文件产物与 Agent 接入说明。
+6. 悬浮条、Markdown + PNG 导出。
+7. 性能调优与全量 NFR 测量、8 小时稳定性、睡眠唤醒、多显示器/DPI 验收。
+8. 便携 ZIP、第三方声明、文档同步。
+9. 出口：全部 NFR 通过；三家传感器至少各验证一次；AI 默认零外发且预算生效；MCP 可被 Agent 调用；文档与实现一致。
 
 ## 17. 编码规范
 
@@ -1672,3 +1703,54 @@ AzureGameAssistant-<version>-win-x64/
 - 第三方许可证清单与 CI 检查在 M3 完成。
 - 归因测试集与基线数据在 M2 建立。
 - AI 供应商兼容性矩阵与提示词回归集在 M3 建立。
+
+## 21. MCP 硬件数据服务（只读）
+
+### 21.1 进程与传输
+
+- 项目 `AzureGameAssistant.Mcp`（`net8.0`、`Exe`），入口 `Program.cs`；只引用 Core，不依赖 AI 或 UI。
+- stdio 传输：stdin 每行一个 JSON-RPC 2.0 请求，stdout 每行一个响应；stdout 不输出任何日志。
+- 协议版本缺省 `2024-11-05`；`initialize` 回显客户端请求的 `protocolVersion`；`notifications/*` 不产生响应。
+- 进程不访问网络、不启动 UI、不写入共享内存；控制管道只调用只读 `status`。
+
+### 21.2 工具
+
+| 工具 | 参数（全部有界） | 数据来源 |
+| --- | --- | --- |
+| `get_hardware_snapshot` | 无 | 遥测共享内存 + 传感器 + 系统清单 |
+| `get_history` | `seconds` 1–3600（默认 60）、`max_points` 2–900（默认 60）、`metrics` ⊆ {cpu,gpu,memory,vram,disk,jitter} | 系统环形缓冲按桶聚合 |
+| `get_frame_stats` | `seconds` 1–60（默认 10） | 帧环形缓冲 |
+| `list_processes` | `limit` 1–5（默认 5） | 最新采样的 Top 进程 |
+| `diagnose` | 无 | 共享内存头 + 控制管道状态 + 修复提示 |
+| `get_collector_status` | 无 | 控制管道 `status`；不可用时退回共享内存并标记 `degraded` |
+
+错误约定：参数缺失/未知工具 → `-32602`；未知方法 → `-32601`；JSON 解析失败 → `-32700`；采集不可用 → `result.content[].text` 且 `isError: true`（工具级错误，便于 Agent 阅读）。
+
+### 21.3 构建与接入
+
+```powershell
+powershell -File build/publish-mcp.ps1                       # 框架依赖单文件
+powershell -File build/publish-mcp.ps1 -SelfContained        # 目标机无 .NET 8 时使用
+```
+
+产物：`artifacts/mcp/AzureGameAssistant.Mcp.exe`。
+
+Agent 配置示例（stdio）：
+
+```json
+{
+  "mcpServers": {
+    "azure-game-assistant": {
+      "command": "C:\\path\\to\\AzureGameAssistant.Mcp.exe"
+    }
+  }
+}
+```
+
+- MCP 进程无需管理员即可读取快照、历史、帧统计与进程排行；管理员身份可额外获得运行时长与最近错误。
+- 非管理员时 `get_collector_status` 返回 `degraded: true` 并在 `note` 中说明原因。
+
+### 21.4 测试
+
+- `McpServerTests` 覆盖版本协商、工具清单、通知无响应、协议错误码、未知工具、工具信封与 schema 边界。
+- 手工冒烟：`initialize` + `get_collector_status` 对运行中的采集进程返回 `sampleCount` / `frameCount` / `degraded`；`get_history` 返回聚合桶。

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>AzureGameAssistant.Ai</RootNamespace>
+    <AssemblyName>AzureGameAssistant.Ai</AssemblyName>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AzureGameAssistant.Core\AzureGameAssistant.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="AzureGameAssistant.Tests" />
+  </ItemGroup>
+
+</Project>

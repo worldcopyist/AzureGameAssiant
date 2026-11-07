@@ -62,6 +62,9 @@
                 </Border>
 
                 <Button Style="{StaticResource FlatButton}" Margin="0,0,8,0"
+                        Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiAnalyzeButton]}"
+                        Click="OnAiAnalyzeClick" />
+                <Button Style="{StaticResource FlatButton}" Margin="0,0,8,0"
                         Content="{Binding PauseText}"
                         Command="{Binding TogglePauseCommand}" />
                 <Button Style="{StaticResource FlatButton}"

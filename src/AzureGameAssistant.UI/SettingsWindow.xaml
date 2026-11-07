@@ -133,6 +133,98 @@
                 </Border>
 
                 <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,8"
+                           Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiSection]}" />
+                <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                    <StackPanel>
+                        <CheckBox IsChecked="{Binding AiEnabled, Mode=TwoWay}"
+                                  Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiEnableLabel]}" />
+                        <TextBlock Margin="24,2,0,10" FontSize="11" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiEnableHint]}" />
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiProviderLabel]}" />
+                            <ComboBox Grid.Column="1" MinWidth="220" ItemsSource="{Binding AiProviderOptions}"
+                                      DisplayMemberPath="Display" SelectedValuePath="Value"
+                                      SelectedValue="{Binding AiActiveProvider, Mode=TwoWay}" />
+
+                            <TextBlock Grid.Row="1" Margin="0,10,0,0" VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiBaseUrlLabel]}" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Width="280" Margin="0,10,0,0"
+                                     Text="{Binding AiBaseUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBlock Grid.Row="2" Margin="0,10,0,0" VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiModelLabel]}" />
+                            <TextBox Grid.Row="2" Grid.Column="1" Width="280" Margin="0,10,0,0"
+                                     Text="{Binding AiModel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBlock Grid.Row="3" Margin="0,10,0,0" VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiApiKeyLabel]}" />
+                            <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Margin="0,10,0,0">
+                                <PasswordBox x:Name="AiKeyBox" Width="176" IsEnabled="{Binding AiKeyInputEnabled}" />
+                                <Button Style="{StaticResource FlatButton}" Padding="8,2" Margin="6,0,0,0"
+                                        Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiKeySave]}"
+                                        Click="OnSaveAiKey" />
+                                <Button Style="{StaticResource FlatButton}" Padding="8,2" Margin="6,0,0,0"
+                                        Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiKeyDelete]}"
+                                        Click="OnDeleteAiKey" />
+                            </StackPanel>
+
+                            <TextBlock Grid.Row="4" Grid.Column="1" Margin="0,4,0,0" FontSize="11" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Text="{Binding AiKeyStatus}" />
+                        </Grid>
+
+                        <CheckBox Margin="0,12,0,0" IsChecked="{Binding AiRedact, Mode=TwoWay}"
+                                  Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiRedactLabel]}" />
+                        <CheckBox Margin="0,8,0,0" IsChecked="{Binding AiHideProcessNames, Mode=TwoWay}"
+                                  Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiHideProcessLabel]}" />
+
+                        <TextBlock Style="{StaticResource SectionTitle}" Margin="0,16,0,8"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiBudgetSection]}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiDailyBudgetLabel]}" />
+                            <TextBox Grid.Column="1" Width="90"
+                                     Text="{Binding AiDailyBudget, Mode=TwoWay}" />
+
+                            <TextBlock Grid.Row="1" Margin="0,10,0,0" VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiMonthlyBudgetLabel]}" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Width="90" Margin="0,10,0,0"
+                                     Text="{Binding AiMonthlyBudget, Mode=TwoWay}" />
+                        </Grid>
+                        <TextBlock Margin="0,6,0,0" FontSize="11" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiBudgetHint]}" />
+                        <TextBlock Margin="0,6,0,0" FontSize="11" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiConsentHint]}" />
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,8"
                            Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[OverlaySection]}" />
                 <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                     <StackPanel>

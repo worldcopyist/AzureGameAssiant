@@ -135,8 +135,9 @@ public sealed class AppSettings
 
         Ai ??= new AiSettings();
         Ai.AutoAnalyzeMinScore = Math.Clamp(Ai.AutoAnalyzeMinScore, 0, 100);
-        Ai.DailyBudget = Math.Max(0, Ai.DailyBudget);
-        Ai.MonthlyBudget = Math.Max(0, Ai.MonthlyBudget);
+        Ai.DailyBudget = double.IsFinite(Ai.DailyBudget) ? Math.Max(0, Ai.DailyBudget) : 0;
+        Ai.MonthlyBudget = double.IsFinite(Ai.MonthlyBudget) ? Math.Max(0, Ai.MonthlyBudget) : 0;
+        Ai.ConsentSignature = (Ai.ConsentSignature ?? string.Empty).Trim();
         Ai.Providers = (Ai.Providers ?? new List<AiProviderSettings>())
             .OfType<AiProviderSettings>()
             .Where(provider => !string.IsNullOrWhiteSpace(provider.Id) && !string.IsNullOrWhiteSpace(provider.BaseUrl))
@@ -269,6 +270,7 @@ public sealed class AiSettings
     public int AutoAnalyzeMinScore { get; set; } = 80;
     public bool Redact { get; set; } = true;
     public bool HideProcessNames { get; set; }
+    public string ConsentSignature { get; set; } = string.Empty;
     public double DailyBudget { get; set; }
     public double MonthlyBudget { get; set; }
     public List<AiProviderSettings> Providers { get; set; } =

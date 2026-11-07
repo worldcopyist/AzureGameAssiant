@@ -585,4 +585,280 @@
   <data name="CpuTempModeHint" xml:space="preserve">
     <value>ACPI needs no driver, but many desktop boards do not expose it. Driver mode uses the signed LibreHardwareMonitor module; enable it only if you accept that driver, and never while an anti-cheat game is running.</value>
   </data>
+  <data name="AiSection" xml:space="preserve">
+    <value>AI analysis</value>
+  </data>
+  <data name="AiEnableLabel" xml:space="preserve">
+    <value>Enable AI analysis</value>
+  </data>
+  <data name="AiEnableHint" xml:space="preserve">
+    <value>Off by default. Nothing is sent to a model until you press Run and confirm the exact preview.</value>
+  </data>
+  <data name="AiProviderLabel" xml:space="preserve">
+    <value>Provider</value>
+  </data>
+  <data name="AiBaseUrlLabel" xml:space="preserve">
+    <value>Base URL</value>
+  </data>
+  <data name="AiModelLabel" xml:space="preserve">
+    <value>Model</value>
+  </data>
+  <data name="AiApiKeyLabel" xml:space="preserve">
+    <value>API key</value>
+  </data>
+  <data name="AiKeySave" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="AiKeyDelete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="AiKeySaveFailed" xml:space="preserve">
+    <value>Could not save the API key to Windows Credential Manager.</value>
+  </data>
+  <data name="AiKeySavedStatus" xml:space="preserve">
+    <value>Key saved in Windows Credential Manager</value>
+  </data>
+  <data name="AiKeyMissingStatus" xml:space="preserve">
+    <value>No key saved for this provider</value>
+  </data>
+  <data name="AiKeyNotRequired" xml:space="preserve">
+    <value>This provider does not need a key</value>
+  </data>
+  <data name="AiRedactLabel" xml:space="preserve">
+    <value>Redact paths, user names and identifiers</value>
+  </data>
+  <data name="AiHideProcessLabel" xml:space="preserve">
+    <value>Replace process names with process_1, process_2…</value>
+  </data>
+<data name="AiThresholdLabel" xml:space="preserve">
+    <value>Auto threshold (0–100)</value>
+  </data>
+  <data name="AiBudgetSection" xml:space="preserve">
+    <value>Cost guards</value>
+  </data>
+  <data name="AiDailyBudgetLabel" xml:space="preserve">
+    <value>Daily budget (USD, 0 = unlimited)</value>
+  </data>
+  <data name="AiMonthlyBudgetLabel" xml:space="preserve">
+    <value>Monthly budget (USD, 0 = unlimited)</value>
+  </data>
+  <data name="AiBudgetHint" xml:space="preserve">
+    <value>Estimates use the per-million prices configured for the provider. 0 disables the estimate.</value>
+  </data>
+  <data name="AiConsentHint" xml:space="preserve">
+    <value>The preview in the analysis window is exactly what leaves this machine. Keys stay in Windows Credential Manager and never enter settings, logs or reports.</value>
+  </data>
+  <data name="AiWindowTitle" xml:space="preserve">
+    <value>AI analysis</value>
+  </data>
+  <data name="AiWindowSubtitle" xml:space="preserve">
+    <value>Reviews the locally collected hardware facts and suggests optimizations. Suggestions are advisory; nothing is applied automatically.</value>
+  </data>
+  <data name="AiRequestSummary" xml:space="preserve">
+    <value>Request</value>
+  </data>
+  <data name="AiEndpointLabel" xml:space="preserve">
+    <value>Endpoint</value>
+  </data>
+  <data name="AiTokensLabel" xml:space="preserve">
+    <value>Tokens</value>
+  </data>
+  <data name="AiCostLabel" xml:space="preserve">
+    <value>Estimated cost</value>
+  </data>
+  <data name="AiBudgetLabel" xml:space="preserve">
+    <value>Budget</value>
+  </data>
+  <data name="AiRedactionLabel" xml:space="preserve">
+    <value>Redaction</value>
+  </data>
+  <data name="AiKeyLabel" xml:space="preserve">
+    <value>API key</value>
+  </data>
+  <data name="AiPreviewTitle" xml:space="preserve">
+    <value>Outbound facts preview</value>
+  </data>
+  <data name="AiPreviewHint" xml:space="preserve">
+    <value>This is the exact JSON sent with the prompt after redaction. Copy it to review before consenting.</value>
+  </data>
+  <data name="AiCopy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="AiCopied" xml:space="preserve">
+    <value>Copied</value>
+  </data>
+  <data name="AiOpenReports" xml:space="preserve">
+    <value>Report folder</value>
+  </data>
+  <data name="AiRun" xml:space="preserve">
+    <value>Run analysis</value>
+  </data>
+  <data name="AiRunLocal" xml:space="preserve">
+    <value>Run local analysis</value>
+  </data>
+  <data name="AiCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="AiClose" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="AiNoData" xml:space="preserve">
+    <value>No samples yet. Let the assistant collect for a few seconds before analyzing.</value>
+  </data>
+  <data name="AiLocalFallback" xml:space="preserve">
+    <value>Local rule-based report</value>
+  </data>
+  <data name="AiSummary" xml:space="preserve">
+    <value>Summary</value>
+  </data>
+  <data name="AiEvidence" xml:space="preserve">
+    <value>Evidence</value>
+  </data>
+  <data name="AiSuspects" xml:space="preserve">
+    <value>Suspected processes</value>
+  </data>
+  <data name="AiFrames" xml:space="preserve">
+    <value>Frame analysis</value>
+  </data>
+  <data name="AiRecommendations" xml:space="preserve">
+    <value>Recommendations</value>
+  </data>
+  <data name="AiWarnings" xml:space="preserve">
+    <value>Warnings</value>
+  </data>
+  <data name="AiLimitations" xml:space="preserve">
+    <value>Limitations</value>
+  </data>
+  <data name="AiResultTitle" xml:space="preserve">
+    <value>Analysis complete</value>
+  </data>
+  <data name="AiReady" xml:space="preserve">
+    <value>Ready</value>
+  </data>
+  <data name="AiRunning" xml:space="preserve">
+    <value>Contacting the model…</value>
+  </data>
+  <data name="AiReceiving" xml:space="preserve">
+    <value>Receiving {0} characters</value>
+  </data>
+  <data name="AiCancelled" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="AiAnalyzeButton" xml:space="preserve">
+    <value>AI analysis</value>
+  </data>
+  <data name="AiDisabledHint" xml:space="preserve">
+    <value>AI analysis is off. Enable it in Settings and configure a provider first.</value>
+  </data>
+  <data name="AiTokenSummary" xml:space="preserve">
+    <value>≈{0} input / up to {1} output tokens</value>
+  </data>
+  <data name="AiCostEstimate" xml:space="preserve">
+    <value>≈{0} at most</value>
+  </data>
+  <data name="AiCostUnknown" xml:space="preserve">
+    <value>Pricing not configured</value>
+  </data>
+  <data name="AiBudgetLine" xml:space="preserve">
+    <value>today {0} / {1} · this month {2} / {3}</value>
+  </data>
+  <data name="AiBudgetUnlimited" xml:space="preserve">
+    <value>unlimited</value>
+  </data>
+  <data name="AiRedactionHits" xml:space="preserve">
+    <value>{0} value(s) redacted ({1})</value>
+  </data>
+  <data name="AiRedactionNone" xml:space="preserve">
+    <value>Nothing redacted</value>
+  </data>
+  <data name="AiConfigError" xml:space="preserve">
+    <value>Cannot build the request: {0}</value>
+  </data>
+  <data name="AiConsentLabel" xml:space="preserve">
+    <value>I agree to send the previewed facts to {0} and understand the report is advisory.</value>
+  </data>
+  <data name="AiConfidence" xml:space="preserve">
+    <value>confidence {0}</value>
+  </data>
+  <data name="AiConfidenceHigh" xml:space="preserve">
+    <value>high</value>
+  </data>
+  <data name="AiConfidenceMedium" xml:space="preserve">
+    <value>medium</value>
+  </data>
+  <data name="AiConfidenceLow" xml:space="preserve">
+    <value>low</value>
+  </data>
+  <data name="AiExpectedEffect" xml:space="preserve">
+    <value>Expected effect</value>
+  </data>
+  <data name="AiHowTo" xml:space="preserve">
+    <value>How to try</value>
+  </data>
+  <data name="AiRollback" xml:space="preserve">
+    <value>Rollback</value>
+  </data>
+  <data name="AiRoleForeground" xml:space="preserve">
+    <value>foreground</value>
+  </data>
+  <data name="AiRoleBackground" xml:space="preserve">
+    <value>background</value>
+  </data>
+  <data name="AiRoleOther" xml:space="preserve">
+    <value>other</value>
+  </data>
+  <data name="AiFrameCpuBound" xml:space="preserve">
+    <value>CPU-bound</value>
+  </data>
+  <data name="AiFrameGpuBound" xml:space="preserve">
+    <value>GPU-bound</value>
+  </data>
+  <data name="AiFramePacing" xml:space="preserve">
+    <value>frame pacing issue</value>
+  </data>
+  <data name="AiRiskLow" xml:space="preserve">
+    <value>low risk</value>
+  </data>
+  <data name="AiRiskMedium" xml:space="preserve">
+    <value>medium risk</value>
+  </data>
+  <data name="AiRiskHigh" xml:space="preserve">
+    <value>high risk</value>
+  </data>
+  <data name="AiSavedReport" xml:space="preserve">
+    <value>Saved to {0}</value>
+  </data>
+  <data name="AiCauseCpuContention" xml:space="preserve">
+    <value>CPU contention</value>
+  </data>
+  <data name="AiCauseGpuBound" xml:space="preserve">
+    <value>GPU bound</value>
+  </data>
+  <data name="AiCauseVramPressure" xml:space="preserve">
+    <value>VRAM pressure</value>
+  </data>
+  <data name="AiCauseMemoryPressure" xml:space="preserve">
+    <value>memory pressure</value>
+  </data>
+  <data name="AiCauseDiskBound" xml:space="preserve">
+    <value>disk bound</value>
+  </data>
+  <data name="AiCauseSystemScheduling" xml:space="preserve">
+    <value>system scheduling / timer jitter</value>
+  </data>
+  <data name="AiCauseFramePacing" xml:space="preserve">
+    <value>frame pacing</value>
+  </data>
+  <data name="AiCauseShaderCompilation" xml:space="preserve">
+    <value>shader compilation stutter</value>
+  </data>
+  <data name="AiCauseAssetStreaming" xml:space="preserve">
+    <value>asset streaming</value>
+  </data>
+  <data name="AiCauseThermalThrottle" xml:space="preserve">
+    <value>thermal throttling</value>
+  </data>
+  <data name="AiCauseUnknown" xml:space="preserve">
+    <value>undetermined</value>
+  </data>
 </root>
