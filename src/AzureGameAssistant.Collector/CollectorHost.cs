@@ -26,6 +26,7 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
     private readonly SensorReader? _sensorReader;
     private readonly Dictionary<uint, float> _gpuByPid = new();
     private readonly ProcessSlot[] _slots = new ProcessSlot[5];
+    private ProcessSlot[] _latestSlots = new ProcessSlot[5];
     private readonly CancellationTokenSource _stop = new();
     private readonly Stopwatch _uptime = new();
     private readonly int _intervalMs;
@@ -61,7 +62,9 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
             targetPid > 0 &&
             IsProcessAlive(targetPid))
         {
-            _presentMon = new PresentMonSupervisor(logger, _telemetry, _presentMonPath, targetPid);
+            _presentMon = new PresentMonSupervisor(
+                logger, _telemetry, _presentMonPath, targetPid,
+                () => IsTargetActive(targetPid));
         }
 
         if (settings.Sensors.Enabled)
@@ -180,6 +183,7 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
             bool gpuValid = _pdh.ReadGpu(out GpuTotals gpu, _gpuByPid);
             uint foregroundPid = GetForegroundPid();
             int processCount = _processes.Sample(_slots, foregroundPid, _gpuByPid);
+            _latestSlots = _slots.ToArray();
 
             ushort flags = 0;
             if (processCount > 0)
@@ -369,6 +373,25 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
         _sensorFresh = _sensorReader.HeartbeatAgeMs <= 3_000;
     }
 
+    private bool IsTargetActive(int pid)
+    {
+        if (GetForegroundPid() == (uint)pid)
+        {
+            return true;
+        }
+
+        ProcessSlot[] slots = _latestSlots;
+        foreach (ProcessSlot slot in slots)
+        {
+            if (slot.Pid == pid)
+            {
+                return slot.GpuPct >= 5.0;
+            }
+        }
+
+        return false;
+    }
+
     private static uint GetForegroundPid()    {
         IntPtr window = User32.GetForegroundWindow();
         if (window == IntPtr.Zero)
@@ -416,7 +439,9 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
 
             StopFramesLocked();
 
-            var supervisor = new PresentMonSupervisor(_logger, _telemetry, _presentMonPath, pid);
+            var supervisor = new PresentMonSupervisor(
+                _logger, _telemetry, _presentMonPath, pid,
+                () => IsTargetActive(pid));
             supervisor.Start();
             if (supervisor.State == FrameCaptureState.Unavailable)
             {

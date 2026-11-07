@@ -187,7 +187,9 @@
 - 启动提权：`requestElevationOnStartup`（默认开启）时，非管理员实例在创建窗口前用 `runas` 重新启动自身并退出；UAC 由系统弹出，用户取消（Win32 1223）则继续以当前权限运行，不循环重试。启动参数 `--no-elevate` 可临时跳过。
 - `runas` 新实例携带 `--elevated-relaunch`，最多等待 10 秒接管单实例互斥体（旧实例先释放）；等待超时则提示已有一个实例在运行。
 - 权限自检：主界面“权限自检”按钮随时打开诊断窗口，只读检查管理员权限、Performance Log Users、PresentMon 文件与 SHA256、ETW 探针会话（创建后立即停止）、遥测心跳、帧采集状态、GPU 传感器与 CPU 温度来源；支持重新检测、复制报告，未提权时提供提权按钮。
-- 自动帧采集：`frames.autoCapture`（默认开启）时，采集进程每 4 个状态节拍检查一次前台窗口 PID；排除助手自身与 shell 进程，要求进程存活且有主窗口；启动失败按 `permissionDenied` 5 分钟、`unavailable` 1 分钟冷却；用户手动停止后，同一 PID 不再自动重启，直到前台切换到其他进程。
+- 自动帧采集：`frames.autoCapture`（默认开启）时，界面每 2 秒检查一次前台窗口 PID；排除助手自身、shell 与排除名单，要求进程存活、有主窗口，并且全屏（无 `WS_CAPTION` 且窗口矩形覆盖所在显示器）或该进程 GPU 占用 ≥ 5%。普通桌面应用不会触发。
+- 前台切到桌面应用时，只要原目标仍在采集且进程存活，就保持会话不切换；前台切到另一款游戏才替换目标。
+- 自动采集启动失败：启动返回 `permissionDenied` 冷却 5 分钟、`unavailable` 冷却 1 分钟；同一 PID 已处于这两种状态时每 20 秒才重试一次，避免失败目标拖死其他游戏。用户手动停止后，同一 PID 不再自动重启，直到前台切换到其他进程。
 - **禁止混合权限**：采集进程与 UI 必须同权限运行，否则高完整性进程创建的 `Local\` 对象低权限 UI 无法读取。UI 检测到共享内存打开失败时，提示“请以相同权限重启”。
 - 深模式能力位由采集进程写入共享内存；UI 只读展示，不自行推断。
 - 拒绝 UAC 时保持浅模式，不重试、不骚扰；权限自检窗口会列出缺失项与影响。
@@ -470,8 +472,15 @@ cpuPct = (ΔKernel + ΔUser) / (ΔWallSeconds × LogicalProcessorCount) × 100
 以随包版本 `--help` 为准（2.6.0 已实测存在下列参数）：
 
 ```
-PresentMon.exe --process_id <pid> --output_stdout --v2_metrics --session_name AzureGameAssistant --terminate_on_proc_exit --stop_existing_session
+# 第一步：清理上一次被强杀后残留的同名 ETW 会话（无会话时退出码 7，忽略）
+PresentMon.exe --session_name AzureGameAssistant --terminate_existing_session --no_csv
+
+# 第二步：启动正式采集
+PresentMon.exe --process_id <pid> --output_stdout --v2_metrics --session_name AzureGameAssistant --terminate_on_proc_exit
 ```
+
+- 正式采集**不再传** `--stop_existing_session`：实测在存在同名残留会话时，停止旧会话后新建的会话会在约 10~16 秒后静默停止出帧；拆成“先清理、再启动”两阶段后连续采集稳定。
+- 会话名固定为 `AzureGameAssistant`，便于权限自检与排障；每次重启前都先执行清理步骤，避免残留会话累积。
 
 - 2.6.0 确认支持 `--process_id`，已知目标 PID 时优先使用；未拿到 PID 时回退 `--process_name`。
 - 默认输出即为 2.x 指标；仍显式传入 `--v2_metrics`，防止上游更改默认值导致列名漂移。
@@ -505,8 +514,9 @@ PresentMon.exe --process_id <pid> --output_stdout --v2_metrics --session_name Az
 - 需要兼容 1.x 数据时，仅在解析器中增加别名映射（大小写不敏感）；运行路径仍固定 `--v2_metrics`。
 
 - 每 64 帧或 100ms 批量写入帧环形缓冲，避免逐帧加锁。
-- 解析失败行计数；连续 100 行失败或 10 秒无首帧 → 判定 PresentMon 异常，重启子进程。
-- 记录首帧延迟；启动后 10 秒仍无帧 → 降级并提示（常见原因：权限不足、进程无呈现、反作弊拦截）。
+- 解析失败行计数；连续 100 行失败或 20 秒无首帧 → 判定 PresentMon 异常，重启子进程。
+- 读取循环每 500ms 轮询一次：已出帧后连续 10 秒无新帧，且目标仍活跃（前台窗口或 GPU 占用 ≥ 5%）时，判定会话静默失效并重启；目标已最小化/暂停时不反复重启。
+- 记录首帧延迟；启动后 20 秒仍无帧 → 降级并提示（常见原因：权限不足、进程无呈现、反作弊拦截）。
 
 #### 6.6.4 监督与降级
 
@@ -515,10 +525,15 @@ PresentMon.exe --process_id <pid> --output_stdout --v2_metrics --session_name Az
 
 ```
 Stopped ──有目标 PID──► Starting ──首帧──► Capturing
-   ▲                       │ 10s 无帧/进程退出     │ 目标退出
+   ▲                       │ 20s 无首帧/进程退出    │ 目标退出
    │                       ▼                      ▼
    └──── PermissionDenied / Unavailable ◄── 连续 3 次失败
+                                    ▲
+                                    │ 10s 无新帧且目标活跃 → 重启会话
 ```
+
+- `Capturing` 期间若 10 秒没有新帧而目标仍活跃，读取循环主动结束本次尝试，走同一套退避重启；这覆盖“PresentMon 进程还活着但 ETW 会话已失效”的情况。
+- 启动前清理同名 ETW 会话（`--terminate_existing_session`），避免残留会话污染新会话。
 
 - 重启退避 1s / 5s / 15s；连续 3 次失败停止，写能力位“帧不可用”，UI 显示原因；目标进程已退出时不再重启。
 - 可执行文件路径：设置中的相对路径按 `AppContext.BaseDirectory` 解析；采集项目把 `third_party/presentmon` 复制到输出与发布目录的 `presentmon\`。
@@ -1155,7 +1170,7 @@ internal sealed record AiProviderProfile(
 
 - `App.xaml`：资源、主题、全局异常处理。
 - `MainWindow`：六张概览卡片（CPU / GPU / 内存 / 显存 / 磁盘 / 定时抖动）、可开关的分指标折线图、Top-5 进程、采集状态；M2 增加事件列表与详情面板。
-- `ChartWindow`：单张折线图的脱离小窗；复用同一 `TimelineChart` 实例，关闭后图表归还主窗口卡片。
+- `ChartWindow`：单张折线图的脱离小窗；复用同一 `TimelineChart` 实例，关闭后图表归还主窗口卡片。默认只有主窗口，所有图表都在主窗口的“实时时间轴”网格中；只有勾选“布局设计”后才显示脱离按钮，取消勾选会自动关闭所有小窗并合并回主窗口。
 - `OverlayWindow`：桌面悬浮数据窗（M1 基础版）；置顶、鼠标穿透、四角定位、内容项开关、文字配色主题。
 - `EventDetailView`：本地报告 / AI 报告两个页签；帧证据区（M2）。
 - `AiConsentWindow`：首次开启、更换供应商、完整数据上传的确认与预览（M3）。当前由 `AiAnalysisWindow` 内联的同意区与请求预览承担，未单独提供确认窗口。

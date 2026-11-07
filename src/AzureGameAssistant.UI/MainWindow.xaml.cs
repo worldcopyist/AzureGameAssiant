@@ -190,6 +190,23 @@ public partial class MainWindow : Window
         UpdateChartColumns();
     }
 
+    private void OnDesignModeChanged(object sender, RoutedEventArgs e)
+    {
+        if (DesignToggle.IsChecked == true)
+        {
+            return;
+        }
+
+        var metrics = new List<ChartMetric>(_detached.Keys);
+        foreach (ChartMetric metric in metrics)
+        {
+            if (_detached.TryGetValue(metric, out DetachedChart? entry))
+            {
+                entry.Window.Close();
+            }
+        }
+    }
+
     private void RestoreChart(ChartMetric metric)
     {
         if (!_detached.Remove(metric, out DetachedChart? entry))

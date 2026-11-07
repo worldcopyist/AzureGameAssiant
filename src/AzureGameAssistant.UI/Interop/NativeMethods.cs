@@ -24,10 +24,13 @@ internal static partial class NativeMethods
 
     public const int SwRestore = 9;
 
+    public const int GwlStyle = -16;
     public const int GwlExStyle = -20;
+    public const long WsCaption = 0x00C00000;
     public const int WsExTransparent = 0x00000020;
     public const int WsExToolWindow = 0x00000080;
     public const int WsExNoActivate = 0x08000000;
+    public const uint MonitorDefaultToNearest = 2;
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     public unsafe struct NotifyIconData
@@ -54,6 +57,24 @@ internal static partial class NativeMethods
         public int Y;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct Rect32
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MonitorInfo
+    {
+        public int Size;
+        public Rect32 Monitor;
+        public Rect32 Work;
+        public uint Flags;
+    }
+
     [LibraryImport("shell32.dll", SetLastError = true, EntryPoint = "Shell_NotifyIconW")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool ShellNotifyIcon(uint message, ref NotifyIconData data);
@@ -77,6 +98,17 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool GetCursorPos(out Point32 point);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool GetWindowRect(IntPtr window, out Rect32 rect);
+
+    [LibraryImport("user32.dll")]
+    public static partial IntPtr MonitorFromWindow(IntPtr window, uint flags);
+
+    [LibraryImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

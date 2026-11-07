@@ -7,6 +7,7 @@ using AzureGameAssistant.Ai;
 using AzureGameAssistant.Core.Frames;
 using AzureGameAssistant.Core.Models;
 using AzureGameAssistant.Core.Settings;
+using AzureGameAssistant.UI.Interop;
 using AzureGameAssistant.UI.Services;
 
 namespace AzureGameAssistant.UI.ViewModels;
@@ -398,7 +399,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
 
         DateTime now = DateTime.UtcNow;
-        if (now < _autoCaptureBlockedUntil || now - _lastAutoCaptureAttempt < TimeSpan.FromSeconds(2))
+        if (now - _lastAutoCaptureAttempt < TimeSpan.FromSeconds(2))
         {
             return;
         }
@@ -420,6 +421,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             _autoCaptureSuppressedPid = null;
         }
 
+        if (now < _autoCaptureBlockedUntil && pid == _frameTargetPid)
+        {
+            return;
+        }
+
         if (_frameTargetPid == pid)
         {
             if (_frameState is "capturing" or "starting")
@@ -429,9 +435,19 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
             if (_frameState is "permissionDenied" or "unavailable")
             {
-                _autoCaptureBlockedUntil = now.AddMinutes(1);
+                _autoCaptureBlockedUntil = now.AddSeconds(20);
                 return;
             }
+        }
+
+        // Alt-tabbing to a desktop app must not tear down a live game capture.
+        if (_frameTargetPid is int current &&
+            current != pid &&
+            _frameState is "capturing" or "starting" &&
+            IsProcessAlive(current) &&
+            !IsGameLikeProcess(pid))
+        {
+            return;
         }
 
         if (!IsAutoCaptureCandidate(pid))
@@ -462,7 +478,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         UpdateFrameTexts();
     }
 
-    private bool IsAutoCaptureCandidate(int pid)
+    private bool IsAutoCaptureCandidate(int pid) => IsGameLikeProcess(pid);
+
+    private bool IsGameLikeProcess(int pid)
     {
         string name = _names.GetName((uint)pid);
         if (string.IsNullOrEmpty(name) ||
@@ -475,11 +493,94 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         try
         {
             using Process process = Process.GetProcessById(pid);
-            return !process.HasExited && process.MainWindowHandle != IntPtr.Zero;
+            if (process.HasExited)
+            {
+                return false;
+            }
+
+            IntPtr window = process.MainWindowHandle;
+            if (window == IntPtr.Zero)
+            {
+                return false;
+            }
+
+            return IsFullscreen(window) || GpuPercentFor(pid) >= 5.0;
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or Win32Exception)
         {
             return false;
+        }
+    }
+
+    private static bool IsFullscreen(IntPtr window)
+    {
+        long style = NativeMethods.GetWindowLongPtrW(window, NativeMethods.GwlStyle).ToInt64();
+        if ((style & NativeMethods.WsCaption) != 0)
+        {
+            return false;
+        }
+
+        if (!NativeMethods.GetWindowRect(window, out NativeMethods.Rect32 bounds))
+        {
+            return false;
+        }
+
+        IntPtr monitor = NativeMethods.MonitorFromWindow(window, NativeMethods.MonitorDefaultToNearest);
+        if (monitor == IntPtr.Zero)
+        {
+            return false;
+        }
+
+        var info = new NativeMethods.MonitorInfo
+        {
+            Size = System.Runtime.InteropServices.Marshal.SizeOf<NativeMethods.MonitorInfo>(),
+        };
+
+        if (!NativeMethods.GetMonitorInfo(monitor, ref info))
+        {
+            return false;
+        }
+
+        const int tolerance = 2;
+        return bounds.Left <= info.Monitor.Left + tolerance &&
+               bounds.Top <= info.Monitor.Top + tolerance &&
+               bounds.Right >= info.Monitor.Right - tolerance &&
+               bounds.Bottom >= info.Monitor.Bottom - tolerance;
+    }
+
+    private double GpuPercentFor(int pid)
+    {
+        SampleRecord sample = _telemetry.Latest;
+        ProcessSlot[] slots = [sample.P0, sample.P1, sample.P2, sample.P3, sample.P4];
+        foreach (ProcessSlot slot in slots)
+        {
+            if (slot.Pid == pid)
+            {
+                return slot.GpuPct;
+            }
+        }
+
+        return 0;
+    }
+
+    private static bool IsProcessAlive(int pid)
+    {
+        try
+        {
+            using Process process = Process.GetProcessById(pid);
+            return !process.HasExited;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
+        catch (Win32Exception)
+        {
+            return true;
         }
     }
 

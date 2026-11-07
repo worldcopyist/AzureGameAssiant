@@ -29,8 +29,12 @@ internal sealed class PresentMonSupervisor : IDisposable
 {
     private const int BatchSize = 64;
     private const int FailureLimit = 3;
+    private const string SessionName = "AzureGameAssistant";
+    private const int PollIntervalMs = 500;
     private static readonly TimeSpan FlushInterval = TimeSpan.FromMilliseconds(100);
-    private static readonly TimeSpan FirstFrameTimeout = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan FirstFrameTimeout = TimeSpan.FromSeconds(20);
+    private static readonly TimeSpan StallTimeout = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan SessionCleanupTimeout = TimeSpan.FromSeconds(3);
     private static readonly TimeSpan[] RetryDelays =
     [
         TimeSpan.FromSeconds(1),
@@ -42,6 +46,7 @@ internal sealed class PresentMonSupervisor : IDisposable
     private readonly TelemetryWriter _telemetry;
     private readonly string _executablePath;
     private readonly int _targetPid;
+    private readonly Func<bool> _isTargetActive;
     private readonly CancellationTokenSource _stop = new();
     private readonly FrameRecord[] _batch = new FrameRecord[BatchSize];
     private readonly Stopwatch _flushClock = Stopwatch.StartNew();
@@ -57,12 +62,18 @@ internal sealed class PresentMonSupervisor : IDisposable
     private volatile FrameCaptureState _state;
     private volatile string? _lastError;
 
-    public PresentMonSupervisor(FileLogger logger, TelemetryWriter telemetry, string executablePath, int targetPid)
+    public PresentMonSupervisor(
+        FileLogger logger,
+        TelemetryWriter telemetry,
+        string executablePath,
+        int targetPid,
+        Func<bool>? isTargetActive = null)
     {
         _logger = logger;
         _telemetry = telemetry;
         _executablePath = executablePath;
         _targetPid = targetPid;
+        _isTargetActive = isTargetActive ?? (() => true);
     }
 
     public FrameCaptureState State => _state;
@@ -193,12 +204,20 @@ internal sealed class PresentMonSupervisor : IDisposable
                 TimeSpan delay = RetryDelays[Math.Min(failures - 1, RetryDelays.Length - 1)];
                 _lastError = result.Error;
                 _state = FrameCaptureState.Starting;
-                _logger.Warn($"PresentMon 退出（代码 {result.ExitCode}），{delay.TotalSeconds:0}s 后重启");
+                string detail = string.IsNullOrEmpty(result.Error) ? string.Empty : "：" + result.Error;
+                _logger.Warn(
+                    $"PresentMon 退出（代码 {result.ExitCode} / 0x{unchecked((uint)result.ExitCode):X8}）{detail}，{delay.TotalSeconds:0}s 后重启");
                 await Task.Delay(delay, token).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
         {
+        }
+        catch (Exception ex)
+        {
+            _lastError = "帧采集线程异常：" + ex.Message;
+            _state = FrameCaptureState.Unavailable;
+            _logger.Error(_lastError, ex);
         }
         finally
         {
@@ -210,8 +229,66 @@ internal sealed class PresentMonSupervisor : IDisposable
         }
     }
 
+    /// <summary>
+    /// A killed PresentMon leaves its ETW session behind. PresentMon's
+    /// --stop_existing_session path then produces a session that silently stops
+    /// delivering events after a few seconds, so clear any orphan with a
+    /// dedicated two-phase start first.
+    /// </summary>
+    private async Task ClearStaleSessionAsync(CancellationToken token)
+    {
+        using var process = new Process
+        {
+            StartInfo = BuildStartInfo(terminateExisting: true),
+        };
+
+        try
+        {
+            if (!process.Start())
+            {
+                return;
+            }
+        }
+        catch (Win32Exception ex)
+        {
+            _logger.Warn("ETW 会话清理进程启动失败：" + ex.Message);
+            return;
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.Warn("ETW 会话清理进程启动失败：" + ex.Message);
+            return;
+        }
+
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
+        timeout.CancelAfter(SessionCleanupTimeout);
+        try
+        {
+            await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            try
+            {
+                process.Kill(entireProcessTree: true);
+            }
+            catch (InvalidOperationException)
+            {
+            }
+            catch (Win32Exception)
+            {
+            }
+        }
+    }
+
     private async Task<AttemptResult> RunOnceAsync(CancellationToken token)
     {
+        await ClearStaleSessionAsync(token).ConfigureAwait(false);
+        if (token.IsCancellationRequested)
+        {
+            return new AttemptResult(0, false, null);
+        }
+
         using var process = new Process
         {
             StartInfo = BuildStartInfo(),
@@ -252,33 +329,49 @@ internal sealed class PresentMonSupervisor : IDisposable
 
         Task<string> stderrTask = process.StandardError.ReadToEndAsync(token);
         FrameCsvParser? parser = null;
+        Task<string?>? pendingLine = null;
         bool gotFrame = false;
         int invalidRun = 0;
         string? error = null;
-
-        using var firstFrame = CancellationTokenSource.CreateLinkedTokenSource(token);
-        firstFrame.CancelAfter(FirstFrameTimeout);
+        long startTicks = Stopwatch.GetTimestamp();
+        long lastProgressTicks = startTicks;
 
         try
         {
             while (true)
             {
-                string? line;
-                try
+                if (token.IsCancellationRequested)
                 {
-                    line = await process.StandardOutput
-                        .ReadLineAsync(gotFrame ? token : firstFrame.Token)
-                        .ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    if (!gotFrame && !token.IsCancellationRequested)
-                    {
-                        error = "PresentMon 启动后 10 秒内未产生帧";
-                    }
-
                     break;
                 }
+
+                pendingLine ??= process.StandardOutput.ReadLineAsync(token).AsTask();
+                Task completed = await Task
+                    .WhenAny(pendingLine, Task.Delay(PollIntervalMs, token))
+                    .ConfigureAwait(false);
+
+                if (completed != pendingLine)
+                {
+                    double idleMs = ElapsedMs(lastProgressTicks);
+                    if (!gotFrame)
+                    {
+                        if (ElapsedMs(startTicks) >= FirstFrameTimeout.TotalMilliseconds)
+                        {
+                            error = "PresentMon 启动后 20 秒内未产生帧";
+                            break;
+                        }
+                    }
+                    else if (idleMs >= StallTimeout.TotalMilliseconds && _isTargetActive())
+                    {
+                        error = $"帧采集停顿 {StallTimeout.TotalSeconds:0} 秒";
+                        break;
+                    }
+
+                    continue;
+                }
+
+                string? line = await pendingLine.ConfigureAwait(false);
+                pendingLine = null;
 
                 if (line is null)
                 {
@@ -309,6 +402,7 @@ internal sealed class PresentMonSupervisor : IDisposable
                 {
                     gotFrame = true;
                     invalidRun = 0;
+                    lastProgressTicks = Stopwatch.GetTimestamp();
                     Append(in frame);
 
                     if (_batchCount >= BatchSize || _flushClock.Elapsed >= FlushInterval)
@@ -322,6 +416,9 @@ internal sealed class PresentMonSupervisor : IDisposable
                     break;
                 }
             }
+        }
+        catch (OperationCanceledException)
+        {
         }
         finally
         {
@@ -358,15 +455,29 @@ internal sealed class PresentMonSupervisor : IDisposable
 
         bool permissionDenied = exitCode == 6 ||
             stderr.Contains("access denied", StringComparison.OrdinalIgnoreCase) ||
-            stderr.Contains("Performance Log Users", StringComparison.OrdinalIgnoreCase);
+            stderr.Contains("Performance Log Users", StringComparison.OrdinalIgnoreCase) ||
+            stderr.Contains("administrative privileges", StringComparison.OrdinalIgnoreCase);
 
-        return new AttemptResult(
-            exitCode,
-            permissionDenied,
-            permissionDenied ? "需要管理员权限或 Performance Log Users" : error);
+        if (permissionDenied)
+        {
+            return new AttemptResult(exitCode, true, "需要管理员权限或 Performance Log Users");
+        }
+
+        string diagnostics = Compact(stderr);
+        if (diagnostics.Length > 0 && (exitCode != 0 || error is not null))
+        {
+            _logger.Warn("PresentMon 诊断：" + diagnostics);
+        }
+
+        if (error is null && exitCode != 0)
+        {
+            error = diagnostics.Length > 0 ? diagnostics : $"PresentMon 退出代码 {exitCode}";
+        }
+
+        return new AttemptResult(exitCode, false, error);
     }
 
-    private ProcessStartInfo BuildStartInfo()
+    private ProcessStartInfo BuildStartInfo(bool terminateExisting = false)
     {
         var info = new ProcessStartInfo(_executablePath)
         {
@@ -378,16 +489,26 @@ internal sealed class PresentMonSupervisor : IDisposable
             StandardErrorEncoding = Encoding.UTF8,
         };
 
+        info.ArgumentList.Add("--session_name");
+        info.ArgumentList.Add(SessionName);
+
+        if (terminateExisting)
+        {
+            info.ArgumentList.Add("--terminate_existing_session");
+            info.ArgumentList.Add("--no_csv");
+            return info;
+        }
+
         info.ArgumentList.Add("--process_id");
         info.ArgumentList.Add(_targetPid.ToString(CultureInfo.InvariantCulture));
         info.ArgumentList.Add("--output_stdout");
         info.ArgumentList.Add("--v2_metrics");
-        info.ArgumentList.Add("--session_name");
-        info.ArgumentList.Add("AzureGameAssistant");
         info.ArgumentList.Add("--terminate_on_proc_exit");
-        info.ArgumentList.Add("--stop_existing_session");
         return info;
     }
+
+    private static double ElapsedMs(long sinceTicks) =>
+        (Stopwatch.GetTimestamp() - sinceTicks) * 1000.0 / Stopwatch.Frequency;
 
     private void Append(in PresentMonFrame frame)
     {
@@ -455,6 +576,48 @@ internal sealed class PresentMonSupervisor : IDisposable
         {
             return false;
         }
+        catch (Win32Exception)
+        {
+            // Anti-cheat protected processes can deny handle queries while still running.
+            return true;
+        }
+    }
+
+    private static string Compact(string stderr)
+    {
+        if (string.IsNullOrWhiteSpace(stderr))
+        {
+            return string.Empty;
+        }
+
+        var builder = new StringBuilder();
+        int lines = 0;
+        foreach (string raw in stderr.Split('\n'))
+        {
+            string line = raw.Trim();
+            if (line.Length == 0)
+            {
+                continue;
+            }
+
+            if (builder.Length > 0)
+            {
+                builder.Append(" | ");
+            }
+
+            builder.Append(line);
+            if (++lines >= 3 || builder.Length >= 400)
+            {
+                break;
+            }
+        }
+
+        if (builder.Length > 500)
+        {
+            builder.Length = 500;
+        }
+
+        return builder.ToString();
     }
 
     public void Dispose()

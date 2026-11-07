@@ -152,14 +152,20 @@
                     </Grid.ColumnDefinitions>
                     <TextBlock VerticalAlignment="Center" FontWeight="SemiBold"
                                Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[LiveTimeline]}" />
-                    <ComboBox Grid.Column="1" x:Name="WindowSelector" MinWidth="100">
-                        <ComboBoxItem Tag="60"
-                                      Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[WindowOneMinute]}" />
-                        <ComboBoxItem Tag="300"
-                                      Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[WindowFiveMinutes]}" />
-                        <ComboBoxItem Tag="900"
-                                      Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[WindowFifteenMinutes]}" />
-                    </ComboBox>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <CheckBox x:Name="DesignToggle" VerticalAlignment="Center" Margin="0,0,12,0"
+                                  Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartDesignMode]}"
+                                  ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartDesignHint]}"
+                                  Checked="OnDesignModeChanged" Unchecked="OnDesignModeChanged" />
+                        <ComboBox x:Name="WindowSelector" MinWidth="100">
+                            <ComboBoxItem Tag="60"
+                                          Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[WindowOneMinute]}" />
+                            <ComboBoxItem Tag="300"
+                                          Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[WindowFiveMinutes]}" />
+                            <ComboBoxItem Tag="900"
+                                          Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[WindowFifteenMinutes]}" />
+                        </ComboBox>
+                    </StackPanel>
                 </Grid>
 
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
@@ -188,6 +194,7 @@
                                     <TextBlock Grid.Column="1" Margin="0,0,6,0" Style="{StaticResource MonoText}"
                                                Text="{Binding FrameValue}" />
                                     <Button Grid.Column="2" Style="{StaticResource FlatButton}" Padding="6,0" FontSize="10"
+                                            Visibility="{Binding IsChecked, ElementName=DesignToggle, Converter={StaticResource BoolToVisibility}}"
                                             Content="↗" Tag="Frame" Click="OnDetachChart"
                                             ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartDetach]}" />
                                 </Grid>
@@ -214,6 +221,7 @@
                                     <TextBlock Grid.Column="1" Margin="0,0,6,0" Style="{StaticResource MonoText}"
                                                Text="{Binding CpuValue}" />
                                     <Button Grid.Column="2" Style="{StaticResource FlatButton}" Padding="6,0" FontSize="10"
+                                            Visibility="{Binding IsChecked, ElementName=DesignToggle, Converter={StaticResource BoolToVisibility}}"
                                             Content="↗" Tag="Cpu" Click="OnDetachChart"
                                             ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartDetach]}" />
                                 </Grid>
@@ -240,6 +248,7 @@
                                     <TextBlock Grid.Column="1" Margin="0,0,6,0" Style="{StaticResource MonoText}"
                                                Text="{Binding GpuValue}" />
                                     <Button Grid.Column="2" Style="{StaticResource FlatButton}" Padding="6,0" FontSize="10"
+                                            Visibility="{Binding IsChecked, ElementName=DesignToggle, Converter={StaticResource BoolToVisibility}}"
                                             Content="↗" Tag="Gpu" Click="OnDetachChart"
                                             ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartDetach]}" />
                                 </Grid>
@@ -266,6 +275,7 @@
                                     <TextBlock Grid.Column="1" Margin="0,0,6,0" Style="{StaticResource MonoText}"
                                                Text="{Binding MemoryValue}" />
                                     <Button Grid.Column="2" Style="{StaticResource FlatButton}" Padding="6,0" FontSize="10"
+                                            Visibility="{Binding IsChecked, ElementName=DesignToggle, Converter={StaticResource BoolToVisibility}}"
                                             Content="↗" Tag="Memory" Click="OnDetachChart"
                                             ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartDetach]}" />
                                 </Grid>
@@ -292,6 +302,7 @@
                                     <TextBlock Grid.Column="1" Margin="0,0,6,0" Style="{StaticResource MonoText}"
                                                Text="{Binding VramValue}" />
                                     <Button Grid.Column="2" Style="{StaticResource FlatButton}" Padding="6,0" FontSize="10"
+                                            Visibility="{Binding IsChecked, ElementName=DesignToggle, Converter={StaticResource BoolToVisibility}}"
                                             Content="↗" Tag="Vram" Click="OnDetachChart"
                                             ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartDetach]}" />
                                 </Grid>
@@ -318,6 +329,7 @@
                                     <TextBlock Grid.Column="1" Margin="0,0,6,0" Style="{StaticResource MonoText}"
                                                Text="{Binding DiskValue}" />
                                     <Button Grid.Column="2" Style="{StaticResource FlatButton}" Padding="6,0" FontSize="10"
+                                            Visibility="{Binding IsChecked, ElementName=DesignToggle, Converter={StaticResource BoolToVisibility}}"
                                             Content="↗" Tag="Disk" Click="OnDetachChart"
                                             ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartDetach]}" />
                                 </Grid>

@@ -276,6 +276,12 @@
   <data name="ChartRestore" xml:space="preserve">
     <value>Dock chart</value>
   </data>
+  <data name="ChartDesignMode" xml:space="preserve">
+    <value>Layout design</value>
+  </data>
+  <data name="ChartDesignHint" xml:space="preserve">
+    <value>Enable to pop individual charts into separate windows; disabling merges them back into the main window</value>
+  </data>
   <data name="OverlaySection" xml:space="preserve">
     <value>Desktop overlay</value>
   </data>

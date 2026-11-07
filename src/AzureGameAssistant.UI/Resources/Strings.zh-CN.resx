@@ -276,6 +276,12 @@
   <data name="ChartRestore" xml:space="preserve">
     <value>收回图表</value>
   </data>
+  <data name="ChartDesignMode" xml:space="preserve">
+    <value>布局设计</value>
+  </data>
+  <data name="ChartDesignHint" xml:space="preserve">
+    <value>勾选后可把单个图表弹出为独立窗口；取消勾选会自动合并回主窗口</value>
+  </data>
   <data name="OverlaySection" xml:space="preserve">
     <value>桌面悬浮窗</value>
   </data>
