@@ -67,6 +67,8 @@ internal sealed class PresentMonSupervisor : IDisposable
 
     public FrameCaptureState State => _state;
 
+    public int TargetPid => _targetPid;
+
     public bool IsCapturing => _state == FrameCaptureState.Capturing;
 
     public string? LastError => _lastError;
@@ -99,6 +101,7 @@ internal sealed class PresentMonSupervisor : IDisposable
         }
 
         _job = JobObject.CreateKillOnClose();
+        _state = FrameCaptureState.Starting;
         _logger.Info($"帧采集启动：PID {_targetPid}，PresentMon {_executablePath}");
         _task = Task.Run(() => RunAsync(_stop.Token), CancellationToken.None);
     }
@@ -200,7 +203,10 @@ internal sealed class PresentMonSupervisor : IDisposable
         finally
         {
             Flush();
-            _state = FrameCaptureState.Stopped;
+            if (token.IsCancellationRequested || _state is FrameCaptureState.Starting or FrameCaptureState.Capturing)
+            {
+                _state = FrameCaptureState.Stopped;
+            }
         }
     }
 

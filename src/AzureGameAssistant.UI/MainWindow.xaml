@@ -427,6 +427,31 @@
 
                     <Separator Margin="0,12,0,10" Background="{DynamicResource BorderBrush}" />
 
+                    <TextBlock FontSize="12" FontWeight="SemiBold"
+                               Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[FrameCaptureLabel]}" />
+                    <ComboBox Margin="0,6,0,6" MinWidth="180" DisplayMemberPath="Display"
+                              ItemsSource="{Binding FrameTargets}"
+                              SelectedItem="{Binding SelectedFrameTarget}"
+                              DropDownOpened="OnFrameTargetDropDownOpened"
+                              ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[FrameTargetPlaceholder]}" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <Button Style="{StaticResource FlatButton}" Padding="10,2" FontSize="11" Margin="0,0,8,0"
+                                Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[FrameCaptureStart]}"
+                                Command="{Binding StartFrameCaptureCommand}" />
+                        <Button Style="{StaticResource FlatButton}" Padding="10,2" FontSize="11" Margin="0,0,8,0"
+                                Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[FrameCaptureStop]}"
+                                Command="{Binding StopFrameCaptureCommand}" />
+                        <Button Style="{StaticResource FlatButton}" Padding="10,2" FontSize="11"
+                                Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[FrameCaptureRefresh]}"
+                                Command="{Binding RefreshFrameTargetsCommand}" />
+                    </StackPanel>
+                    <TextBlock FontSize="11" TextWrapping="Wrap" Text="{Binding FrameCaptureText}" />
+                    <TextBlock FontSize="10" Margin="0,2,0,0" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               Text="{Binding FrameCaptureDetail}" />
+
+                    <Separator Margin="0,12,0,10" Background="{DynamicResource BorderBrush}" />
+
                     <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"
                                Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[M1Notice]}" />
                 </StackPanel>

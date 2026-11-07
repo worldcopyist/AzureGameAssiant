@@ -357,4 +357,43 @@
   <data name="TrayOverlay" xml:space="preserve">
     <value>Desktop overlay</value>
   </data>
+  <data name="FrameCaptureLabel" xml:space="preserve">
+    <value>Frame capture</value>
+  </data>
+  <data name="FrameTargetPlaceholder" xml:space="preserve">
+    <value>Select a target process</value>
+  </data>
+  <data name="FrameCaptureStart" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="FrameCaptureStop" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="FrameCaptureRefresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="FrameCaptureNoTarget" xml:space="preserve">
+    <value>Select a target process first</value>
+  </data>
+  <data name="FrameCaptureStartFailed" xml:space="preserve">
+    <value>Failed to start frame capture; check PresentMon and permissions</value>
+  </data>
+  <data name="FrameStateStopped" xml:space="preserve">
+    <value>Frame capture idle</value>
+  </data>
+  <data name="FrameStateStarting" xml:space="preserve">
+    <value>Frame capture starting</value>
+  </data>
+  <data name="FrameStateCapturing" xml:space="preserve">
+    <value>Frame capture running</value>
+  </data>
+  <data name="FrameStatePermissionDenied" xml:space="preserve">
+    <value>Frame capture requires elevation</value>
+  </data>
+  <data name="FrameStateUnavailable" xml:space="preserve">
+    <value>Frame capture unavailable</value>
+  </data>
+  <data name="FrameStateWithPid" xml:space="preserve">
+    <value>{0} (PID {1})</value>
+  </data>
 </root>

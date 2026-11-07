@@ -357,4 +357,43 @@
   <data name="TrayOverlay" xml:space="preserve">
     <value>桌面悬浮窗</value>
   </data>
+  <data name="FrameCaptureLabel" xml:space="preserve">
+    <value>帧采集</value>
+  </data>
+  <data name="FrameTargetPlaceholder" xml:space="preserve">
+    <value>选择目标进程</value>
+  </data>
+  <data name="FrameCaptureStart" xml:space="preserve">
+    <value>开始</value>
+  </data>
+  <data name="FrameCaptureStop" xml:space="preserve">
+    <value>停止</value>
+  </data>
+  <data name="FrameCaptureRefresh" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="FrameCaptureNoTarget" xml:space="preserve">
+    <value>请先选择目标进程</value>
+  </data>
+  <data name="FrameCaptureStartFailed" xml:space="preserve">
+    <value>启动帧采集失败，请检查 PresentMon 与权限</value>
+  </data>
+  <data name="FrameStateStopped" xml:space="preserve">
+    <value>帧采集未运行</value>
+  </data>
+  <data name="FrameStateStarting" xml:space="preserve">
+    <value>帧采集启动中</value>
+  </data>
+  <data name="FrameStateCapturing" xml:space="preserve">
+    <value>帧采集中</value>
+  </data>
+  <data name="FrameStatePermissionDenied" xml:space="preserve">
+    <value>帧采集需要管理员权限</value>
+  </data>
+  <data name="FrameStateUnavailable" xml:space="preserve">
+    <value>帧采集不可用</value>
+  </data>
+  <data name="FrameStateWithPid" xml:space="preserve">
+    <value>{0}（PID {1}）</value>
+  </data>
 </root>

@@ -20,7 +20,10 @@ public sealed record CollectorStatusSnapshot(
     bool Paused,
     double UptimeSeconds,
     long SampleCount,
-    string? LastError);
+    string? LastError,
+    string FrameState,
+    int? FrameTargetPid,
+    string? FrameError);
 
 public sealed class CollectorClient : IDisposable
 {
@@ -92,10 +95,21 @@ public sealed class CollectorClient : IDisposable
         return result == true;
     }
 
+    public Task<string?> StartFramesAsync(int pid, CancellationToken cancellationToken) =>
+        SendAsync(
+            "frames.start",
+            ParseFrameState,
+            cancellationToken,
+            writer => writer.WriteNumber("pid", pid));
+
+    public Task<string?> StopFramesAsync(CancellationToken cancellationToken) =>
+        SendAsync("frames.stop", ParseFrameState, cancellationToken);
+
     private async Task<T?> SendAsync<T>(
         string command,
         Func<JsonElement, T> parse,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<Utf8JsonWriter>? writeBody = null)
     {
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(true);
         try
@@ -111,7 +125,7 @@ public sealed class CollectorClient : IDisposable
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeout.CancelAfter(RequestTimeout);
 
-            byte[] payload = BuildRequest(id, command);
+            byte[] payload = BuildRequest(id, command, writeBody);
             byte[] header = new byte[4];
             BinaryPrimitives.WriteInt32LittleEndian(header, payload.Length);
 
@@ -162,7 +176,7 @@ public sealed class CollectorClient : IDisposable
         }
     }
 
-    private static byte[] BuildRequest(int id, string command)
+    private static byte[] BuildRequest(int id, string command, Action<Utf8JsonWriter>? writeBody)
     {
         var buffer = new ArrayBufferWriter<byte>(64);
         using (var writer = new Utf8JsonWriter(buffer))
@@ -170,6 +184,7 @@ public sealed class CollectorClient : IDisposable
             writer.WriteStartObject();
             writer.WriteNumber("id", id);
             writer.WriteString("cmd", command);
+            writeBody?.Invoke(writer);
             writer.WriteEndObject();
         }
 
@@ -206,6 +221,30 @@ public sealed class CollectorClient : IDisposable
             return null;
         }
 
+        string frameState = "stopped";
+        int? frameTargetPid = null;
+        string? frameError = null;
+
+        if (data.TryGetProperty("frames", out JsonElement frames) && frames.ValueKind == JsonValueKind.Object)
+        {
+            if (frames.TryGetProperty("state", out JsonElement state) && state.ValueKind == JsonValueKind.String)
+            {
+                frameState = state.GetString() ?? "stopped";
+            }
+
+            if (frames.TryGetProperty("targetPid", out JsonElement target) &&
+                target.ValueKind == JsonValueKind.Number &&
+                target.TryGetInt32(out int targetPid))
+            {
+                frameTargetPid = targetPid;
+            }
+
+            if (frames.TryGetProperty("error", out JsonElement frameErr) && frameErr.ValueKind == JsonValueKind.String)
+            {
+                frameError = frameErr.GetString();
+            }
+        }
+
         return new CollectorStatusSnapshot(
             interval.GetInt32(),
             data.TryGetProperty("gameMode", out JsonElement game) && game.GetBoolean(),
@@ -214,8 +253,16 @@ public sealed class CollectorClient : IDisposable
             data.TryGetProperty("sampleCount", out JsonElement samples) ? samples.GetInt64() : 0,
             data.TryGetProperty("lastError", out JsonElement error) && error.ValueKind == JsonValueKind.String
                 ? error.GetString()
-                : null);
+                : null,
+            frameState,
+            frameTargetPid,
+            frameError);
     }
+
+    private static string? ParseFrameState(JsonElement data) =>
+        data.TryGetProperty("state", out JsonElement state) && state.ValueKind == JsonValueKind.String
+            ? state.GetString()
+            : null;
 
     private static async Task ReadExactAsync(Stream stream, Memory<byte> buffer, CancellationToken cancellationToken)
     {

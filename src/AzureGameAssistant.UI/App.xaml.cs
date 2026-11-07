@@ -73,7 +73,7 @@ public partial class App : Application
         _client = new CollectorClient();
         _telemetry = new TelemetryService();
         _launcher = new CollectorLauncher(_logger);
-        _viewModel = new MainViewModel(_telemetry, _client, _launcher, LocalizationService.Instance, _settings);
+        _viewModel = new MainViewModel(_telemetry, _client, _launcher, LocalizationService.Instance, _settings, _settingsService);
         _viewModel.TelemetryUpdated += OnTelemetryUpdated;
 
         _window = new MainWindow(_viewModel);

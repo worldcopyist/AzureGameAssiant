@@ -17,7 +17,9 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
     private readonly PdhSampler _pdh;
     private readonly ProcessSampler _processes;
     private readonly JitterMonitor _jitter;
-    private readonly PresentMonSupervisor? _presentMon;
+    private readonly object _framesGate = new();
+    private PresentMonSupervisor? _presentMon;
+    private readonly string _presentMonPath;
     private readonly Dictionary<uint, float> _gpuByPid = new();
     private readonly ProcessSlot[] _slots = new ProcessSlot[5];
     private readonly CancellationTokenSource _stop = new();
@@ -47,10 +49,10 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
         _processes = new ProcessSampler(logger);
         _jitter = new JitterMonitor(logger);
 
+        _presentMonPath = ResolvePresentMonPath(settings.Frames.PresentMonPath);
         if (settings.Frames.Enabled && settings.Frames.TargetPid is int targetPid && targetPid > 0)
         {
-            string path = ResolvePresentMonPath(settings.Frames.PresentMonPath);
-            _presentMon = new PresentMonSupervisor(logger, _telemetry, path, targetPid);
+            _presentMon = new PresentMonSupervisor(logger, _telemetry, _presentMonPath, targetPid);
         }
     }
 
@@ -119,7 +121,7 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
         finally
         {
             _stop.Cancel();
-            _presentMon?.Stop();
+            StopFrames();
             await StopPipeAsync();
             _logger.Info($"采集进程停止，共写入 {Interlocked.Read(ref _sampleCount)} 个采样点");
         }
@@ -234,13 +236,84 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
         return pid;
     }
 
-    public CollectorStatus GetStatus() => new(
-        _intervalMs,
-        false,
-        _paused,
-        _uptime.Elapsed.TotalSeconds,
-        Interlocked.Read(ref _sampleCount),
-        _lastError ?? _presentMon?.LastError);
+    public CollectorStatus GetStatus()
+    {
+        PresentMonSupervisor? supervisor;
+        lock (_framesGate)
+        {
+            supervisor = _presentMon;
+        }
+
+        return new CollectorStatus(
+            _intervalMs,
+            false,
+            _paused,
+            _uptime.Elapsed.TotalSeconds,
+            Interlocked.Read(ref _sampleCount),
+            _lastError ?? supervisor?.LastError,
+            supervisor is null ? "stopped" : FrameStateName(supervisor.State),
+            supervisor?.TargetPid,
+            supervisor?.LastError);
+    }
+
+    public bool StartFrames(int pid)
+    {
+        if (pid <= 0)
+        {
+            return false;
+        }
+
+        lock (_framesGate)
+        {
+            if (_presentMon is { } existing && existing.TargetPid == pid)
+            {
+                return existing.State != FrameCaptureState.Unavailable;
+            }
+
+            StopFramesLocked();
+
+            var supervisor = new PresentMonSupervisor(_logger, _telemetry, _presentMonPath, pid);
+            supervisor.Start();
+            if (supervisor.State == FrameCaptureState.Unavailable)
+            {
+                _logger.Warn($"帧采集无法启动：{supervisor.LastError}");
+                supervisor.Dispose();
+                return false;
+            }
+
+            _presentMon = supervisor;
+            return true;
+        }
+    }
+
+    public bool StopFrames()
+    {
+        lock (_framesGate)
+        {
+            StopFramesLocked();
+            return true;
+        }
+    }
+
+    private void StopFramesLocked()
+    {
+        if (_presentMon is not { } supervisor)
+        {
+            return;
+        }
+
+        _presentMon = null;
+        supervisor.Dispose();
+    }
+
+    private static string FrameStateName(FrameCaptureState state) => state switch
+    {
+        FrameCaptureState.Starting => "starting",
+        FrameCaptureState.Capturing => "capturing",
+        FrameCaptureState.PermissionDenied => "permissionDenied",
+        FrameCaptureState.Unavailable => "unavailable",
+        _ => "stopped",
+    };
 
     public bool SetPaused(bool paused)
     {
@@ -309,7 +382,7 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
         _disposed = true;
         _stop.Cancel();
 
-        _presentMon?.Dispose();
+        StopFrames();
         _jitter.Dispose();
         _pdh.Dispose();
         _processes.Dispose();

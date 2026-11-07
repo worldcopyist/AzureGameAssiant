@@ -318,12 +318,20 @@ internal struct FrameRecord
 | `mark` | UI → Collector | 手动标记卡顿，可附备注 |
 | `pause` / `resume` | UI → Collector | 暂停/恢复采样与判定（保留环形缓冲） |
 | `setSettings` | UI → Collector | 下发阈值、采样、热键、帧采集、边车开关等补丁 |
-| `startFrameCapture` | UI → Collector | 手动指定 PID 开始帧采集（自动识别失败时） |
-| `stopFrameCapture` | UI → Collector | 停止帧采集 |
+| `frames.start` | UI → Collector | 请求体 `{ "pid": 1234 }`，手动指定 PID 开始帧采集；返回帧状态对象，PresentMon 不可用时 `ok=false` |
+| `frames.stop` | UI → Collector | 停止帧采集并释放 PresentMon 子进程；返回帧状态对象 |
 | `listSessions` | UI → Collector | 返回会话文件元信息列表 |
 | `deleteSession` | UI → Collector | 删除指定会话与关联 AI 报告 |
 | `quit` | UI → Collector | 优雅退出 |
 
+- `status` 与 `frames.start` / `frames.stop` 的 `data` 中均包含帧状态对象：
+
+  ```json
+  "frames": { "state": "permissionDenied", "capturing": false, "targetPid": 1234, "error": "需要管理员权限或 Performance Log Users" }
+  ```
+
+  `state` 取值：`stopped` / `starting` / `capturing` / `permissionDenied` / `unavailable`。`permissionDenied` 与 `unavailable` 是终态，需 UI 停止后再启动才会重新尝试。
+- `frames.start` 对同一 PID 重复请求直接复用现有监督器；切换 PID 时先停止旧实例再启动新实例。
 - UI 直接读取会话文件（同用户、同权限），不走管道传输大文件。
 - AI 分析不经过采集进程；UI 直接读取会话文件。
 
@@ -1272,6 +1280,8 @@ internal sealed record AiProviderProfile(
 - `MainViewModel` 每次刷新把新帧送入本地 `FrameStats`；采集进程重启导致写索引回退时清空统计并重新对齐。
 - 悬浮窗显示瞬时 FPS、平均帧与 1% Low；2 秒无新帧即视为无数据并显示“—”，防止游戏退出后残留旧值。
 - 帧统计在 UI 线程内更新，不做跨线程共享；主窗口帧轨复用同一份 `FrameStats` 数据（后续迭代）。
+- 目标进程选择：主窗口状态卡提供下拉框，展开时枚举进程（带窗口的排在前面，名称/标题与 PID 同时显示，最多 200 项，排除助手自身）；默认选中当前前台进程。开始采集成功后写入 `settings.frames.targetPid` 并保存，下次启动由采集进程自动接管；停止时清空。
+- 帧状态文本由 `status` 轮询驱动（约 1 秒一次），与下拉框、开始/停止按钮一起构成闭环；`permissionDenied` 时详情显示采集进程给出的错误原因，提示以管理员身份运行或加入 Performance Log Users。
 
 ## 12. 性能预算与实现约束
 

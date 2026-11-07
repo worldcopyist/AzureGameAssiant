@@ -223,6 +223,9 @@ public partial class MainWindow : Window
     private void OnSettingsClick(object sender, RoutedEventArgs e) =>
         SettingsRequested?.Invoke(this, EventArgs.Empty);
 
+    private void OnFrameTargetDropDownOpened(object? sender, EventArgs e) =>
+        _viewModel.RefreshFrameTargetsCommand.Execute(null);
+
     private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
         if (AllowClose)

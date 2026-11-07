@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AzureGameAssistant.Core.Frames;
@@ -8,6 +10,8 @@ using AzureGameAssistant.UI.Services;
 
 namespace AzureGameAssistant.UI.ViewModels;
 
+public sealed record FrameTargetOption(int Pid, string Display, bool HasWindow);
+
 public sealed partial class MainViewModel : ObservableObject, IDisposable
 {
     private readonly TelemetryService _telemetry;
@@ -16,6 +20,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly ProcessNameCache _names = new();
     private readonly LocalizationService _loc;
     private readonly AppSettings _settings;
+    private readonly SettingsService _settingsService;
     private readonly CancellationTokenSource _cts = new();
 
     private readonly SampleRecord[] _timeline = new SampleRecord[TelemetryLayout.SampleCapacity];
@@ -33,19 +38,24 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private string? _collectorError;
     private double _uptimeSeconds;
     private int _samplingIntervalMs;
+    private string _frameState = "stopped";
+    private int? _frameTargetPid;
+    private string? _frameError;
 
     public MainViewModel(
         TelemetryService telemetry,
         CollectorClient client,
         CollectorLauncher launcher,
         LocalizationService loc,
-        AppSettings settings)
+        AppSettings settings,
+        SettingsService settingsService)
     {
         _telemetry = telemetry;
         _client = client;
         _launcher = launcher;
         _loc = loc;
         _settings = settings;
+        _settingsService = settingsService;
 
         for (int i = 0; i < 5; i++)
         {
@@ -54,10 +64,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         PauseText = _loc["Pause"];
         UpdateCollectorTexts();
+        UpdateFrameTexts();
         UpdateFooter();
     }
 
     public ObservableCollection<ProcessRow> Processes { get; } = new();
+
+    public ObservableCollection<FrameTargetOption> FrameTargets { get; } = new();
 
     public SampleRecord[] TimelineBuffer => _timeline;
 
@@ -143,6 +156,15 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private bool _isPaused;
 
+    [ObservableProperty]
+    private FrameTargetOption? _selectedFrameTarget;
+
+    [ObservableProperty]
+    private string _frameCaptureText = string.Empty;
+
+    [ObservableProperty]
+    private string _frameCaptureDetail = string.Empty;
+
     public async Task RefreshAsync()
     {
         if (Interlocked.Exchange(ref _refreshing, 1) == 1)
@@ -187,6 +209,96 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
     }
 
+    [RelayCommand]
+    private void RefreshFrameTargets()
+    {
+        int? selectedPid = SelectedFrameTarget?.Pid;
+        var options = new List<FrameTargetOption>();
+
+        foreach (Process process in Process.GetProcesses())
+        {
+            try
+            {
+                string name = process.ProcessName;
+                if (name.StartsWith("AzureGameAssistant", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                string title = process.MainWindowTitle;
+                string display = string.IsNullOrWhiteSpace(title)
+                    ? $"{name} ({process.Id})"
+                    : $"{name} ({process.Id}) · {title}";
+                options.Add(new FrameTargetOption(process.Id, display, title.Length > 0));
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or Win32Exception)
+            {
+            }
+            finally
+            {
+                process.Dispose();
+            }
+        }
+
+        List<FrameTargetOption> ordered = options
+            .OrderByDescending(option => option.HasWindow)
+            .ThenBy(option => option.Display, StringComparer.CurrentCultureIgnoreCase)
+            .Take(200)
+            .ToList();
+
+        FrameTargets.Clear();
+        foreach (FrameTargetOption option in ordered)
+        {
+            FrameTargets.Add(option);
+        }
+
+        SelectedFrameTarget = ordered.FirstOrDefault(option => option.Pid == selectedPid)
+            ?? ordered.FirstOrDefault(option => option.Pid == _telemetry.Latest.ForegroundPid)
+            ?? ordered.FirstOrDefault(option => option.HasWindow)
+            ?? ordered.FirstOrDefault();
+    }
+
+    [RelayCommand]
+    private async Task StartFrameCaptureAsync()
+    {
+        if (SelectedFrameTarget is not { } target)
+        {
+            FrameCaptureDetail = _loc["FrameCaptureNoTarget"];
+            return;
+        }
+
+        string? state = await _client.StartFramesAsync(target.Pid, _cts.Token).ConfigureAwait(true);
+        if (state is null)
+        {
+            FrameCaptureDetail = _loc["FrameCaptureStartFailed"];
+            return;
+        }
+
+        _frameState = state;
+        _frameTargetPid = target.Pid;
+        _frameError = null;
+        _settings.Frames.TargetPid = target.Pid;
+        _settingsService.Save(_settings);
+        UpdateFrameTexts();
+    }
+
+    [RelayCommand]
+    private async Task StopFrameCaptureAsync()
+    {
+        string? state = await _client.StopFramesAsync(_cts.Token).ConfigureAwait(true);
+        if (state is null)
+        {
+            return;
+        }
+
+        _frameState = "stopped";
+        _frameTargetPid = null;
+        _frameError = null;
+        _settings.Frames.TargetPid = null;
+        _settingsService.Save(_settings);
+        UpdateFrameTexts();
+    }
+
     private async Task RefreshCollectorStatusAsync()
     {
         CollectorStatusSnapshot? status = await _client.StatusAsync(_cts.Token).ConfigureAwait(true);
@@ -203,6 +315,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _uptimeSeconds = status.UptimeSeconds;
         _samplingIntervalMs = status.SamplingIntervalMs > 0 ? status.SamplingIntervalMs : _settings.Sampling.NormalMs;
         _collectorError = status.LastError;
+        _frameState = status.FrameState;
+        _frameTargetPid = status.FrameTargetPid;
+        _frameError = status.FrameError;
 
         if (!_helloDone || _appVersion.Length == 0)
         {
@@ -216,6 +331,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
 
         UpdateCollectorTexts();
+        UpdateFrameTexts();
     }
 
     private void UpdateMetrics()
@@ -355,6 +471,22 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(HasCollectorProblem));
     }
 
+    private void UpdateFrameTexts()
+    {
+        string key = _frameState switch
+        {
+            "starting" => "FrameStateStarting",
+            "capturing" => "FrameStateCapturing",
+            "permissionDenied" => "FrameStatePermissionDenied",
+            "unavailable" => "FrameStateUnavailable",
+            _ => "FrameStateStopped",
+        };
+
+        string text = _loc[key];
+        FrameCaptureText = _frameTargetPid is int pid ? _loc.Format("FrameStateWithPid", text, pid) : text;
+        FrameCaptureDetail = _frameError ?? string.Empty;
+    }
+
     private void UpdateFooter()
     {
         int interval = _connected && _samplingIntervalMs > 0 ? _samplingIntervalMs : _settings.Sampling.NormalMs;
@@ -424,6 +556,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         PauseText = IsPaused ? _loc["Resume"] : _loc["Pause"];
         UpdateCollectorTexts();
+        UpdateFrameTexts();
         UpdateFooter();
 
         if (_telemetry.Count > 0)

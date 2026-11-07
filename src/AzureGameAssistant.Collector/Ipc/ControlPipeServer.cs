@@ -14,7 +14,10 @@ internal readonly record struct CollectorStatus(
     bool Paused,
     double UptimeSeconds,
     long SampleCount,
-    string? LastError);
+    string? LastError,
+    string FrameState,
+    int? FrameTargetPid,
+    string? FrameError);
 
 internal interface ICollectorControl
 {
@@ -22,6 +25,8 @@ internal interface ICollectorControl
     int CapabilityFlags { get; }
     CollectorStatus GetStatus();
     bool SetPaused(bool paused);
+    bool StartFrames(int pid);
+    bool StopFrames();
     void RequestQuit();
 }
 
@@ -149,6 +154,32 @@ internal sealed class ControlPipeServer
                     break;
                 }
 
+                case "frames.start":
+                {
+                    int pid = root.TryGetProperty("pid", out JsonElement pidElement) &&
+                              pidElement.ValueKind == JsonValueKind.Number &&
+                              pidElement.TryGetInt32(out int parsedPid)
+                        ? parsedPid
+                        : 0;
+
+                    bool started = _control.StartFrames(pid);
+                    await WriteResponseAsync(
+                        server,
+                        id,
+                        started,
+                        started ? WriteFrames : null,
+                        started ? null : "无法启动帧采集：目标无效或 PresentMon 不可用",
+                        cancellationToken);
+                    break;
+                }
+
+                case "frames.stop":
+                {
+                    _control.StopFrames();
+                    await WriteResponseAsync(server, id, true, WriteFrames, null, cancellationToken);
+                    break;
+                }
+
                 case "quit":
                     await WriteResponseAsync(server, id, true, writer => writer.WriteBoolean("quitting", true), null, cancellationToken);
                     _control.RequestQuit();
@@ -203,6 +234,35 @@ internal sealed class ControlPipeServer
         else
         {
             writer.WriteString("lastError", status.LastError);
+        }
+
+        writer.WriteStartObject("frames");
+        WriteFrames(writer);
+        writer.WriteEndObject();
+    }
+
+    private void WriteFrames(Utf8JsonWriter writer)
+    {
+        CollectorStatus status = _control.GetStatus();
+        writer.WriteString("state", status.FrameState);
+        writer.WriteBoolean("capturing", status.FrameState == "capturing");
+
+        if (status.FrameTargetPid is int pid)
+        {
+            writer.WriteNumber("targetPid", pid);
+        }
+        else
+        {
+            writer.WriteNull("targetPid");
+        }
+
+        if (status.FrameError is null)
+        {
+            writer.WriteNull("error");
+        }
+        else
+        {
+            writer.WriteString("error", status.FrameError);
         }
     }
 
