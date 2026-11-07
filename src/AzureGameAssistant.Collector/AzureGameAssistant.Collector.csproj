@@ -15,4 +15,17 @@
   <ItemGroup>
     <ProjectReference Include="..\AzureGameAssistant.Core\AzureGameAssistant.Core.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\third_party\presentmon\PresentMon-2.6.0-x64.exe"
+          Link="presentmon\PresentMon-2.6.0-x64.exe"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest"
+          Condition="Exists('..\..\third_party\presentmon\PresentMon-2.6.0-x64.exe')" />
+    <None Include="..\..\third_party\presentmon\LICENSE.txt"
+          Link="presentmon\LICENSE.txt"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest"
+          Condition="Exists('..\..\third_party\presentmon\LICENSE.txt')" />
+  </ItemGroup>
 </Project>

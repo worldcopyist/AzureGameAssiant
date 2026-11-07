@@ -476,23 +476,24 @@ PresentMon.exe --process_id <pid> --output_stdout --v2_metrics --session_name Az
 
 - 需要兼容 1.x 数据时，仅在解析器中增加别名映射（大小写不敏感）；运行路径仍固定 `--v2_metrics`。
 
-- 每 256 行或 100ms 批量写入帧环形缓冲，避免逐帧加锁。
-- 解析失败行计数；连续 100 行失败或 5 秒无有效帧 → 判定 PresentMon 异常，重启子进程。
+- 每 64 帧或 100ms 批量写入帧环形缓冲，避免逐帧加锁。
+- 解析失败行计数；连续 100 行失败或 10 秒无首帧 → 判定 PresentMon 异常，重启子进程。
 - 记录首帧延迟；启动后 10 秒仍无帧 → 降级并提示（常见原因：权限不足、进程无呈现、反作弊拦截）。
 
 #### 6.6.4 监督与降级
 
-- 采集进程用 `CreateProcessW` 启动，重定向 stdout/stderr，加入 Job Object；退出时先 `GenerateConsoleCtrlEvent` 再 `TerminateProcess`。
-- 状态机：
+- 采集进程用 `Process` 启动（底层 `CreateProcessW`），重定向 stdout/stderr，加入 kill-on-close 的 Job Object；停止时先取消读取，2 秒内未退出再杀掉整个进程树。
+- 状态机（`PresentMonSupervisor` 实际枚举）：`Stopped` / `Starting` / `Capturing` / `PermissionDenied` / `Unavailable`。
 
 ```
-Stopped ──进入游戏/手动指定──► Starting ──首帧──► Running
-   ▲                              │ 10s 无帧           │ 进程退出/解析失败
-   │                              ▼                    ▼
-   └──────── 停止条件 ◄──── Degraded ◄── 重启 3 次失败 ──┘
+Stopped ──有目标 PID──► Starting ──首帧──► Capturing
+   ▲                       │ 10s 无帧/进程退出     │ 目标退出
+   │                       ▼                      ▼
+   └──── PermissionDenied / Unavailable ◄── 连续 3 次失败
 ```
 
-- 重启退避 1s / 5s / 15s；连续 3 次失败停止，写能力位“帧不可用”，UI 显示原因。
+- 重启退避 1s / 5s / 15s；连续 3 次失败停止，写能力位“帧不可用”，UI 显示原因；目标进程已退出时不再重启。
+- 可执行文件路径：设置中的相对路径按 `AppContext.BaseDirectory` 解析；采集项目把 `third_party/presentmon` 复制到输出与发布目录的 `presentmon\`。
 - 权限不足：非提权启动实测退出码 `6`，stderr 包含 `failed to start trace session: access denied.` 与 “Performance Log Users” 提示；据此提示“需要管理员权限或 Performance Log Users”。
 - 反作弊：不注入、不 Hook、不读写游戏内存；只运行官方 PresentMon。文档明确“不承诺兼容所有反作弊”，不在游戏中自动提权。
 

@@ -65,6 +65,7 @@
 - [x] M2-0 CLI 核验：确认 `--process_id`、`--output_stdout`、`--v2_metrics`、`--session_name`、`--terminate_on_proc_exit`、`--stop_existing_session` 可用；默认输出 2.x PascalCase 指标（`CPUStartTime` 为毫秒）；非提权启动退出码 `6`，stderr 为 `failed to start trace session: access denied.`。
 - [x] M2-1 帧解析基础：`FrameCsvParser` 按表头建映射（大小写不敏感，不硬编码列序），输出 `PresentMonFrame`；`FrameStats` 提供瞬时/平均 FPS、1% / 0.1% Low 与基于 120 帧中位数的尖峰判定；新增 10 项单元测试。
 - [x] M2-1 帧共享内存：帧区使用独立 `FrameWriteSequence`，写者批量写帧、读者 `ReadFrames` / `TryReadLatestFrame` 整批校验；新增 4 项布局与结构尺寸测试，测试总数 36。
+- [x] M2-1 PresentMon 监督器：按 `Frames.TargetPid` 启动子进程（`--process_id` + `--v2_metrics`），64 帧或 100ms 批量写帧；kill-on-close Job Object；1s / 5s / 15s 退避，连续 3 次失败降级；识别退出码 6 与 access denied；目标退出即停止；采集进程同步能力位与 `FrameValid`。
 
 ### 3.1 性能实测（Release，采样 1000ms，专用工作集口径）
 
@@ -198,6 +199,7 @@
 | K-11 | OCAT 许可证不明确 | 不可复用其代码 | 只参考思路；代码评审检查来源 |
 | K-12 | 本机缺少 NativeAOT 链接器（VS C++ 工作负载） | 无法产出正式采集进程 | VS Build Tools 正在安装到 `F:\VS2022BuildTools`；完成后 `vswhere` 验证并执行 `package.ps1` 默认 AOT 流程；当前产物仍为 SelfContained |
 | K-22 | PresentMon 帧数据需要管理员或 Performance Log Users；未提权时退出码 6 | 浅模式无帧数据 | 已实测失败模式并按提示降级；深模式由用户显式提权，不静默弹 UAC |
+| K-24 | 帧采集目标只能通过 `settings.json` 的 `frames.targetPid` 指定 | 普通用户无法在界面开启帧采集 | M2-2 增加目标进程选择与“开始/停止帧采集”；本次仅验证管线 |
 | K-13 | UI 软件渲染在超大窗口/高 DPI 下可能增加 CPU | 界面开销上升 | 仅 2Hz 刷新；M2 增加渲染模式设置项后再评估 |
 | K-14 | 当前仅验证单显示器、单 GPU、本机驱动 | 兼容性未知 | M2-0 扩展手工验收矩阵；高 DPI/多显示器在 M2 验收 |
 | K-15 | Collector 句柄在 30 分钟可见状态下 381 → 455 缓慢上升 | 长时运行可能累积 | 托盘 10 分钟窗口内回落且内存稳定；8 小时稳定性测试复核，必要时用句柄表定位 |
@@ -252,6 +254,7 @@ powershell -File build/measure.ps1 -DurationMinutes 30 -OutputPath artifacts/mea
 | 2026-11-07 | Qoder | 折线图支持脱离为独立小窗并自动归还；悬浮窗新增配色主题与自定义颜色；22 项测试通过，Release 实测小窗可见 UI CPU 0.391%、关闭后 0.052% | `d6247f3 feat(ui): 图表弹窗与悬浮窗配色主题` |
 | 2026-11-07 | Qoder | 锁定 PresentMon 2.6.0 并核验 SHA256/签名；登记第三方许可证与 CLI/CSV 列名；新增帧 CSV 解析器与帧统计，测试增至 32 项 | `chore(frames): 锁定 PresentMon 2.6.0 并落地帧解析与统计` |
 | 2026-11-07 | Qoder | 帧共享内存改为独立 seqlock，新增批量写帧与整批读取；补充布局测试，测试增至 36 项 | `feat(frames): 帧区独立 seqlock 与批量读写` |
+| 2026-11-07 | Qoder | 接入 PresentMon 监督器：job object、批写、退避与权限降级；采集进程按目标 PID 启动帧采集并发布能力位 | `feat(collector): 接入 PresentMon 监督器` |
 
 ## 10. 下次交接模板
 

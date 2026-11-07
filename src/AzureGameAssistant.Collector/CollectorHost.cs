@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using AzureGameAssistant.Collector.Frames;
 using AzureGameAssistant.Collector.Interop;
 using AzureGameAssistant.Collector.Ipc;
 using AzureGameAssistant.Collector.Sampling;
@@ -16,6 +17,7 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
     private readonly PdhSampler _pdh;
     private readonly ProcessSampler _processes;
     private readonly JitterMonitor _jitter;
+    private readonly PresentMonSupervisor? _presentMon;
     private readonly Dictionary<uint, float> _gpuByPid = new();
     private readonly ProcessSlot[] _slots = new ProcessSlot[5];
     private readonly CancellationTokenSource _stop = new();
@@ -23,7 +25,6 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
     private readonly int _intervalMs;
     private readonly int _capabilities;
     private readonly string _appVersion;
-
     private ControlPipeServer? _pipeServer;
     private Task? _pipeTask;
     private long _sampleCount;
@@ -45,6 +46,12 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
         _pdh = new PdhSampler(logger);
         _processes = new ProcessSampler(logger);
         _jitter = new JitterMonitor(logger);
+
+        if (settings.Frames.Enabled && settings.Frames.TargetPid is int targetPid && targetPid > 0)
+        {
+            string path = ResolvePresentMonPath(settings.Frames.PresentMonPath);
+            _presentMon = new PresentMonSupervisor(logger, _telemetry, path, targetPid);
+        }
     }
 
     public bool IsTelemetryOpen => _telemetry.IsOpen;
@@ -53,7 +60,19 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
 
     public string AppVersion => _appVersion;
 
-    public int CapabilityFlags => _capabilities;
+    public int CapabilityFlags
+    {
+        get
+        {
+            int flags = _capabilities;
+            if (_presentMon is { IsCapturing: true })
+            {
+                flags |= AzureGameAssistant.Core.Models.CapabilityFlags.Frames;
+            }
+
+            return flags;
+        }
+    }
 
     public async Task<int> RunAsync(CancellationToken externalToken)
     {
@@ -68,6 +87,8 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
             _pipeServer = new ControlPipeServer(_logger, this);
             _pipeTask = Task.Run(() => _pipeServer.RunAsync(_stop.Token), CancellationToken.None);
         }
+
+        _presentMon?.Start();
 
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(_stop.Token, externalToken);
         using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(_intervalMs));
@@ -98,6 +119,7 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
         finally
         {
             _stop.Cancel();
+            _presentMon?.Stop();
             await StopPipeAsync();
             _logger.Info($"采集进程停止，共写入 {Interlocked.Read(ref _sampleCount)} 个采样点");
         }
@@ -111,6 +133,7 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
 
         int mode = _modeFlags | (_paused ? CollectorModeFlags.Paused : 0);
         _telemetry.Heartbeat(qpc, mode);
+        _telemetry.SetCapabilities(CapabilityFlags);
 
         if (_paused)
         {
@@ -139,6 +162,11 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
             if (gpuValid)
             {
                 flags |= SampleFlags.GpuValid;
+            }
+
+            if (_presentMon is { IsCapturing: true })
+            {
+                flags |= SampleFlags.FrameValid;
             }
 
             var sample = new SampleRecord
@@ -186,8 +214,16 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
         }
     }
 
-    private static uint GetForegroundPid()
+    private static string ResolvePresentMonPath(string configured)
     {
+        string path = Path.IsPathRooted(configured)
+            ? configured
+            : Path.Combine(AppContext.BaseDirectory, configured);
+
+        return Path.GetFullPath(path);
+    }
+
+    private static uint GetForegroundPid()    {
         IntPtr window = User32.GetForegroundWindow();
         if (window == IntPtr.Zero)
         {
@@ -204,7 +240,7 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
         _paused,
         _uptime.Elapsed.TotalSeconds,
         Interlocked.Read(ref _sampleCount),
-        _lastError);
+        _lastError ?? _presentMon?.LastError);
 
     public bool SetPaused(bool paused)
     {
@@ -273,6 +309,7 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
         _disposed = true;
         _stop.Cancel();
 
+        _presentMon?.Dispose();
         _jitter.Dispose();
         _pdh.Dispose();
         _processes.Dispose();
