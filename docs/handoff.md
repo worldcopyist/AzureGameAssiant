@@ -22,7 +22,7 @@
 | 最新里程碑 | 折线图默认改为单张合并叠加图：CPU/GPU/内存/显存/磁盘/帧时间以不同颜色共用一个坐标系（帧时间右侧副轴），多卡片模式改为可选；内存卡片改为按物理内存显示（不再把提交上限当总量）；AI 设置支持按厂商 `/models` 拉取并选择模型；新增长时诊断记录（5/10/30 秒，CSV + 事件 + 退出摘要，本机已开启）；自动采集只对游戏类前台进程；PresentMon 残留 ETW 会话清理与停帧重启；三角洲行动帧率恢复；MCP 接入 Qoder App |
 | 可运行产物 | `build/run-dev.ps1` 可启动；`build/package.ps1` 默认 AOT 流程可生成便携 ZIP（含 PresentMon）；`build/publish-mcp.ps1` 生成 `artifacts/mcp/AzureGameAssistant.Mcp.exe`；二号屏桌面快捷方式指向 Release |
 | 代码分支 | `main`（`feat/m1-foundation` 已 squash 合入，分支保留） |
-| 当前提交 | `ba8ab61` |
+| 当前提交 | `b0953b4` |
 | 未提交变更 | 无 |
 | 阻塞事项 | 3 款游戏 PresentMon 实测与反作弊评估待用户游戏环境（已测明日方舟、三角洲行动）；AI 窗口待本轮重启 Release 后点击验证；MCP 已在 Qoder App 注册，注册前建立的会话需新开会话才会出现工具；深模式内存/CPU 与 60 分钟连续性待专项测量 |
 
