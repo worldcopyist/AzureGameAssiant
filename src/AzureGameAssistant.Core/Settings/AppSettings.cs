@@ -8,6 +8,7 @@ public sealed class AppSettings
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
     public SamplingSettings Sampling { get; set; } = new();
+    public bool RequestElevationOnStartup { get; set; } = true;
     public DetectionSettings Detection { get; set; } = new();
     public FrameSettings Frames { get; set; } = new();
     public SensorSettings Sensors { get; set; } = new();
@@ -61,6 +62,12 @@ public sealed class AppSettings
 
         Sensors ??= new SensorSettings();
         Sensors.IntervalMs = Math.Clamp(Sensors.IntervalMs, 500, 10_000);
+        Sensors.CpuMode = (Sensors.CpuMode ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "driver" => "driver",
+            "off" => "off",
+            _ => "acpi",
+        };
 
         Hotkey = string.IsNullOrWhiteSpace(Hotkey) ? "Ctrl+Alt+M" : Hotkey.Trim();
 
@@ -195,6 +202,7 @@ public sealed class DetectionSettings
 public sealed class FrameSettings
 {
     public bool Enabled { get; set; } = true;
+    public bool AutoCapture { get; set; } = true;
     public string Mode { get; set; } = "auto";
     public int? TargetPid { get; set; }
     public string PresentMonPath { get; set; } = "presentmon/PresentMon-2.6.0-x64.exe";
@@ -204,6 +212,7 @@ public sealed class SensorSettings
 {
     public bool Enabled { get; set; } = true;
     public int IntervalMs { get; set; } = 1_000;
+    public string CpuMode { get; set; } = "acpi";
 }
 
 public sealed class ChartSettings

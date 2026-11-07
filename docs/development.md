@@ -21,10 +21,10 @@
 2. **采集进程 ≤ 30MB、浅模式平均 CPU ≤ 0.3%**；界面进程仅托盘 ≤ 60MB、主窗口 ≤ 80MB。
 3. 系统指标以 **PDH 性能计数器**为主，进程枚举用 **NT API**。
 4. 帧级真相复用 **Intel PresentMon** 控制台程序，不自研 ETW consumer。
-5. 厂商 GPU 传感器复用 **LibreHardwareMonitorLib**，放在可选边车进程，不加载内核驱动。
+5. 厂商 GPU 传感器复用 **LibreHardwareMonitorLib**，放在可选边车进程；默认不加载内核驱动，CPU 温度驱动模式需用户显式开启。
 6. 卡顿判定以 **帧信号优先**，无帧数据时退回定时器抖动 + 资源尖峰 + 内存/磁盘压力。
 7. 数据留存为 **15 分钟系统环形缓冲 + 3 分钟帧环形缓冲 + 事件前后各 30 秒落盘**（gzip JSONL）。
-8. 支持 **Windows 10 1909+ / Windows 11，x64**；默认浅模式免提权，深模式显式提权。
+8. 支持 **Windows 10 1909+ / Windows 11，x64**；默认启动时请求提权（可在设置中关闭或 `--no-elevate` 跳过），取消 UAC 则保持浅模式。
 9. **默认不联网**；LLM 分析是用户显式开启的可选功能，走 OpenAI 兼容接口，BYOK。
 10. 界面形态：托盘 + 可选悬浮条 + 主窗口；中英双语；明暗主题跟随系统；极简风格。
 11. 分发形式：便携版 ZIP；三阶段交付（v0.1 / v0.5 / v1.0）。
@@ -52,10 +52,11 @@
 | ADR-016 | API Key 存储 | Windows Credential Manager | 不落配置文件/日志；系统级加密；无需自研加密 | DPAPI 文件、明文配置、环境变量 |
 | ADR-017 | AI 数据边界 | 本地事实层 + 脱敏 + 发送前预览 | 模型只处理结构化证据；降低隐私与注入风险 | 直接上传原始会话、自动后台上传 |
 | ADR-018 | 帧环形缓冲 | 独立 65,536 槽位、按时间窗口截取 | 高刷新率下仍覆盖 3 分钟；与系统缓冲解耦 | 复用系统 4500 槽位（帧率下不足） |
-| ADR-019 | 权限模式 | 浅模式默认、深模式显式提权 | 不骚扰普通用户；帧数据按需启用 | 一律要求管理员 |
+| ADR-019 | 权限模式 | 启动时请求提权（默认开启、可关闭），取消则浅模式 | 帧率采集长期需要权限，避免每次手动重启；UAC 仍由用户决定 | 一律要求管理员、每次手动点“以管理员身份重启” |
 | ADR-020 | 第三方分发 | 固定版本 + SHA256 + 许可证清单 | 可审计、可复现；降低上游漂移风险 | 运行时下载最新版 |
 | ADR-021 | UI 渲染模式 | 软件渲染（`RenderOptions.ProcessRenderMode = SoftwareOnly`） | 实测专用工作集由约 96MB 降至约 43MB，满足 UI 内存红线；界面仅 2Hz 刷新，CPU 代价可接受 | 默认硬件渲染（D3D 设备常驻内存偏高） |
-| ADR-022 | CPU 温度来源 | 仅 ACPI WMI 热区（用户态）；缺失时显示“—”，不加载内核驱动 | 满足“无注入、无反作弊风险”约束；可移植、可解释 | WinRing0/SMN 等内核驱动（功能更全但有驱动与反作弊风险） |
+| ADR-022 | CPU 温度来源 | 默认 ACPI WMI 热区（用户态）；可选 `driver` 模式由用户自行安装 PawnIO 后读取；缺失显示“—” | 默认满足“无注入、无反作弊风险”约束；把驱动风险留给用户显式选择，程序绝不自动安装 | 默认加载 WinRing0/SMN 等内核驱动（有反作弊风险） |
+| ADR-023 | 权限自检 | 内置只读诊断窗口：管理员/性能日志用户/文件哈希/ETW 探针/心跳/帧状态/传感器/CPU 温度 | 缺失权限可自查、可复制报告；ETW 探针只创建并立即停止随机会话，不接触游戏进程 | 只写日志让用户猜、打开第三方工具检查 |
 
 ## 3. 总体架构
 
@@ -167,7 +168,8 @@
 - 可执行文件：`AzureGameAssistant.Sensors.exe`。
 - 由采集进程启动，放入 **Job Object**（`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`），采集进程退出时自动结束。
 - 单实例互斥体：`Local\AzureGameAssistant.Sensors`。
-- 启动参数：`--gpu-only --interval 1000 --mmf Local\AzureGameAssistant.Sensors.v1`；间隔来自 `settings.sensors.intervalMs`（钳制 500–10000ms）。
+- 启动参数：`--interval 1000 --cpu-mode acpi --mmf Local\AzureGameAssistant.Sensors.v1`；间隔来自 `settings.sensors.intervalMs`（钳制 500–10000ms），CPU 模式来自 `settings.sensors.cpuMode`。
+- CPU 模式：`acpi`（默认，读标准 ACPI 热区）、`driver`（可选，允许 LHM 加载 PawnIO 读取 CPU 温度，可能受反作弊影响，需用户自行安装驱动）、`off`（不读 CPU 温度）。本项目不自动安装任何内核驱动。
 - 失败处理：子进程退出码 3（检测到内核驱动）/ 4（无可用 GPU）/ 2（初始化失败）分别记录原因；重启退避 1s / 5s / 15s，采集进程继续以 PDH GPU 数据运行并撤销厂商能力位。
 - 默认开启（schemaVersion 3 起）；旧版本设置升级时自动开启一次；浅/深模式都可运行（部分厂商指标普通权限不可读）。
 - 全局设置 `sensors.enabled=false` 时采集进程不启动边车，行为与 M2 一致。
@@ -180,12 +182,13 @@
 | 深模式 | 管理员或 Performance Log Users | 可用 | 完整 | 可用 | 可用 | 完整 |
 
 - 两个主进程默认均为 `asInvoker`，清单不声明 `requireAdministrator`。
-- 托盘菜单与状态卡“以管理员身份重启”：UI 以 `runas` 重启，并先通过管道让旧采集进程退出；新 UI 以管理员身份启动采集进程。
-- UI 启动时检测当前是否管理员：非管理员在“帧采集”按钮行显示“以管理员身份重启”；管理员隐藏该按钮。
-- `runas` 新实例携带 `--elevated-relaunch`，最多等待 10 秒接管单实例互斥体（旧实例退出中）；等待超时或用户取消 UAC（Win32 1223）时保留旧实例，重新拉起采集进程并提示“提权失败，继续以当前权限运行”。
+- 启动提权：`requestElevationOnStartup`（默认开启）时，非管理员实例在创建窗口前用 `runas` 重新启动自身并退出；UAC 由系统弹出，用户取消（Win32 1223）则继续以当前权限运行，不循环重试。启动参数 `--no-elevate` 可临时跳过。
+- `runas` 新实例携带 `--elevated-relaunch`，最多等待 10 秒接管单实例互斥体（旧实例先释放）；等待超时则提示已有一个实例在运行。
+- 权限自检：主界面“权限自检”按钮随时打开诊断窗口，只读检查管理员权限、Performance Log Users、PresentMon 文件与 SHA256、ETW 探针会话（创建后立即停止）、遥测心跳、帧采集状态、GPU 传感器与 CPU 温度来源；支持重新检测、复制报告，未提权时提供提权按钮。
+- 自动帧采集：`frames.autoCapture`（默认开启）时，采集进程每 4 个状态节拍检查一次前台窗口 PID；排除助手自身与 shell 进程，要求进程存活且有主窗口；启动失败按 `permissionDenied` 5 分钟、`unavailable` 1 分钟冷却；用户手动停止后，同一 PID 不再自动重启，直到前台切换到其他进程。
 - **禁止混合权限**：采集进程与 UI 必须同权限运行，否则高完整性进程创建的 `Local\` 对象低权限 UI 无法读取。UI 检测到共享内存打开失败时，提示“请以相同权限重启”。
 - 深模式能力位由采集进程写入共享内存；UI 只读展示，不自行推断。
-- 拒绝 UAC 时保持浅模式，不重试、不骚扰。
+- 拒绝 UAC 时保持浅模式，不重试、不骚扰；权限自检窗口会列出缺失项与影响。
 
 ## 5. 进程间通信
 
@@ -471,7 +474,7 @@ PresentMon.exe --process_id <pid> --output_stdout --v2_metrics --session_name Az
 - 2.6.0 确认支持 `--process_id`，已知目标 PID 时优先使用；未拿到 PID 时回退 `--process_name`。
 - 默认输出即为 2.x 指标；仍显式传入 `--v2_metrics`，防止上游更改默认值导致列名漂移。
 - `--output_stdout` 便于流式解析；不写临时 CSV 文件，减少磁盘 IO。
-- 不使用 `--restart_as_admin`：提权必须由用户显式触发，禁止静默弹 UAC。
+- 不使用 `--restart_as_admin`：PresentMon 自身不触发提权；提权由本应用在启动时通过 `runas` 显式请求，UAC 由系统展示，用户可取消。
 - 不使用 `--hotkey`：热键由本项目的隐藏窗口统一管理。
 - 不使用 PresentMon 服务模式：v1 不需要常驻服务，子进程隔离更简单。
 
@@ -1211,8 +1214,9 @@ internal sealed record AiProviderProfile(
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "sampling": { "normalMs": 1000, "gameMs": 200 },
+  "requestElevationOnStartup": true,
   "detection": {
     "jitterSuspectMs": 50,
     "jitterConfirmMs": 100,
@@ -1231,9 +1235,10 @@ internal sealed record AiProviderProfile(
     "enabled": true,
     "mode": "auto",
     "targetPid": null,
-    "presentMonPath": "presentmon/PresentMon-2.6.0-x64.exe"
+    "presentMonPath": "presentmon/PresentMon-2.6.0-x64.exe",
+    "autoCapture": true
   },
-  "sensors": { "enabled": false, "intervalMs": 1000 },
+  "sensors": { "enabled": true, "intervalMs": 1000, "cpuMode": "acpi" },
   "hotkey": "Ctrl+Alt+M",
   "autoStart": true,
   "notifications": true,

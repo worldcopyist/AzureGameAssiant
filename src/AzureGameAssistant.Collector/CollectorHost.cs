@@ -56,7 +56,10 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
         _jitter = new JitterMonitor(logger);
 
         _presentMonPath = ResolvePresentMonPath(settings.Frames.PresentMonPath);
-        if (settings.Frames.Enabled && settings.Frames.TargetPid is int targetPid && targetPid > 0)
+        if (settings.Frames.Enabled &&
+            settings.Frames.TargetPid is int targetPid &&
+            targetPid > 0 &&
+            IsProcessAlive(targetPid))
         {
             _presentMon = new PresentMonSupervisor(logger, _telemetry, _presentMonPath, targetPid);
         }
@@ -67,7 +70,8 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
             _sensor = new SensorSupervisor(
                 logger,
                 ResolveSensorsPath(),
-                Math.Clamp(settings.Sensors.IntervalMs, 500, 10_000));
+                Math.Clamp(settings.Sensors.IntervalMs, 500, 10_000),
+                settings.Sensors.CpuMode);
         }
     }
 
@@ -288,6 +292,23 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
             : Path.Combine(AppContext.BaseDirectory, configured);
 
         return Path.GetFullPath(path);
+    }
+
+    private static bool IsProcessAlive(int pid)
+    {
+        try
+        {
+            using Process process = Process.GetProcessById(pid);
+            return !process.HasExited;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
     }
 
     private static string ResolveSensorsPath()

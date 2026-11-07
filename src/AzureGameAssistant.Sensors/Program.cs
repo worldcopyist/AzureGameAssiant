@@ -57,7 +57,7 @@ internal static class Program
                 return 3;
             }
 
-            using var sidecar = new SensorSidecar(logger);
+            using var sidecar = new SensorSidecar(logger, options.CpuMode);
             if (!sidecar.Open())
             {
                 return 2;
@@ -85,7 +85,7 @@ internal static class Program
             };
 
             sidecar.StartCpuMonitor(stop.Token);
-            logger.Info($"传感器边车启动：{options.IntervalMs}ms 节拍，GPU={sidecar.GpuName}，共享内存 {options.MapName}");
+            logger.Info($"传感器边车启动：{options.IntervalMs}ms 节拍，CPU 模式={options.CpuMode}，GPU={sidecar.GpuName}，共享内存 {options.MapName}");
 
             if (options.Once)
             {
@@ -142,16 +142,17 @@ internal static class Program
     {
         Console.WriteLine(
             """
-            AzureGameAssistant.Sensors — 可选厂商传感器边车（GPU-only，不加载内核驱动）
+            AzureGameAssistant.Sensors — 可选厂商传感器边车
 
             用法：
-              AzureGameAssistant.Sensors [--interval 1000] [--mmf <name>] [--once]
+              AzureGameAssistant.Sensors [--interval 1000] [--mmf <name>] [--cpu-mode acpi] [--once]
 
             选项：
-              --interval <ms>   采样节拍，500–10000，默认 1000
-              --mmf <name>      传感器共享内存名称，默认 Local\AzureGameAssistant.Sensors.v1
-              --once            写入一个采样后退出（用于自检）
-              --help            显示本帮助
+              --interval <ms>      采样节拍，500–10000，默认 1000
+              --mmf <name>         传感器共享内存名称，默认 Local\AzureGameAssistant.Sensors.v1
+              --cpu-mode <mode>    CPU 温度来源：acpi（默认，无需驱动）、driver（启用 LHM CPU 组）、off
+              --once               写入一个采样后退出（用于自检）
+              --help               显示本帮助
 
             退出码：0 正常，2 初始化失败，3 检测到内核驱动，4 无可用 GPU。
             """);
@@ -162,6 +163,7 @@ internal sealed class SidecarOptions
 {
     public int IntervalMs { get; private init; } = 1_000;
     public string MapName { get; private init; } = SensorLayout.MapName;
+    public string CpuMode { get; private init; } = "acpi";
     public bool Once { get; private init; }
     public bool ShowHelp { get; private init; }
     public string? ParseError { get; private init; }
@@ -170,6 +172,7 @@ internal sealed class SidecarOptions
     {
         int interval = 1_000;
         string mapName = SensorLayout.MapName;
+        string cpuMode = "acpi";
         bool once = false;
         bool help = false;
         string? error = null;
@@ -216,6 +219,27 @@ internal sealed class SidecarOptions
                     }
 
                     break;
+
+                case "--cpu-mode":
+                    if (i + 1 < args.Length)
+                    {
+                        string mode = args[i + 1].Trim().ToLowerInvariant();
+                        if (mode is "acpi" or "driver" or "off")
+                        {
+                            cpuMode = mode;
+                            i++;
+                        }
+                        else
+                        {
+                            error = "--cpu-mode 只接受 acpi、driver 或 off";
+                        }
+                    }
+                    else
+                    {
+                        error = "--cpu-mode 需要一个模式";
+                    }
+
+                    break;
             }
         }
 
@@ -223,6 +247,7 @@ internal sealed class SidecarOptions
         {
             IntervalMs = interval,
             MapName = mapName,
+            CpuMode = cpuMode,
             Once = once,
             ShowHelp = help,
             ParseError = error,

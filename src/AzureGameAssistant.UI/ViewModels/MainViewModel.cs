@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Security.Principal;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AzureGameAssistant.Core.Frames;
@@ -46,6 +45,25 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private string _frameState = "stopped";
     private int? _frameTargetPid;
     private string? _frameError;
+    private DateTime _lastAutoCaptureAttempt = DateTime.MinValue;
+    private DateTime _autoCaptureBlockedUntil = DateTime.MinValue;
+    private int? _autoCaptureSuppressedPid;
+
+    private static readonly HashSet<string> AutoCaptureExcluded = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "explorer",
+        "SearchHost",
+        "StartMenuExperienceHost",
+        "ShellExperienceHost",
+        "ApplicationFrameHost",
+        "LockApp",
+        "TextInputHost",
+        "SystemSettings",
+        "Taskmgr",
+        "Idle",
+        "System",
+        "Registry",
+    };
 
     public MainViewModel(
         TelemetryService telemetry,
@@ -67,7 +85,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             Processes.Add(new ProcessRow());
         }
 
-        ShowElevationButton = !IsElevated();
+        ShowElevationButton = !PermissionDiagnostics.IsElevated();
         PauseText = _loc["Pause"];
         UpdateCollectorTexts();
         UpdateFrameTexts();
@@ -109,6 +127,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public event EventHandler? TelemetryUpdated;
 
     public event EventHandler? ElevationRequested;
+
+    public event EventHandler? PermissionCheckRequested;
 
     [ObservableProperty]
     private bool _showElevationButton;
@@ -212,6 +232,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 await RefreshCollectorStatusAsync().ConfigureAwait(true);
             }
 
+            if (_connected && _statusTicks % 4 == 0)
+            {
+                await TryAutoCaptureAsync().ConfigureAwait(true);
+            }
+
             UpdateFooter();
             TelemetryUpdated?.Invoke(this, EventArgs.Empty);
         }
@@ -300,6 +325,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _frameState = state;
         _frameTargetPid = target.Pid;
         _frameError = null;
+        _autoCaptureSuppressedPid = null;
         _settings.Frames.TargetPid = target.Pid;
         _settingsService.Save(_settings);
         UpdateFrameTexts();
@@ -307,6 +333,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     [RelayCommand]
     private void RestartElevated() => ElevationRequested?.Invoke(this, EventArgs.Empty);
+
+    [RelayCommand]
+    private void OpenPermissionCheck() => PermissionCheckRequested?.Invoke(this, EventArgs.Empty);
 
     [RelayCommand]
     private async Task StopFrameCaptureAsync()
@@ -318,11 +347,128 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
 
         _frameState = "stopped";
+        _autoCaptureSuppressedPid = _frameTargetPid;
         _frameTargetPid = null;
         _frameError = null;
         _settings.Frames.TargetPid = null;
         _settingsService.Save(_settings);
         UpdateFrameTexts();
+    }
+
+    private async Task TryAutoCaptureAsync()
+    {
+        if (!_settings.Frames.Enabled || !_settings.Frames.AutoCapture)
+        {
+            return;
+        }
+
+        if (!PermissionDiagnostics.IsElevated())
+        {
+            return;
+        }
+
+        DateTime now = DateTime.UtcNow;
+        if (now < _autoCaptureBlockedUntil || now - _lastAutoCaptureAttempt < TimeSpan.FromSeconds(2))
+        {
+            return;
+        }
+
+        uint foregroundPid = _telemetry.Latest.ForegroundPid;
+        if (foregroundPid == 0)
+        {
+            return;
+        }
+
+        int pid = (int)foregroundPid;
+        if (_autoCaptureSuppressedPid is int suppressed)
+        {
+            if (suppressed == pid)
+            {
+                return;
+            }
+
+            _autoCaptureSuppressedPid = null;
+        }
+
+        if (_frameTargetPid == pid)
+        {
+            if (_frameState is "capturing" or "starting")
+            {
+                return;
+            }
+
+            if (_frameState is "permissionDenied" or "unavailable")
+            {
+                _autoCaptureBlockedUntil = now.AddMinutes(1);
+                return;
+            }
+        }
+
+        if (!IsAutoCaptureCandidate(pid))
+        {
+            return;
+        }
+
+        _lastAutoCaptureAttempt = now;
+        string? state = await _client.StartFramesAsync(pid, _cts.Token).ConfigureAwait(true);
+        if (state is null)
+        {
+            return;
+        }
+
+        _frameState = state;
+        _frameTargetPid = pid;
+        _frameError = null;
+
+        if (state == "permissionDenied")
+        {
+            _autoCaptureBlockedUntil = now.AddMinutes(5);
+        }
+        else if (state == "unavailable")
+        {
+            _autoCaptureBlockedUntil = now.AddMinutes(1);
+        }
+
+        UpdateFrameTexts();
+    }
+
+    private bool IsAutoCaptureCandidate(int pid)
+    {
+        string name = _names.GetName((uint)pid);
+        if (string.IsNullOrEmpty(name) ||
+            name.StartsWith("AzureGameAssistant", StringComparison.OrdinalIgnoreCase) ||
+            AutoCaptureExcluded.Contains(name))
+        {
+            return false;
+        }
+
+        try
+        {
+            using Process process = Process.GetProcessById(pid);
+            return !process.HasExited && process.MainWindowHandle != IntPtr.Zero;
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or Win32Exception)
+        {
+            return false;
+        }
+    }
+
+    public PermissionSnapshot GetPermissionSnapshot()
+    {
+        SampleRecord sample = _telemetry.Latest;
+        bool hasSample = _telemetry.Count > 0;
+
+        return new PermissionSnapshot(
+            PermissionDiagnostics.IsElevated(),
+            PermissionDiagnostics.IsPerformanceLogUser(),
+            _telemetry.IsOpen,
+            _telemetry.HeartbeatAgeMs,
+            _frameState,
+            _frameError,
+            hasSample && TelemetryMath.TryGetGpuTemperature(sample, out _),
+            hasSample && TelemetryMath.TryGetCpuTemperature(sample, out _),
+            _settings.Sensors.CpuMode,
+            PermissionDiagnostics.ResolvePresentMonPath(_settings.Frames.PresentMonPath));
     }
 
     private async Task RefreshCollectorStatusAsync()
@@ -606,19 +752,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ShowVramChart));
         OnPropertyChanged(nameof(ShowDiskChart));
         OnPropertyChanged(nameof(ShowFrameChart));
-    }
-
-    private static bool IsElevated()
-    {
-        try
-        {
-            using WindowsIdentity identity = WindowsIdentity.GetCurrent();
-            return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
-        }
-        catch (Exception)
-        {
-            return false;
-        }
     }
 
     private static string FormatMegabytes(double megabytes) => megabytes >= 1024

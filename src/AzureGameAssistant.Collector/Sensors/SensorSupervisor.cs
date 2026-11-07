@@ -22,6 +22,7 @@ internal sealed class SensorSupervisor : IDisposable
     private readonly FileLogger _logger;
     private readonly string _executablePath;
     private readonly int _intervalMs;
+    private readonly string _cpuMode;
     private readonly CancellationTokenSource _stop = new();
     private readonly object _gate = new();
 
@@ -31,11 +32,12 @@ internal sealed class SensorSupervisor : IDisposable
     private volatile string? _lastError;
     private volatile bool _running;
 
-    public SensorSupervisor(FileLogger logger, string executablePath, int intervalMs)
+    public SensorSupervisor(FileLogger logger, string executablePath, int intervalMs, string cpuMode)
     {
         _logger = logger;
         _executablePath = executablePath;
         _intervalMs = intervalMs;
+        _cpuMode = cpuMode;
     }
 
     public bool IsRunning => _running;
@@ -60,7 +62,7 @@ internal sealed class SensorSupervisor : IDisposable
 
             _job = JobObject.CreateKillOnClose();
             _running = true;
-            _logger.Info($"传感器边车启动：{_executablePath}，间隔 {_intervalMs}ms");
+            _logger.Info($"传感器边车启动：{_executablePath}，间隔 {_intervalMs}ms，CPU 模式 {_cpuMode}");
             _task = Task.Run(() => RunAsync(_stop.Token), CancellationToken.None);
         }
     }
@@ -209,9 +211,10 @@ internal sealed class SensorSupervisor : IDisposable
             CreateNoWindow = true,
         };
 
-        info.ArgumentList.Add("--gpu-only");
         info.ArgumentList.Add("--interval");
         info.ArgumentList.Add(_intervalMs.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        info.ArgumentList.Add("--cpu-mode");
+        info.ArgumentList.Add(_cpuMode);
         info.ArgumentList.Add("--mmf");
         info.ArgumentList.Add(SensorLayout.MapName);
         return info;

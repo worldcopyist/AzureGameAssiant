@@ -23,6 +23,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         Language = settings.Language;
         Notifications = settings.Notifications;
         AutoStart = autoStartEnabled;
+        RequestElevationOnStartup = settings.RequestElevationOnStartup;
+        AutoCapture = settings.Frames.AutoCapture;
+        CpuMode = settings.Sensors.CpuMode;
 
         ChartCpu = settings.Charts.Cpu;
         ChartGpu = settings.Charts.Gpu;
@@ -75,6 +78,13 @@ public sealed partial class SettingsViewModel : ObservableObject
             new SelectOption("Azure", loc["OverlayThemeAzure"]),
             new SelectOption("Custom", loc["OverlayThemeCustom"]),
         ];
+
+        CpuModeOptions =
+        [
+            new SelectOption("acpi", loc["CpuTempModeAcpi"]),
+            new SelectOption("driver", loc["CpuTempModeDriver"]),
+            new SelectOption("off", loc["CpuTempModeOff"]),
+        ];
     }
 
     public IReadOnlyList<int> IntervalOptions { get; } = [100, 200, 250, 500, 1000, 2000, 5000, 10000];
@@ -86,6 +96,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     public IReadOnlyList<SelectOption> OverlayCornerOptions { get; }
 
     public IReadOnlyList<SelectOption> OverlayThemeOptions { get; }
+
+    public IReadOnlyList<SelectOption> CpuModeOptions { get; }
 
     public string AppVersion { get; } =
         Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.1.0";
@@ -111,6 +123,15 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _autoStart;
+
+    [ObservableProperty]
+    private bool _requestElevationOnStartup;
+
+    [ObservableProperty]
+    private bool _autoCapture;
+
+    [ObservableProperty]
+    private string _cpuMode = "acpi";
 
     [ObservableProperty]
     private bool _chartCpu;
@@ -191,6 +212,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         settings.Language = Language;
         settings.Notifications = Notifications;
         settings.AutoStart = AutoStart;
+        settings.RequestElevationOnStartup = RequestElevationOnStartup;
+        settings.Frames.AutoCapture = AutoCapture;
+        settings.Sensors.CpuMode = CpuMode;
 
         settings.Charts.Cpu = ChartCpu;
         settings.Charts.Gpu = ChartGpu;

@@ -21,6 +21,7 @@ public partial class App : Application
 {
     private Mutex? _instanceMutex;
     private bool _ownsMutex;
+    private bool _mutexReleased;
     private FileLogger? _logger;
     private SettingsService? _settingsService;
     private AppSettings _settings = new();
@@ -33,6 +34,10 @@ public partial class App : Application
     private TrayIconService? _tray;
     private DispatcherTimer? _timer;
     private bool _shuttingDown;
+    private int _appliedNormalMs = 1_000;
+    private int _appliedSensorIntervalMs = 1_000;
+    private string _appliedCpuMode = "acpi";
+    private bool _appliedSensorsEnabled = true;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -84,6 +89,21 @@ public partial class App : Application
             _logger.Warn(result.Warning);
         }
 
+        _appliedNormalMs = _settings.Sampling.NormalMs;
+        _appliedSensorIntervalMs = _settings.Sensors.IntervalMs;
+        _appliedCpuMode = _settings.Sensors.CpuMode;
+        _appliedSensorsEnabled = _settings.Sensors.Enabled;
+
+        bool skipElevation = e.Args.Any(arg =>
+            string.Equals(arg, "--no-elevate", StringComparison.OrdinalIgnoreCase));
+        if (!elevatedRelaunch && !skipElevation &&
+            _settings.RequestElevationOnStartup &&
+            !PermissionDiagnostics.IsElevated() &&
+            TryRelaunchElevated(e.Args))
+        {
+            return;
+        }
+
         LocalizationService.Instance.SetLanguage(_settings.Language);
         ThemeService.Apply(_settings.Theme);
 
@@ -93,6 +113,7 @@ public partial class App : Application
         _viewModel = new MainViewModel(_telemetry, _client, _launcher, LocalizationService.Instance, _settings, _settingsService);
         _viewModel.TelemetryUpdated += OnTelemetryUpdated;
         _viewModel.ElevationRequested += OnElevationRequested;
+        _viewModel.PermissionCheckRequested += OnPermissionCheckRequested;
 
         _window = new MainWindow(_viewModel);
         _window.SettingsRequested += OnSettingsRequested;
@@ -246,7 +267,6 @@ public partial class App : Application
             return;
         }
 
-        int normalMs = _settings.Sampling.NormalMs;
         bool autoStart = AutoStartService.IsEnabled();
 
         try
@@ -274,7 +294,10 @@ public partial class App : Application
             return;
         }
 
-        bool restart = settings.Sampling.NormalMs != normalMs;
+        bool restart = settings.Sampling.NormalMs != _appliedNormalMs ||
+            settings.Sensors.Enabled != _appliedSensorsEnabled ||
+            settings.Sensors.IntervalMs != _appliedSensorIntervalMs ||
+            !string.Equals(settings.Sensors.CpuMode, _appliedCpuMode, StringComparison.Ordinal);
 
         ThemeService.Apply(settings.Theme);
         LocalizationService.Instance.SetLanguage(settings.Language);
@@ -290,6 +313,10 @@ public partial class App : Application
 
         if (restart)
         {
+            _appliedNormalMs = settings.Sampling.NormalMs;
+            _appliedSensorIntervalMs = settings.Sensors.IntervalMs;
+            _appliedCpuMode = settings.Sensors.CpuMode;
+            _appliedSensorsEnabled = settings.Sensors.Enabled;
             _ = RestartCollectorAsync();
         }
     }
@@ -308,6 +335,91 @@ public partial class App : Application
         {
             _logger?.Error(context, ex);
         }
+    }
+
+    private void OnPermissionCheckRequested(object? sender, EventArgs e)
+    {
+        if (_viewModel is null || _window is null)
+        {
+            return;
+        }
+
+        var viewModel = new PermissionViewModel(
+            () => _viewModel.GetPermissionSnapshot(),
+            LocalizationService.Instance);
+        var window = new PermissionWindow(viewModel)
+        {
+            Owner = _window,
+        };
+
+        window.ElevationRequested += (_, _) => OnElevationRequested(this, EventArgs.Empty);
+        window.ShowDialog();
+    }
+
+    private bool TryRelaunchElevated(string[] args)
+    {
+        string? executable = Environment.ProcessPath;
+        if (string.IsNullOrEmpty(executable))
+        {
+            return false;
+        }
+
+        try
+        {
+            var startInfo = new ProcessStartInfo(executable)
+            {
+                UseShellExecute = true,
+                Verb = "runas",
+                WorkingDirectory = AppContext.BaseDirectory,
+            };
+
+            startInfo.ArgumentList.Add("--elevated-relaunch");
+            foreach (string arg in args)
+            {
+                if (string.Equals(arg, "--elevated-relaunch", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(arg, "--no-elevate", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                startInfo.ArgumentList.Add(arg);
+            }
+
+            Process.Start(startInfo);
+            _logger?.Info("已请求管理员权限并重启界面");
+            ReleaseInstanceMutex();
+            Shutdown();
+            return true;
+        }
+        catch (Win32Exception ex) when (ex.NativeErrorCode == 1223)
+        {
+            _logger?.Info("用户取消了 UAC 提权，继续以普通权限运行");
+            return false;
+        }
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
+        {
+            _logger?.Error("启动时提权失败", ex);
+            return false;
+        }
+    }
+
+    private void ReleaseInstanceMutex()
+    {
+        if (!_ownsMutex || _mutexReleased)
+        {
+            return;
+        }
+
+        _mutexReleased = true;
+        try
+        {
+            _instanceMutex?.ReleaseMutex();
+        }
+        catch (ApplicationException)
+        {
+        }
+
+        _ownsMutex = false;
     }
 
     private async void OnElevationRequested(object? sender, EventArgs e)
@@ -552,17 +664,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        if (_ownsMutex)
-        {
-            try
-            {
-                _instanceMutex?.ReleaseMutex();
-            }
-            catch (ApplicationException)
-            {
-            }
-        }
-
+        ReleaseInstanceMutex();
         _instanceMutex?.Dispose();
         _logger?.Dispose();
         base.OnExit(e);

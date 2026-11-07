@@ -429,4 +429,160 @@
   <data name="FrameStatsSub" xml:space="preserve">
     <value>平均 {0:F0} · 1% Low {1:F0}</value>
   </data>
+  <data name="PermissionCheckButton" xml:space="preserve">
+    <value>权限自检</value>
+  </data>
+  <data name="PermissionWindowTitle" xml:space="preserve">
+    <value>权限与能力自检</value>
+  </data>
+  <data name="PermissionSummaryOk" xml:space="preserve">
+    <value>全部检查通过，帧率采集与传感器均已就绪。</value>
+  </data>
+  <data name="PermissionSummary" xml:space="preserve">
+    <value>{0} 项缺失，{1} 项警告</value>
+  </data>
+  <data name="PermissionCheckedAt" xml:space="preserve">
+    <value>检测时间 {0}</value>
+  </data>
+  <data name="PermissionRefresh" xml:space="preserve">
+    <value>重新检测</value>
+  </data>
+  <data name="PermissionCopyReport" xml:space="preserve">
+    <value>复制报告</value>
+  </data>
+  <data name="PermissionClose" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="PermissionElevate" xml:space="preserve">
+    <value>以管理员身份重启</value>
+  </data>
+  <data name="PermissionHint" xml:space="preserve">
+    <value>本检测只创建并立即停止一个随机命名的 ETW 探针会话，再核对本地文件；不会注入或附加到任何游戏进程。</value>
+  </data>
+  <data name="PermissionCopied" xml:space="preserve">
+    <value>报告已复制到剪贴板。</value>
+  </data>
+  <data name="PermAdminName" xml:space="preserve">
+    <value>管理员权限</value>
+  </data>
+  <data name="PermAdminOk" xml:space="preserve">
+    <value>已提权运行，PresentMon 与 ETW 可用。</value>
+  </data>
+  <data name="PermAdminMissing" xml:space="preserve">
+    <value>当前为普通权限。PresentMon 需要管理员权限或 Performance Log Users 组成员身份。</value>
+  </data>
+  <data name="PermPerfLogName" xml:space="preserve">
+    <value>Performance Log Users</value>
+  </data>
+  <data name="PermPerfLogOk" xml:space="preserve">
+    <value>当前账户可以创建 ETW 会话。</value>
+  </data>
+  <data name="PermPerfLogMissing" xml:space="preserve">
+    <value>不在 Performance Log Users 组中；帧率采集需要管理员权限。</value>
+  </data>
+  <data name="PermPresentMonName" xml:space="preserve">
+    <value>PresentMon</value>
+  </data>
+  <data name="PermPresentMonOk" xml:space="preserve">
+    <value>已找到并通过 SHA256 校验。</value>
+  </data>
+  <data name="PermPresentMonMissing" xml:space="preserve">
+    <value>未在 {0} 找到文件。</value>
+  </data>
+  <data name="PermPresentMonHash" xml:space="preserve">
+    <value>SHA256 不匹配（{0}），已拒绝启动。</value>
+  </data>
+  <data name="PermEtwName" xml:space="preserve">
+    <value>ETW 会话</value>
+  </data>
+  <data name="PermEtwOk" xml:space="preserve">
+    <value>探针会话创建并停止成功。</value>
+  </data>
+  <data name="PermEtwDenied" xml:space="preserve">
+    <value>ETW 会话被拒绝；请以管理员身份运行或加入 Performance Log Users。</value>
+  </data>
+  <data name="PermEtwFailed" xml:space="preserve">
+    <value>ETW 探针失败，Win32 错误码 {0}。</value>
+  </data>
+  <data name="PermTelemetryName" xml:space="preserve">
+    <value>遥测共享内存</value>
+  </data>
+  <data name="PermTelemetryOk" xml:space="preserve">
+    <value>采集进程心跳正常。</value>
+  </data>
+  <data name="PermTelemetryMissing" xml:space="preserve">
+    <value>共享内存不可用或心跳过期；采集进程可能未运行。</value>
+  </data>
+  <data name="PermFramesName" xml:space="preserve">
+    <value>帧率采集</value>
+  </data>
+  <data name="PermFramesOk" xml:space="preserve">
+    <value>正在采集所选游戏的帧率。</value>
+  </data>
+  <data name="PermFramesError" xml:space="preserve">
+    <value>帧率采集错误：{0}</value>
+  </data>
+  <data name="PermFramesIdle" xml:space="preserve">
+    <value>当前未采集帧率；请打开游戏或手动选择进程。</value>
+  </data>
+  <data name="PermGpuSensorsName" xml:space="preserve">
+    <value>GPU 传感器</value>
+  </data>
+  <data name="PermGpuSensorsOk" xml:space="preserve">
+    <value>GPU 温度与显存传感器正在上报。</value>
+  </data>
+  <data name="PermGpuSensorsMissing" xml:space="preserve">
+    <value>没有 GPU 传感器数据；传感器边车可能未运行。</value>
+  </data>
+  <data name="PermCpuTempName" xml:space="preserve">
+    <value>CPU 温度</value>
+  </data>
+  <data name="PermCpuTempOk" xml:space="preserve">
+    <value>CPU 温度来源正在上报。</value>
+  </data>
+  <data name="PermCpuTempOff" xml:space="preserve">
+    <value>设置中已关闭 CPU 温度来源。</value>
+  </data>
+  <data name="PermCpuTempDriverBlocked" xml:space="preserve">
+    <value>传感器驱动已安装，但读取 CPU 温度仍然失败。</value>
+  </data>
+  <data name="PermCpuTempDriverNotInstalled" xml:space="preserve">
+    <value>已启用驱动模式，但未安装已签名的传感器模块（PawnIO），CPU 温度仍不可用。</value>
+  </data>
+  <data name="PermCpuTempDriverMissing" xml:space="preserve">
+    <value>此主板未提供 ACPI 热区。要读取 CPU 温度，需要启用可选的 LibreHardwareMonitor 驱动模式。</value>
+  </data>
+  <data name="PermissionsSection" xml:space="preserve">
+    <value>权限与采集</value>
+  </data>
+  <data name="RequestElevationLabel" xml:space="preserve">
+    <value>启动时请求管理员权限</value>
+  </data>
+  <data name="RequestElevationHint" xml:space="preserve">
+    <value>每次启动都会显示 UAC。取消后应用继续以普通权限运行，但不采集帧率。</value>
+  </data>
+  <data name="AutoCaptureLabel" xml:space="preserve">
+    <value>自动采集前台游戏</value>
+  </data>
+  <data name="AutoCaptureHint" xml:space="preserve">
+    <value>为前台游戏窗口启动 PresentMon；会忽略桌面外壳窗口，不使用注入。</value>
+  </data>
+  <data name="CpuTemperatureSection" xml:space="preserve">
+    <value>CPU 温度来源</value>
+  </data>
+  <data name="CpuTemperatureModeLabel" xml:space="preserve">
+    <value>来源</value>
+  </data>
+  <data name="CpuTempModeAcpi" xml:space="preserve">
+    <value>ACPI 热区（无需驱动）</value>
+  </data>
+  <data name="CpuTempModeDriver" xml:space="preserve">
+    <value>LibreHardwareMonitor 驱动（需手动启用）</value>
+  </data>
+  <data name="CpuTempModeOff" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="CpuTempModeHint" xml:space="preserve">
+    <value>ACPI 不需要驱动，但许多桌面主板不提供该接口。驱动模式会加载已签名的 LibreHardwareMonitor 模块；只有在你接受该驱动时才启用，且不要在反作弊游戏运行时切换。</value>
+  </data>
 </root>

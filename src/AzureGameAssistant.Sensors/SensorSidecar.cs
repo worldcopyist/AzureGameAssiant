@@ -7,25 +7,33 @@ using LibreHardwareMonitor.Hardware;
 namespace AzureGameAssistant.Sensors;
 
 /// <summary>
-/// GPU-only LibreHardwareMonitor instance plus a best-effort ACPI thermal-zone
-/// CPU temperature. CPU and motherboard LHM groups stay disabled so initialization
-/// never loads WinRing0 or another kernel driver.
+/// LibreHardwareMonitor GPU instance plus a CPU temperature source. In "acpi"
+/// mode the CPU group stays disabled and only the user-mode ACPI thermal zone is
+/// read. In opt-in "driver" mode the LHM CPU group is enabled, which may load
+/// the signed PawnIO module; other vendor/motherboard groups stay disabled.
 /// </summary>
 internal sealed class SensorSidecar : IDisposable
 {
     private readonly FileLogger _logger;
+    private readonly string _cpuMode;
     private readonly UpdateVisitor _visitor = new();
     private Computer? _computer;
     private IHardware? _gpu;
+    private IHardware? _cpu;
     private CancellationTokenSource? _cpuStop;
     private Task? _cpuTask;
     private int _cpuTempBits = BitConverter.SingleToInt32Bits(float.NaN);
+    private int _cpuPowerBits = BitConverter.SingleToInt32Bits(float.NaN);
+    private int _driverWarned;
     private int _readFailures;
 
-    public SensorSidecar(FileLogger logger)
+    public SensorSidecar(FileLogger logger, string cpuMode)
     {
         _logger = logger;
+        _cpuMode = cpuMode;
     }
+
+    private bool DriverCpuEnabled => string.Equals(_cpuMode, "driver", StringComparison.OrdinalIgnoreCase);
 
     public bool HasGpu => _gpu is not null;
 
@@ -37,7 +45,7 @@ internal sealed class SensorSidecar : IDisposable
         {
             _computer = new Computer
             {
-                IsCpuEnabled = false,
+                IsCpuEnabled = DriverCpuEnabled,
                 IsGpuEnabled = true,
                 IsMemoryEnabled = false,
                 IsMotherboardEnabled = false,
@@ -49,6 +57,24 @@ internal sealed class SensorSidecar : IDisposable
 
             _computer.Open();
             _gpu = SelectGpu(_computer);
+
+            if (DriverCpuEnabled)
+            {
+                _cpu = SelectCpu(_computer);
+                if (_cpu is null)
+                {
+                    _logger.Warn("驱动模式下未枚举到 CPU 传感器");
+                }
+                else
+                {
+                    _cpu.Accept(_visitor);
+                    _logger.Info($"CPU 传感器已打开：{_cpu.Name}（驱动模式）");
+                    foreach (ISensor sensor in _cpu.Sensors)
+                    {
+                        _logger.Debug($"CPU 传感器：{sensor.SensorType} {sensor.Name} = {sensor.Value}");
+                    }
+                }
+            }
 
             if (_gpu is null)
             {
@@ -107,7 +133,13 @@ internal sealed class SensorSidecar : IDisposable
             }
         }
 
+        if (DriverCpuEnabled && _cpu is { } cpu)
+        {
+            ReadDriverCpu(cpu);
+        }
+
         float cpuTemperature = BitConverter.Int32BitsToSingle(Volatile.Read(ref _cpuTempBits));
+        float cpuPower = BitConverter.Int32BitsToSingle(Volatile.Read(ref _cpuPowerBits));
 
         ushort flags = 0;
         if (!float.IsNaN(gpuTemperature) || !float.IsNaN(power) || !float.IsNaN(coreClock))
@@ -138,7 +170,7 @@ internal sealed class SensorSidecar : IDisposable
             VramUsedMb = vramUsed,
             VramTotalMb = vramTotal,
             CpuTemperatureC = cpuTemperature,
-            CpuPowerW = float.NaN,
+            CpuPowerW = cpuPower,
             GpuIndex = 0,
             Flags = flags,
         };
@@ -146,6 +178,11 @@ internal sealed class SensorSidecar : IDisposable
 
     public void StartCpuMonitor(CancellationToken token)
     {
+        if (!string.Equals(_cpuMode, "acpi", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
         _cpuStop = CancellationTokenSource.CreateLinkedTokenSource(token);
         _cpuTask = Task.Run(() => CpuMonitorAsync(_cpuStop.Token), CancellationToken.None);
     }
@@ -185,6 +222,81 @@ internal sealed class SensorSidecar : IDisposable
                 return;
             }
         }
+    }
+
+    private void ReadDriverCpu(IHardware cpu)
+    {
+        try
+        {
+            cpu.Accept(_visitor);
+            float temperature = FindCpuTemperature(cpu);
+            if (temperature <= 0)
+            {
+                temperature = float.NaN;
+            }
+
+            float power = FindValue(cpu, SensorType.Power, "Package", "CPU Package");
+            if (power <= 0)
+            {
+                power = float.NaN;
+            }
+
+            Volatile.Write(ref _cpuTempBits, BitConverter.SingleToInt32Bits(temperature));
+            Volatile.Write(ref _cpuPowerBits, BitConverter.SingleToInt32Bits(power));
+
+            if (float.IsNaN(temperature) && Interlocked.Exchange(ref _driverWarned, 1) == 0)
+            {
+                _logger.Warn("驱动模式下 CPU 温度仍不可用；PawnIO 可能未安装或未被允许加载");
+            }
+        }
+        catch (Exception ex)
+        {
+            if (Interlocked.Exchange(ref _driverWarned, 1) == 0)
+            {
+                _logger.Warn($"读取 CPU 传感器失败：{ex.Message}");
+            }
+        }
+    }
+
+    private static float FindCpuTemperature(IHardware cpu)
+    {
+        float? fallback = null;
+
+        foreach (ISensor sensor in cpu.Sensors)
+        {
+            if (sensor.SensorType != SensorType.Temperature ||
+                sensor.Value is not float value ||
+                value <= 0)
+            {
+                continue;
+            }
+
+            string name = sensor.Name;
+            if (name.Contains("Tctl", StringComparison.OrdinalIgnoreCase) ||
+                name.Contains("Tdie", StringComparison.OrdinalIgnoreCase) ||
+                name.Contains("CPU Package", StringComparison.OrdinalIgnoreCase) ||
+                name.Contains("Package", StringComparison.OrdinalIgnoreCase))
+            {
+                return value;
+            }
+
+            fallback ??= value;
+        }
+
+        return fallback ?? float.NaN;
+    }
+
+    private static IHardware? SelectCpu(Computer computer)
+    {
+        foreach (IHardware hardware in computer.Hardware)
+        {
+            if (hardware.HardwareType == HardwareType.Cpu)
+            {
+                return hardware;
+            }
+        }
+
+        return null;
     }
 
     private static IHardware? SelectGpu(Computer computer)
@@ -375,6 +487,7 @@ internal sealed class SensorSidecar : IDisposable
 
         _computer = null;
         _gpu = null;
+        _cpu = null;
     }
 
     private sealed class UpdateVisitor : IVisitor

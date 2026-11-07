@@ -118,7 +118,8 @@ public sealed class SettingsServiceTests : IDisposable
             Sessions = new SessionSettings { MaxCount = 0, MaxTotalMb = 1 },
             Theme = "PURPLE",
             Language = "fr",
-            Frames = new FrameSettings { Mode = "weird", TargetPid = 0 },
+            Frames = new FrameSettings { Mode = "weird", TargetPid = 0, AutoCapture = false },
+            Sensors = new SensorSettings { CpuMode = "WINDOWS" },
         };
 
         settings.Normalize();
@@ -131,8 +132,27 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.Equal("auto", settings.Language);
         Assert.Equal("auto", settings.Frames.Mode);
         Assert.Null(settings.Frames.TargetPid);
+        Assert.False(settings.Frames.AutoCapture);
+        Assert.Equal("acpi", settings.Sensors.CpuMode);
         Assert.Equal("Default", settings.Overlay.Theme);
         Assert.Equal("#FFFFFF", settings.Overlay.Color);
+    }
+
+    [Theory]
+    [InlineData(" DRIVER ", "driver")]
+    [InlineData("off", "off")]
+    [InlineData("acpi", "acpi")]
+    [InlineData("", "acpi")]
+    public void Normalize_CpuModeAcceptsKnownValues(string input, string expected)
+    {
+        var settings = new AppSettings
+        {
+            Sensors = new SensorSettings { CpuMode = input },
+        };
+
+        settings.Normalize();
+
+        Assert.Equal(expected, settings.Sensors.CpuMode);
     }
 
     [Fact]

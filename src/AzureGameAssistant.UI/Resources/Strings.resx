@@ -429,4 +429,160 @@
   <data name="FrameStatsSub" xml:space="preserve">
     <value>Avg {0:F0} · 1% Low {1:F0}</value>
   </data>
+  <data name="PermissionCheckButton" xml:space="preserve">
+    <value>Permission check</value>
+  </data>
+  <data name="PermissionWindowTitle" xml:space="preserve">
+    <value>Permission and capability check</value>
+  </data>
+  <data name="PermissionSummaryOk" xml:space="preserve">
+    <value>All checks passed. Frame capture and sensors are ready.</value>
+  </data>
+  <data name="PermissionSummary" xml:space="preserve">
+    <value>{0} missing, {1} warning(s)</value>
+  </data>
+  <data name="PermissionCheckedAt" xml:space="preserve">
+    <value>Checked at {0}</value>
+  </data>
+  <data name="PermissionRefresh" xml:space="preserve">
+    <value>Re-check</value>
+  </data>
+  <data name="PermissionCopyReport" xml:space="preserve">
+    <value>Copy report</value>
+  </data>
+  <data name="PermissionClose" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="PermissionElevate" xml:space="preserve">
+    <value>Restart as administrator</value>
+  </data>
+  <data name="PermissionHint" xml:space="preserve">
+    <value>This check starts and stops a uniquely named ETW probe session and verifies local files. It never injects into or attaches to a game process.</value>
+  </data>
+  <data name="PermissionCopied" xml:space="preserve">
+    <value>Report copied to the clipboard.</value>
+  </data>
+  <data name="PermAdminName" xml:space="preserve">
+    <value>Administrator</value>
+  </data>
+  <data name="PermAdminOk" xml:space="preserve">
+    <value>Running elevated; PresentMon and ETW are available.</value>
+  </data>
+  <data name="PermAdminMissing" xml:space="preserve">
+    <value>Running as a standard user. PresentMon needs elevation or the Performance Log Users group.</value>
+  </data>
+  <data name="PermPerfLogName" xml:space="preserve">
+    <value>Performance Log Users</value>
+  </data>
+  <data name="PermPerfLogOk" xml:space="preserve">
+    <value>The current account may create ETW sessions.</value>
+  </data>
+  <data name="PermPerfLogMissing" xml:space="preserve">
+    <value>Not a member of Performance Log Users; administrator rights are required for frame capture.</value>
+  </data>
+  <data name="PermPresentMonName" xml:space="preserve">
+    <value>PresentMon</value>
+  </data>
+  <data name="PermPresentMonOk" xml:space="preserve">
+    <value>Found and verified with SHA256.</value>
+  </data>
+  <data name="PermPresentMonMissing" xml:space="preserve">
+    <value>Not found at {0}.</value>
+  </data>
+  <data name="PermPresentMonHash" xml:space="preserve">
+    <value>SHA256 mismatch ({0}); the file was not started.</value>
+  </data>
+  <data name="PermEtwName" xml:space="preserve">
+    <value>ETW session</value>
+  </data>
+  <data name="PermEtwOk" xml:space="preserve">
+    <value>A probe session started and stopped successfully.</value>
+  </data>
+  <data name="PermEtwDenied" xml:space="preserve">
+    <value>ETW session creation was denied; run elevated or join Performance Log Users.</value>
+  </data>
+  <data name="PermEtwFailed" xml:space="preserve">
+    <value>ETW probe failed with Win32 error {0}.</value>
+  </data>
+  <data name="PermTelemetryName" xml:space="preserve">
+    <value>Telemetry shared memory</value>
+  </data>
+  <data name="PermTelemetryOk" xml:space="preserve">
+    <value>The collector heartbeat is fresh.</value>
+  </data>
+  <data name="PermTelemetryMissing" xml:space="preserve">
+    <value>Shared memory is unavailable or the heartbeat is stale; the collector may be stopped.</value>
+  </data>
+  <data name="PermFramesName" xml:space="preserve">
+    <value>Frame capture</value>
+  </data>
+  <data name="PermFramesOk" xml:space="preserve">
+    <value>Capturing frames for the selected game.</value>
+  </data>
+  <data name="PermFramesError" xml:space="preserve">
+    <value>Frame capture error: {0}</value>
+  </data>
+  <data name="PermFramesIdle" xml:space="preserve">
+    <value>No frame capture is running; open a game or select a process manually.</value>
+  </data>
+  <data name="PermGpuSensorsName" xml:space="preserve">
+    <value>GPU sensors</value>
+  </data>
+  <data name="PermGpuSensorsOk" xml:space="preserve">
+    <value>GPU temperature and VRAM sensors are reporting.</value>
+  </data>
+  <data name="PermGpuSensorsMissing" xml:space="preserve">
+    <value>No GPU sensor data; the sensor sidecar may be stopped.</value>
+  </data>
+  <data name="PermCpuTempName" xml:space="preserve">
+    <value>CPU temperature</value>
+  </data>
+  <data name="PermCpuTempOk" xml:space="preserve">
+    <value>The CPU temperature source is reporting.</value>
+  </data>
+  <data name="PermCpuTempOff" xml:space="preserve">
+    <value>The CPU temperature source is disabled in settings.</value>
+  </data>
+  <data name="PermCpuTempDriverBlocked" xml:space="preserve">
+    <value>A CPU temperature reading still failed even though the sensor driver is installed.</value>
+  </data>
+  <data name="PermCpuTempDriverNotInstalled" xml:space="preserve">
+    <value>Driver mode is enabled, but the signed sensor module (PawnIO) is not installed, so CPU temperature stays unavailable.</value>
+  </data>
+  <data name="PermCpuTempDriverMissing" xml:space="preserve">
+    <value>This board does not expose an ACPI thermal zone. CPU temperature requires the optional LibreHardwareMonitor driver mode.</value>
+  </data>
+  <data name="PermissionsSection" xml:space="preserve">
+    <value>Permissions and capture</value>
+  </data>
+  <data name="RequestElevationLabel" xml:space="preserve">
+    <value>Request administrator rights at startup</value>
+  </data>
+  <data name="RequestElevationHint" xml:space="preserve">
+    <value>Windows shows UAC on every launch. Cancelling keeps the app running without frame capture.</value>
+  </data>
+  <data name="AutoCaptureLabel" xml:space="preserve">
+    <value>Automatically capture the foreground game</value>
+  </data>
+  <data name="AutoCaptureHint" xml:space="preserve">
+    <value>Starts PresentMon for the foreground game window. Shell windows are ignored and no injection is used.</value>
+  </data>
+  <data name="CpuTemperatureSection" xml:space="preserve">
+    <value>CPU temperature source</value>
+  </data>
+  <data name="CpuTemperatureModeLabel" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="CpuTempModeAcpi" xml:space="preserve">
+    <value>ACPI thermal zone (no driver)</value>
+  </data>
+  <data name="CpuTempModeDriver" xml:space="preserve">
+    <value>LibreHardwareMonitor driver (opt-in)</value>
+  </data>
+  <data name="CpuTempModeOff" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="CpuTempModeHint" xml:space="preserve">
+    <value>ACPI needs no driver, but many desktop boards do not expose it. Driver mode uses the signed LibreHardwareMonitor module; enable it only if you accept that driver, and never while an anti-cheat game is running.</value>
+  </data>
 </root>

@@ -98,6 +98,41 @@
                 </Border>
 
                 <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,8"
+                           Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[PermissionsSection]}" />
+                <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                    <StackPanel>
+                        <CheckBox IsChecked="{Binding RequestElevationOnStartup, Mode=TwoWay}"
+                                  Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[RequestElevationLabel]}" />
+                        <TextBlock Margin="24,2,0,10" FontSize="11" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[RequestElevationHint]}" />
+
+                        <CheckBox IsChecked="{Binding AutoCapture, Mode=TwoWay}"
+                                  Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AutoCaptureLabel]}" />
+                        <TextBlock Margin="24,2,0,10" FontSize="11" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AutoCaptureHint]}" />
+
+                        <TextBlock Style="{StaticResource SectionTitle}" Margin="0,4,0,8"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[CpuTemperatureSection]}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[CpuTemperatureModeLabel]}" />
+                            <ComboBox Grid.Column="1" MinWidth="220" ItemsSource="{Binding CpuModeOptions}"
+                                      DisplayMemberPath="Display" SelectedValuePath="Value"
+                                      SelectedValue="{Binding CpuMode, Mode=TwoWay}" />
+                        </Grid>
+                        <TextBlock Margin="0,6,0,0" FontSize="11" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[CpuTempModeHint]}" />
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,8"
                            Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[OverlaySection]}" />
                 <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                     <StackPanel>
