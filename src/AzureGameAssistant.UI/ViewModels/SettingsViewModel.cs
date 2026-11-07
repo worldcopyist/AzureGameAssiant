@@ -115,7 +115,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private bool _overlayEnabled;
 
     [ObservableProperty]
-    private string _overlayCorner = "BottomRight";
+    private string _overlayCorner = "TopLeft";
 
     [ObservableProperty]
     private int _overlayOffsetX;

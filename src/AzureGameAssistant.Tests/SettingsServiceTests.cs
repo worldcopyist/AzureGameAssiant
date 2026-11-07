@@ -40,6 +40,9 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.Equal(1_000, result.Settings.Sampling.NormalMs);
         Assert.Equal(200, result.Settings.Sampling.GameMs);
         Assert.False(result.Settings.Ai.Enabled);
+        Assert.True(result.Settings.Charts.Cpu);
+        Assert.True(result.Settings.Overlay.Enabled);
+        Assert.Equal("TopLeft", result.Settings.Overlay.Corner);
     }
 
     [Fact]

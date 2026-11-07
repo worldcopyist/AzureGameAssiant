@@ -8,24 +8,25 @@
         WindowStartupLocation="Manual"
         Focusable="False" IsHitTestVisible="False"
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
-        Opacity="0.94">
+        Opacity="1">
     <Window.Resources>
+        <DropShadowEffect x:Key="OverlayTextShadow" Color="Black" BlurRadius="3"
+                          ShadowDepth="0" Opacity="0.9" />
         <Style x:Key="OverlayLabel" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="10" />
-            <Setter Property="Foreground" Value="#9AA8B8" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="#D6DEE8" />
             <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Effect" Value="{StaticResource OverlayTextShadow}" />
         </Style>
         <Style x:Key="OverlayValue" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
-            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontSize" Value="12" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="#F2F6FA" />
-            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Effect" Value="{StaticResource OverlayTextShadow}" />
         </Style>
     </Window.Resources>
 
-    <Border Background="#D9121822" BorderBrush="#40FFFFFF" BorderThickness="1"
-            CornerRadius="8" Padding="10,7">
-        <StackPanel x:Name="Rows" />
-    </Border>
+    <WrapPanel x:Name="Rows" Orientation="Horizontal" />
 </Window>

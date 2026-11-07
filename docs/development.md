@@ -3,7 +3,7 @@
 | 项目 | 内容 |
 | --- | --- |
 | 文档编号 | AGS-DEV-001 |
-| 版本 | v1.1 |
+| 版本 | v1.2 |
 | 状态 | 已确认 |
 | 作者 | Qoder |
 | 适用版本 | v0.1 – v1.0 |
@@ -1135,10 +1135,12 @@ internal sealed record AiProviderProfile(
 
 ### 11.5 桌面悬浮数据窗（M1 基础版）
 
-- `OverlayWindow`：无边框、透明（`AllowsTransparency`）、`Topmost`、`ShowInTaskbar=false`、`ShowActivated=false`、`Focusable=false`。
+- `OverlayWindow`：无边框、透明（`AllowsTransparency`）、`Topmost`、`ShowInTaskbar=false`、`ShowActivated=false`、`Focusable=false`；根元素为裸 `WrapPanel`，无背景面板与边框。
 - Win32 扩展样式追加 `WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE`：鼠标穿透、不进入 Alt+Tab、不抢焦点。
-- 位置：`SystemParameters.WorkArea` 四角 + 水平/垂直偏移；`SizeChanged` 后重新定位；当前仅主显示器。
-- 内容：FPS、平均帧、1% Low、CPU、GPU、GPU 温度、内存、显存；按设置顺序生成行，缺失数据显示“—”。
+- 位置：`SystemParameters.WorkArea` 四角 + 水平/垂直偏移，默认左上；`SizeChanged` 后重新定位；当前仅主显示器。
+- 布局：每个数据项为“标签 + 数值”横向 `StackPanel`，整体从左到右排列；`MaxWidth = WorkArea.Width - 2 × OffsetX`（下限 240 DIP），放不下时按数据项自动换行，窗口高度随行数增长。
+- 可读性：文字使用 `DropShadowEffect`（黑色、BlurRadius 3、无偏移），不使用背景遮挡桌面。
+- 内容：FPS、平均帧、1% Low、CPU、GPU、GPU 温度、内存、显存；按设置顺序生成数据项，缺失数据显示“—”。
 - 数据：主窗口与悬浮窗共用 `MainViewModel.GetOverlayData()` 与 500ms 刷新节拍；主窗口隐藏后计时器仍为悬浮窗运行。
 - 帧率、平均帧、Low 帧与温度字段已预留，M2 PresentMon / M3 LHM 接入后自动显示数值，无需改悬浮窗。
 - 托盘菜单与设置页均可开关；M3 再评估拖动、透明度与多显示器位置记忆。
@@ -1157,7 +1159,7 @@ internal sealed record AiProviderProfile(
 - UI 是唯一写入方；采集进程启动时读取，之后只接收管道补丁。
 - 写入采用临时文件 + 原子替换；读取失败时备份为 `settings.corrupt-<timestamp>.json` 并回退默认值。
 - `schemaVersion` 与迁移函数集中管理。
-- 加载时归一化：悬浮窗角落名转 PascalCase；偏移量限制 0–4000；内容项全部关闭时强制打开 CPU 与 GPU，避免出现空窗口。
+- 加载时归一化：悬浮窗角落名转 PascalCase（缺省 TopLeft）；偏移量限制 0–4000；内容项全部关闭时强制打开 CPU 与 GPU，避免出现空窗口。
 
 ```json
 {
@@ -1222,7 +1224,7 @@ internal sealed record AiProviderProfile(
   },
   "overlay": {
     "enabled": true,
-    "corner": "BottomRight",
+    "corner": "TopLeft",
     "offsetX": 16,
     "offsetY": 16,
     "showFps": true,
@@ -1416,7 +1418,7 @@ AzureGameAssistant-<version>-win-x64/
 | 系统 | Win10 22H2、Win11 22H2+ |
 | 显卡 | NVIDIA、AMD、Intel 核显、混合显卡 |
 | 显示器 | 单屏、双屏、不同 DPI |
-| 悬浮窗 | 四角、偏移、内容开关、鼠标穿透、主窗口隐藏 |
+| 悬浮窗 | 默认左上、无背景、横向换行、四角、偏移、内容开关、鼠标穿透、主窗口隐藏 |
 | 游戏状态 | DX11、DX12、无边框窗口、全屏独占 |
 | 权限 | 普通用户、管理员、Performance Log Users |
 | 模型 | 至少 3 家云 + Ollama / LM Studio |

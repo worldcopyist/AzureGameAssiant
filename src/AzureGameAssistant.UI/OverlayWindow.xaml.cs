@@ -120,28 +120,29 @@ public partial class OverlayWindow : Window
 
     private void AddRow(OverlayField field, string label)
     {
-        var grid = new Grid { MinWidth = 108, Margin = new Thickness(0, 1, 0, 1) };
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        var item = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Margin = new Thickness(0, 1, 16, 1),
+            VerticalAlignment = VerticalAlignment.Center,
+        };
 
         var caption = new TextBlock
         {
             Text = label,
             Style = (Style)FindResource("OverlayLabel"),
-            Margin = new Thickness(0, 0, 10, 0),
+            Margin = new Thickness(0, 0, 5, 0),
         };
-        Grid.SetColumn(caption, 0);
 
         var value = new TextBlock
         {
             Text = "—",
             Style = (Style)FindResource("OverlayValue"),
         };
-        Grid.SetColumn(value, 1);
 
-        grid.Children.Add(caption);
-        grid.Children.Add(value);
-        Rows.Children.Add(grid);
+        item.Children.Add(caption);
+        item.Children.Add(value);
+        Rows.Children.Add(item);
         _entries.Add(new OverlayEntry(field, value));
     }
 
@@ -153,6 +154,13 @@ public partial class OverlayWindow : Window
         }
 
         Rect work = SystemParameters.WorkArea;
+        double maxWidth = Math.Max(240, work.Width - (_settings.OffsetX * 2.0));
+        if (Math.Abs(Rows.MaxWidth - maxWidth) > 0.5)
+        {
+            Rows.MaxWidth = maxWidth;
+            UpdateLayout();
+        }
+
         double width = Math.Max(ActualWidth, 1);
         double height = Math.Max(ActualHeight, 1);
         bool right = _settings.Corner is "TopRight" or "BottomRight";

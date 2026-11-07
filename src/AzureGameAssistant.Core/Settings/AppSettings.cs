@@ -96,10 +96,10 @@ public sealed class AppSettings
         Overlay ??= new OverlaySettings();
         Overlay.Corner = Overlay.Corner?.Trim().ToLowerInvariant() switch
         {
-            "topleft" => "TopLeft",
             "topright" => "TopRight",
             "bottomleft" => "BottomLeft",
-            _ => "BottomRight",
+            "bottomright" => "BottomRight",
+            _ => "TopLeft",
         };
         Overlay.OffsetX = Math.Clamp(Overlay.OffsetX, 0, 4_000);
         Overlay.OffsetY = Math.Clamp(Overlay.OffsetY, 0, 4_000);
@@ -195,7 +195,7 @@ public sealed class ChartSettings
 public sealed class OverlaySettings
 {
     public bool Enabled { get; set; } = true;
-    public string Corner { get; set; } = "BottomRight";
+    public string Corner { get; set; } = "TopLeft";
     public int OffsetX { get; set; } = 16;
     public int OffsetY { get; set; } = 16;
     public bool ShowFps { get; set; } = true;
