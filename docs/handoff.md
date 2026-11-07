@@ -259,6 +259,8 @@ powershell -File build/measure.ps1 -DurationMinutes 30 -OutputPath artifacts/mea
 powershell -File build/package.ps1          # 默认 NativeAOT 便携包
 ```
 
+本机已在二号显示器（1080×1920，位于物理坐标 2560,0）桌面放置“蓝天游戏助手”快捷方式，指向 `src/AzureGameAssistant.UI/bin/Release/net8.0-windows/AzureGameAssistant.exe`，双击即可启动界面并自动拉起 Release 采集进程；若清理过 Release 产物，需先执行 `dotnet build -c Release`。该快捷方式为开发机本地便利项，不随仓库分发。
+
 预期：
 
 - 构建 0 警告、0 错误；测试 44 项全部通过（含 PresentMon CSV 解析、帧统计、共享内存布局、PresentMon 哈希校验与帧时间轴）。
