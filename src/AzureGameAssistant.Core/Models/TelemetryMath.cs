@@ -21,4 +21,13 @@ public static class TelemetryMath
         celsius = HasVendorData(sample) ? sample.V0.TemperatureC : 0;
         return celsius > 0;
     }
+
+    public static bool TryGetCpuTemperature(in SampleRecord sample, out double celsius)
+    {
+        celsius = (sample.Flags & SampleFlags.CpuSensorValid) != 0 ? sample.C0.TemperatureC : 0;
+        return celsius > 0;
+    }
+
+    public static bool HasCpuSensorData(in SampleRecord sample) =>
+        (sample.Flags & SampleFlags.CpuSensorValid) != 0;
 }

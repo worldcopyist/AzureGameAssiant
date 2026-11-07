@@ -14,6 +14,8 @@ public readonly record struct OverlayData(
     double GpuPct,
     bool HasTemperature,
     double TemperatureC,
+    bool HasCpuTemperature,
+    double CpuTemperatureC,
     double MemoryPct,
     double VramMb,
     double VramTotalMb);

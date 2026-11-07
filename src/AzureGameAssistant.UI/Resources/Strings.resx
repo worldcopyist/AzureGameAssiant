@@ -324,6 +324,12 @@
   <data name="OverlayTemp" xml:space="preserve">
     <value>GPU temp</value>
   </data>
+  <data name="OverlayCpuTemperature" xml:space="preserve">
+    <value>CPU temperature</value>
+  </data>
+  <data name="OverlayCpuTemp" xml:space="preserve">
+    <value>CPU temp</value>
+  </data>
   <data name="OverlayMem" xml:space="preserve">
     <value>Memory</value>
   </data>
@@ -395,6 +401,15 @@
   </data>
   <data name="FrameStateWithPid" xml:space="preserve">
     <value>{0} (PID {1})</value>
+  </data>
+  <data name="RestartElevated" xml:space="preserve">
+    <value>Restart as administrator</value>
+  </data>
+  <data name="ElevationHint" xml:space="preserve">
+    <value>Restart the app elevated so the collector can read PresentMon frame data. Unofficial anti-cheat safety is unchanged: only official PresentMon ETW is used, with no injection or driver.</value>
+  </data>
+  <data name="ElevationFailed" xml:space="preserve">
+    <value>Elevation was cancelled or failed.</value>
   </data>
   <data name="FrameChartLabel" xml:space="preserve">
     <value>Frames</value>

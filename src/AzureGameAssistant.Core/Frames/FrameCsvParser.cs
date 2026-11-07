@@ -55,15 +55,15 @@ public sealed class FrameCsvParser
     public FrameCsvParser(ReadOnlySpan<char> headerLine)
     {
         _time = FindColumn(headerLine, "CPUStartTime");
-        _frameTime = FindColumn(headerLine, "MsBetweenPresents");
-        _cpuBusy = FindColumn(headerLine, "MsCPUBusy");
-        _cpuWait = FindColumn(headerLine, "MsCPUWait");
-        _gpuLatency = FindColumn(headerLine, "MsGPULatency");
-        _gpuTime = FindColumn(headerLine, "MsGPUTime");
-        _gpuBusy = FindColumn(headerLine, "MsGPUBusy");
-        _gpuWait = FindColumn(headerLine, "MsGPUWait");
-        _displayLatency = FindColumn(headerLine, "DisplayLatency");
-        _animationError = FindColumn(headerLine, "MsAnimationError");
+        _frameTime = FindColumn(headerLine, "FrameTime", "MsBetweenPresents");
+        _cpuBusy = FindColumn(headerLine, "CPUBusy", "MsCPUBusy");
+        _cpuWait = FindColumn(headerLine, "CPUWait", "MsCPUWait");
+        _gpuLatency = FindColumn(headerLine, "GPULatency", "MsGPULatency");
+        _gpuTime = FindColumn(headerLine, "GPUTime", "MsGPUTime");
+        _gpuBusy = FindColumn(headerLine, "GPUBusy", "MsGPUBusy");
+        _gpuWait = FindColumn(headerLine, "GPUWait", "MsGPUWait");
+        _displayLatency = FindColumn(headerLine, "DisplayLatency", "MsDisplayLatency");
+        _animationError = FindColumn(headerLine, "AnimationError", "MsAnimationError");
         _pid = FindColumn(headerLine, "ProcessID");
         _presentMode = FindColumn(headerLine, "PresentMode");
 
@@ -176,18 +176,21 @@ public sealed class FrameCsvParser
         return true;
     }
 
-    private static int FindColumn(ReadOnlySpan<char> header, string name)
+    private static int FindColumn(ReadOnlySpan<char> header, params string[] names)
     {
-        int position = 0;
-        int index = 0;
-        while (TryReadField(header, ref position, out ReadOnlySpan<char> field))
+        for (int nameIndex = 0; nameIndex < names.Length; nameIndex++)
         {
-            if (field.Equals(name, StringComparison.OrdinalIgnoreCase))
+            int position = 0;
+            int index = 0;
+            while (TryReadField(header, ref position, out ReadOnlySpan<char> field))
             {
-                return index;
-            }
+                if (field.Equals(names[nameIndex], StringComparison.OrdinalIgnoreCase))
+                {
+                    return index;
+                }
 
-            index++;
+                index++;
+            }
         }
 
         return -1;

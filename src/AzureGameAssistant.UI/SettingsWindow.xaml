@@ -180,6 +180,8 @@
                                       Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Gpu]}" />
                             <CheckBox Margin="0,0,24,8" IsChecked="{Binding OverlayTemperature, Mode=TwoWay}"
                                       Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[OverlayTemperature]}" />
+                            <CheckBox Margin="0,0,24,8" IsChecked="{Binding OverlayCpuTemperature, Mode=TwoWay}"
+                                      Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[OverlayCpuTemperature]}" />
                             <CheckBox Margin="0,0,24,8" IsChecked="{Binding OverlayMemory, Mode=TwoWay}"
                                       Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Memory]}" />
                             <CheckBox Margin="0,0,24,8" IsChecked="{Binding OverlayVram, Mode=TwoWay}"

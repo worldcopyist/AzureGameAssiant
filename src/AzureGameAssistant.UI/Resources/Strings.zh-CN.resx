@@ -324,6 +324,12 @@
   <data name="OverlayTemp" xml:space="preserve">
     <value>GPU 温度</value>
   </data>
+  <data name="OverlayCpuTemperature" xml:space="preserve">
+    <value>CPU 温度</value>
+  </data>
+  <data name="OverlayCpuTemp" xml:space="preserve">
+    <value>CPU 温度</value>
+  </data>
   <data name="OverlayMem" xml:space="preserve">
     <value>内存</value>
   </data>
@@ -395,6 +401,15 @@
   </data>
   <data name="FrameStateWithPid" xml:space="preserve">
     <value>{0}（PID {1}）</value>
+  </data>
+  <data name="RestartElevated" xml:space="preserve">
+    <value>以管理员身份重启</value>
+  </data>
+  <data name="ElevationHint" xml:space="preserve">
+    <value>以管理员权限重启助手后，采集进程才能读取 PresentMon 帧数据。仍只使用官方 PresentMon 只读 ETW，不注入、不加载驱动。</value>
+  </data>
+  <data name="ElevationFailed" xml:space="preserve">
+    <value>已取消管理员授权或提权失败。</value>
   </data>
   <data name="FrameChartLabel" xml:space="preserve">
     <value>帧</value>

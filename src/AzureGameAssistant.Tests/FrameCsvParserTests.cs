@@ -6,9 +6,9 @@ public sealed class FrameCsvParserTests
 {
     private const string V2Header =
         "Application,ProcessID,SwapChainAddress,PresentRuntime,SyncInterval,PresentFlags," +
-        "AllowsTearing,PresentMode,CPUStartTime,MsCPUBusy,MsCPUWait,MsGPULatency," +
-        "MsGPUTime,MsGPUBusy,MsGPUWait,DisplayLatency,MsAnimationError,MsBetweenPresents," +
-        "MsBetweenDisplayChange";
+        "AllowsTearing,PresentMode,CPUStartTime,FrameTime,CPUBusy,CPUWait,GPULatency," +
+        "GPUTime,GPUBusy,GPUWait,DisplayLatency,DisplayedTime,AnimationError,AnimationTime," +
+        "MsFlipDelay,AllInputToPhotonLatency,ClickToPhotonLatency";
 
     [Fact]
     public void TryParse_MapsV2Columns()
@@ -16,23 +16,39 @@ public sealed class FrameCsvParserTests
         var parser = new FrameCsvParser(V2Header);
 
         bool parsed = parser.TryParse(
-            "\"Game, The.exe\",4242,0x1,DXGI,1,0,1,Hardware: Independent Flip," +
-            "123.4,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,16.7,16.6",
+            "Arknights.exe,18096,0x7BC9DA90,DXGI,1,0,0,Hardware Composed: Independent Flip," +
+            "12.3995,7.0337,6.6439,0.3898,5.6568,6.9749,1.9972,4.9777,18.7321,6.9149," +
+            "-1.1772,12.3995,NA,NA,NA",
             out PresentMonFrame frame);
 
         Assert.True(parsed);
-        Assert.Equal(4242, frame.Pid);
-        Assert.Equal(123.4, frame.TimeMs, 3);
+        Assert.Equal(18096, frame.Pid);
+        Assert.Equal(12.3995, frame.TimeMs, 3);
+        Assert.Equal(7.0337, frame.FrameTimeMs, 3);
+        Assert.Equal(6.6439, frame.CpuBusyMs, 3);
+        Assert.Equal(0.3898, frame.CpuWaitMs, 3);
+        Assert.Equal(5.6568, frame.GpuLatencyMs, 3);
+        Assert.Equal(6.9749, frame.GpuTimeMs, 3);
+        Assert.Equal(1.9972, frame.GpuBusyMs, 3);
+        Assert.Equal(4.9777, frame.GpuWaitMs, 3);
+        Assert.Equal(18.7321, frame.DisplayLatencyMs, 3);
+        Assert.Equal(-1.1772, frame.AnimationErrorMs, 3);
+        Assert.Equal(PresentMode.HardwareComposedIndependentFlip, frame.PresentMode);
+    }
+
+    [Fact]
+    public void TryParse_AcceptsLegacyMsColumnNames()
+    {
+        var parser = new FrameCsvParser(
+            "ProcessID,MsBetweenPresents,MsCPUBusy,MsGPUWait,MsAnimationError,CPUStartTime");
+
+        Assert.True(parser.TryParse("7,16.7,1.2,0.4,0.1,100", out PresentMonFrame frame));
+        Assert.Equal(7, frame.Pid);
         Assert.Equal(16.7, frame.FrameTimeMs, 3);
-        Assert.Equal(1.5, frame.CpuBusyMs, 3);
-        Assert.Equal(2.5, frame.CpuWaitMs, 3);
-        Assert.Equal(3.5, frame.GpuLatencyMs, 3);
-        Assert.Equal(4.5, frame.GpuTimeMs, 3);
-        Assert.Equal(5.5, frame.GpuBusyMs, 3);
-        Assert.Equal(6.5, frame.GpuWaitMs, 3);
-        Assert.Equal(7.5, frame.DisplayLatencyMs, 3);
-        Assert.Equal(8.5, frame.AnimationErrorMs, 3);
-        Assert.Equal(PresentMode.HardwareIndependentFlip, frame.PresentMode);
+        Assert.Equal(1.2, frame.CpuBusyMs, 3);
+        Assert.Equal(0.4, frame.GpuWaitMs, 3);
+        Assert.Equal(0.1, frame.AnimationErrorMs, 3);
+        Assert.Equal(100, frame.TimeMs, 3);
     }
 
     [Fact]

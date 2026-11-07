@@ -159,6 +159,7 @@ public sealed class SettingsServiceTests : IDisposable
                 ShowCpu = false,
                 ShowGpu = false,
                 ShowTemperature = false,
+                ShowCpuTemperature = false,
                 ShowMemory = false,
                 ShowVram = false,
                 Theme = " custom ",
@@ -176,6 +177,19 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.True(settings.Overlay.ShowGpu);
         Assert.Equal("Custom", settings.Overlay.Theme);
         Assert.Equal("#00FF7F", settings.Overlay.Color);
+    }
+
+    [Fact]
+    public void Load_PreSensorSchema_EnablesSensors()
+    {
+        File.WriteAllText(SettingsPath, """{"schemaVersion": 2, "sensors": {"enabled": false}}""");
+        var service = new SettingsService(SettingsPath);
+
+        SettingsLoadResult result = service.Load();
+
+        Assert.False(result.Recovered);
+        Assert.Equal(AppSettings.CurrentSchemaVersion, result.Settings.SchemaVersion);
+        Assert.True(result.Settings.Sensors.Enabled);
     }
 
     [Fact]

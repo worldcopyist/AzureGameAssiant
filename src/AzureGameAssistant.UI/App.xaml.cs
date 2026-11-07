@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
@@ -46,7 +48,22 @@ public partial class App : Application
         _logger = new FileLogger("ui");
         _logger.Info("界面进程启动");
 
+        bool elevatedRelaunch = e.Args.Any(arg =>
+            string.Equals(arg, "--elevated-relaunch", StringComparison.OrdinalIgnoreCase));
+
         _instanceMutex = new Mutex(true, @"Local\AzureGameAssistant.UI", out _ownsMutex);
+        if (!_ownsMutex && elevatedRelaunch)
+        {
+            try
+            {
+                _ownsMutex = _instanceMutex.WaitOne(TimeSpan.FromSeconds(10));
+            }
+            catch (AbandonedMutexException)
+            {
+                _ownsMutex = true;
+            }
+        }
+
         if (!_ownsMutex)
         {
             MessageBox.Show(
@@ -75,6 +92,7 @@ public partial class App : Application
         _launcher = new CollectorLauncher(_logger);
         _viewModel = new MainViewModel(_telemetry, _client, _launcher, LocalizationService.Instance, _settings, _settingsService);
         _viewModel.TelemetryUpdated += OnTelemetryUpdated;
+        _viewModel.ElevationRequested += OnElevationRequested;
 
         _window = new MainWindow(_viewModel);
         _window.SettingsRequested += OnSettingsRequested;
@@ -289,6 +307,68 @@ public partial class App : Application
         catch (UnauthorizedAccessException ex)
         {
             _logger?.Error(context, ex);
+        }
+    }
+
+    private async void OnElevationRequested(object? sender, EventArgs e)
+    {
+        if (_shuttingDown || _launcher is null)
+        {
+            return;
+        }
+
+        string? executable = Environment.ProcessPath;
+        if (string.IsNullOrEmpty(executable))
+        {
+            return;
+        }
+
+        try
+        {
+            _launcher.MarkIntentionalStop();
+
+            if (_client is not null)
+            {
+                try
+                {
+                    using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(1.5));
+                    await _client.QuitAsync(cancellation.Token).ConfigureAwait(true);
+                }
+                catch (OperationCanceledException)
+                {
+                }
+            }
+
+            await _launcher.WaitForExitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(true);
+
+            Process.Start(new ProcessStartInfo(executable)
+            {
+                UseShellExecute = true,
+                Verb = "runas",
+                Arguments = "--elevated-relaunch",
+                WorkingDirectory = AppContext.BaseDirectory,
+            });
+
+            await ShutdownAsync().ConfigureAwait(true);
+        }
+        catch (Win32Exception ex) when (ex.NativeErrorCode == 1223)
+        {
+            _launcher.Start();
+            MessageBox.Show(
+                LocalizationService.Instance["ElevationFailed"],
+                LocalizationService.Instance["AppTitle"],
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
+        {
+            _launcher.Start();
+            _logger?.Error("提权重启失败", ex);
+            MessageBox.Show(
+                LocalizationService.Instance["ElevationFailed"] + "\n" + ex.Message,
+                LocalizationService.Instance["AppTitle"],
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
         }
     }
 

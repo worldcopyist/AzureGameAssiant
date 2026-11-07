@@ -8,20 +8,20 @@ namespace AzureGameAssistant.Core.Models;
 /// </summary>
 public static class TelemetryLayout
 {
-    public const string MapName = @"Local\AzureGameAssistant.Telemetry.v2";
-    public const long Magic = 0x32475341; // 'AGS2'
-    public const int ProtocolVersion = 2;
+    public const string MapName = @"Local\AzureGameAssistant.Telemetry.v3";
+    public const long Magic = 0x33475341; // 'AGS3'
+    public const int ProtocolVersion = 3;
 
     public const int HeaderSize = 128;
     public const int SampleRegionOffset = 256;
-    public const int SampleStride = 248;
+    public const int SampleStride = 256;
     public const int SampleCapacity = 4500;
 
     public const int EventRegionOffset = SampleRegionOffset + (SampleStride * SampleCapacity);
     public const int EventStride = 64;
     public const int EventCapacity = 256;
 
-    public const int FrameRegionOffset = 1132672;
+    public const int FrameRegionOffset = EventRegionOffset + (EventStride * EventCapacity);
     public const int FrameStride = 48;
     public const int FrameCapacity = 65536;
 
@@ -42,6 +42,7 @@ public static class SampleFlags
     public const ushort GpuValid = 1 << 1;
     public const ushort VendorValid = 1 << 2;
     public const ushort FrameValid = 1 << 3;
+    public const ushort CpuSensorValid = 1 << 4;
 }
 
 public static class ProcessSlotFlags
@@ -116,6 +117,13 @@ public struct VendorSlot
 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 8)]
+public struct CpuSensorSlot
+{
+    public float TemperatureC;
+    public float PackagePowerW;
+}
+
+[StructLayout(LayoutKind.Sequential, Pack = 8)]
 public struct SampleRecord
 {
     public long QpcTicks;
@@ -141,6 +149,7 @@ public struct SampleRecord
     public ProcessSlot P3;
     public ProcessSlot P4;
     public VendorSlot V0;
+    public CpuSensorSlot C0;
 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 8)]

@@ -40,6 +40,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         OverlayCpu = settings.Overlay.ShowCpu;
         OverlayGpu = settings.Overlay.ShowGpu;
         OverlayTemperature = settings.Overlay.ShowTemperature;
+        OverlayCpuTemperature = settings.Overlay.ShowCpuTemperature;
         OverlayMemory = settings.Overlay.ShowMemory;
         OverlayVram = settings.Overlay.ShowVram;
         OverlayTheme = settings.Overlay.Theme;
@@ -157,6 +158,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     private bool _overlayTemperature;
 
     [ObservableProperty]
+    private bool _overlayCpuTemperature;
+
+    [ObservableProperty]
     private bool _overlayMemory;
 
     [ObservableProperty]
@@ -204,6 +208,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         settings.Overlay.ShowCpu = OverlayCpu;
         settings.Overlay.ShowGpu = OverlayGpu;
         settings.Overlay.ShowTemperature = OverlayTemperature;
+        settings.Overlay.ShowCpuTemperature = OverlayCpuTemperature;
         settings.Overlay.ShowMemory = OverlayMemory;
         settings.Overlay.ShowVram = OverlayVram;
         settings.Overlay.Theme = OverlayTheme;

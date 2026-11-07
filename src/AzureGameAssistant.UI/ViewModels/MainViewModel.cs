@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Security.Principal;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AzureGameAssistant.Core.Frames;
@@ -66,6 +67,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             Processes.Add(new ProcessRow());
         }
 
+        ShowElevationButton = !IsElevated();
         PauseText = _loc["Pause"];
         UpdateCollectorTexts();
         UpdateFrameTexts();
@@ -105,6 +107,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         (!_connected && _launcher.State == CollectorState.Stopped);
 
     public event EventHandler? TelemetryUpdated;
+
+    public event EventHandler? ElevationRequested;
+
+    [ObservableProperty]
+    private bool _showElevationButton;
 
     [ObservableProperty]
     private string _cpuValue = "—";
@@ -297,6 +304,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _settingsService.Save(_settings);
         UpdateFrameTexts();
     }
+
+    [RelayCommand]
+    private void RestartElevated() => ElevationRequested?.Invoke(this, EventArgs.Empty);
 
     [RelayCommand]
     private async Task StopFrameCaptureAsync()
@@ -558,10 +568,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         bool hasTemperature = false;
         double temperature = 0;
+        bool hasCpuTemperature = false;
+        double cpuTemperature = 0;
         double vramTotal = 0;
         if (hasSample)
         {
             hasTemperature = TelemetryMath.TryGetGpuTemperature(sample, out temperature);
+            hasCpuTemperature = TelemetryMath.TryGetCpuTemperature(sample, out cpuTemperature);
             TelemetryMath.TryGetVramTotalMb(sample, out vramTotal);
         }
 
@@ -578,6 +591,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             GpuPct: hasSample ? sample.GpuUtilPct : 0,
             HasTemperature: hasTemperature,
             TemperatureC: temperature,
+            HasCpuTemperature: hasCpuTemperature,
+            CpuTemperatureC: cpuTemperature,
             MemoryPct: hasSample ? TelemetryMath.MemoryUsagePct(sample) : 0,
             VramMb: hasSample ? sample.GpuDedicatedMb : 0,
             VramTotalMb: vramTotal);
@@ -591,6 +606,19 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ShowVramChart));
         OnPropertyChanged(nameof(ShowDiskChart));
         OnPropertyChanged(nameof(ShowFrameChart));
+    }
+
+    private static bool IsElevated()
+    {
+        try
+        {
+            using WindowsIdentity identity = WindowsIdentity.GetCurrent();
+            return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
 
     private static string FormatMegabytes(double megabytes) => megabytes >= 1024

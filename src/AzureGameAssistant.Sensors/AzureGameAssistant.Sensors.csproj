@@ -4,10 +4,23 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <RootNamespace>AzureGameAssistant.Sensors</RootNamespace>
     <AssemblyName>AzureGameAssistant.Sensors</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\AzureGameAssistant.Core\AzureGameAssistant.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
+    <PackageReference Include="System.Management" Version="10.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\third_party\licenses\LibreHardwareMonitorLib-MPL-2.0.txt"
+          Link="LICENSES\LibreHardwareMonitorLib-MPL-2.0.txt"
+          CopyToOutputDirectory="PreserveNewest"
+          Condition="Exists('..\..\third_party\licenses\LibreHardwareMonitorLib-MPL-2.0.txt')" />
   </ItemGroup>
 </Project>

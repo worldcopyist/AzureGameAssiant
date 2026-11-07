@@ -474,6 +474,11 @@
                         <Button Style="{StaticResource FlatButton}" Padding="10,2" FontSize="11"
                                 Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[FrameCaptureRefresh]}"
                                 Command="{Binding RefreshFrameTargetsCommand}" />
+                        <Button Style="{StaticResource FlatButton}" Padding="10,2" FontSize="11" Margin="8,0,0,0"
+                                Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[RestartElevated]}"
+                                ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ElevationHint]}"
+                                Command="{Binding RestartElevatedCommand}"
+                                Visibility="{Binding ShowElevationButton, Converter={StaticResource BoolToVisibility}}" />
                     </StackPanel>
                     <TextBlock FontSize="11" TextWrapping="Wrap" Text="{Binding FrameCaptureText}" />
                     <TextBlock FontSize="10" Margin="0,2,0,0" TextWrapping="Wrap"

@@ -3,8 +3,10 @@ using AzureGameAssistant.Collector.Frames;
 using AzureGameAssistant.Collector.Interop;
 using AzureGameAssistant.Collector.Ipc;
 using AzureGameAssistant.Collector.Sampling;
+using AzureGameAssistant.Collector.Sensors;
 using AzureGameAssistant.Core.Logging;
 using AzureGameAssistant.Core.Models;
+using AzureGameAssistant.Core.Sensors;
 using AzureGameAssistant.Core.Settings;
 
 namespace AzureGameAssistant.Collector;
@@ -20,6 +22,8 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
     private readonly object _framesGate = new();
     private PresentMonSupervisor? _presentMon;
     private readonly string _presentMonPath;
+    private readonly SensorSupervisor? _sensor;
+    private readonly SensorReader? _sensorReader;
     private readonly Dictionary<uint, float> _gpuByPid = new();
     private readonly ProcessSlot[] _slots = new ProcessSlot[5];
     private readonly CancellationTokenSource _stop = new();
@@ -33,6 +37,8 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
     private volatile bool _paused;
     private volatile string? _lastError;
     private volatile int _modeFlags;
+    private volatile bool _sensorFresh;
+    private SensorRecord _sensorRecord;
     private bool _errorLogged;
     private bool _disposed;
 
@@ -54,6 +60,15 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
         {
             _presentMon = new PresentMonSupervisor(logger, _telemetry, _presentMonPath, targetPid);
         }
+
+        if (settings.Sensors.Enabled)
+        {
+            _sensorReader = new SensorReader();
+            _sensor = new SensorSupervisor(
+                logger,
+                ResolveSensorsPath(),
+                Math.Clamp(settings.Sensors.IntervalMs, 500, 10_000));
+        }
     }
 
     public bool IsTelemetryOpen => _telemetry.IsOpen;
@@ -70,6 +85,11 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
             if (_presentMon is { IsCapturing: true })
             {
                 flags |= AzureGameAssistant.Core.Models.CapabilityFlags.Frames;
+            }
+
+            if (_sensorFresh)
+            {
+                flags |= AzureGameAssistant.Core.Models.CapabilityFlags.VendorSensors;
             }
 
             return flags;
@@ -91,6 +111,7 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
         }
 
         _presentMon?.Start();
+        _sensor?.Start();
 
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(_stop.Token, externalToken);
         using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(_intervalMs));
@@ -122,6 +143,7 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
         {
             _stop.Cancel();
             StopFrames();
+            _sensor?.Stop();
             await StopPipeAsync();
             _logger.Info($"采集进程停止，共写入 {Interlocked.Read(ref _sampleCount)} 个采样点");
         }
@@ -171,6 +193,47 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
                 flags |= SampleFlags.FrameValid;
             }
 
+            bool vendorValid = false;
+            bool cpuValid = false;
+            VendorSlot vendor = default;
+            CpuSensorSlot cpu = default;
+            if (_sensorReader is not null)
+            {
+                ReadSensors();
+                SensorRecord sensors = _sensorRecord;
+                if (_sensorFresh)
+                {
+                    vendorValid = (sensors.Flags & SensorFlags.GpuValid) != 0;
+                    cpuValid = (sensors.Flags & SensorFlags.CpuValid) != 0;
+                    vendor = new VendorSlot
+                    {
+                        TemperatureC = sensors.GpuTemperatureC,
+                        HotSpotC = sensors.GpuHotSpotC,
+                        PowerW = sensors.GpuPowerW,
+                        CoreClockMhz = sensors.GpuCoreClockMhz,
+                        MemoryClockMhz = sensors.GpuMemoryClockMhz,
+                        FanPct = sensors.GpuFanPct,
+                        VramUsedMb = sensors.VramUsedMb,
+                        VramTotalMb = sensors.VramTotalMb,
+                    };
+                    cpu = new CpuSensorSlot
+                    {
+                        TemperatureC = sensors.CpuTemperatureC,
+                        PackagePowerW = sensors.CpuPowerW,
+                    };
+                }
+            }
+
+            if (vendorValid)
+            {
+                flags |= SampleFlags.VendorValid;
+            }
+
+            if (cpuValid)
+            {
+                flags |= SampleFlags.CpuSensorValid;
+            }
+
             var sample = new SampleRecord
             {
                 QpcTicks = qpc,
@@ -195,6 +258,8 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
                 P2 = _slots[2],
                 P3 = _slots[3],
                 P4 = _slots[4],
+                V0 = vendor,
+                C0 = cpu,
             };
 
             _telemetry.WriteSample(in sample);
@@ -223,6 +288,64 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
             : Path.Combine(AppContext.BaseDirectory, configured);
 
         return Path.GetFullPath(path);
+    }
+
+    private static string ResolveSensorsPath()
+    {
+        string local = Path.Combine(AppContext.BaseDirectory, "AzureGameAssistant.Sensors.exe");
+        if (File.Exists(local))
+        {
+            return local;
+        }
+
+        string baseDirectory = AppContext.BaseDirectory;
+        string separator = Path.DirectorySeparatorChar.ToString();
+        string preferred = baseDirectory.Contains(
+            $"{separator}Release{separator}",
+            StringComparison.OrdinalIgnoreCase)
+            ? "Release"
+            : "Debug";
+        string fallback = preferred == "Release" ? "Debug" : "Release";
+
+        foreach (string configuration in new[] { preferred, fallback })
+        {
+            string candidate = Path.GetFullPath(Path.Combine(
+                baseDirectory,
+                "..", "..", "..", "..",
+                "AzureGameAssistant.Sensors",
+                "bin",
+                configuration,
+                "net8.0-windows",
+                "AzureGameAssistant.Sensors.exe"));
+
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return local;
+    }
+
+    private void ReadSensors()
+    {
+        if (_sensorReader is null)
+        {
+            return;
+        }
+
+        if (!_sensorReader.IsOpen && !_sensorReader.TryOpen())
+        {
+            _sensorFresh = false;
+            return;
+        }
+
+        if (_sensorReader.Refresh())
+        {
+            _sensorRecord = _sensorReader.Latest;
+        }
+
+        _sensorFresh = _sensorReader.HeartbeatAgeMs <= 3_000;
     }
 
     private static uint GetForegroundPid()    {
@@ -383,6 +506,8 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
         _stop.Cancel();
 
         StopFrames();
+        _sensor?.Dispose();
+        _sensorReader?.Dispose();
         _jitter.Dispose();
         _pdh.Dispose();
         _processes.Dispose();

@@ -52,6 +52,7 @@ public partial class OverlayWindow : Window
                 OverlayField.Cpu => data.HasSample ? data.CpuPct.ToString("F0") + "%" : "—",
                 OverlayField.Gpu => data.HasSample ? data.GpuPct.ToString("F0") + "%" : "—",
                 OverlayField.Temperature => data.HasTemperature ? data.TemperatureC.ToString("F0") + " °C" : "—",
+                OverlayField.CpuTemperature => data.HasCpuTemperature ? data.CpuTemperatureC.ToString("F0") + " °C" : "—",
                 OverlayField.Memory => data.HasSample ? data.MemoryPct.ToString("F0") + "%" : "—",
                 OverlayField.Vram => FormatVram(data),
                 _ => "—",
@@ -168,6 +169,11 @@ public partial class OverlayWindow : Window
             AddRow(OverlayField.Temperature, loc["OverlayTemp"]);
         }
 
+        if (_settings.ShowCpuTemperature)
+        {
+            AddRow(OverlayField.CpuTemperature, loc["OverlayCpuTemp"]);
+        }
+
         if (_settings.ShowMemory)
         {
             AddRow(OverlayField.Memory, loc["OverlayMem"]);
@@ -249,6 +255,7 @@ public partial class OverlayWindow : Window
         Cpu,
         Gpu,
         Temperature,
+        CpuTemperature,
         Memory,
         Vram,
     }

@@ -55,6 +55,7 @@
 | ADR-019 | 权限模式 | 浅模式默认、深模式显式提权 | 不骚扰普通用户；帧数据按需启用 | 一律要求管理员 |
 | ADR-020 | 第三方分发 | 固定版本 + SHA256 + 许可证清单 | 可审计、可复现；降低上游漂移风险 | 运行时下载最新版 |
 | ADR-021 | UI 渲染模式 | 软件渲染（`RenderOptions.ProcessRenderMode = SoftwareOnly`） | 实测专用工作集由约 96MB 降至约 43MB，满足 UI 内存红线；界面仅 2Hz 刷新，CPU 代价可接受 | 默认硬件渲染（D3D 设备常驻内存偏高） |
+| ADR-022 | CPU 温度来源 | 仅 ACPI WMI 热区（用户态）；缺失时显示“—”，不加载内核驱动 | 满足“无注入、无反作弊风险”约束；可移植、可解释 | WinRing0/SMN 等内核驱动（功能更全但有驱动与反作弊风险） |
 
 ## 3. 总体架构
 
@@ -166,9 +167,10 @@
 - 可执行文件：`AzureGameAssistant.Sensors.exe`。
 - 由采集进程启动，放入 **Job Object**（`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`），采集进程退出时自动结束。
 - 单实例互斥体：`Local\AzureGameAssistant.Sensors`。
-- 启动参数：`--gpu-only --interval 1000 --mmf Local\AzureGameAssistant.Sensors.v1`。
-- 失败处理：启动失败或 10 秒内无首样本 → 记录原因 → 退避 30 秒重试 → 连续 3 次失败停止并置能力位不可用。
-- 默认关闭；设置开启后由采集进程按需启动；浅/深模式都可运行（部分厂商指标普通权限不可读）。
+- 启动参数：`--gpu-only --interval 1000 --mmf Local\AzureGameAssistant.Sensors.v1`；间隔来自 `settings.sensors.intervalMs`（钳制 500–10000ms）。
+- 失败处理：子进程退出码 3（检测到内核驱动）/ 4（无可用 GPU）/ 2（初始化失败）分别记录原因；重启退避 1s / 5s / 15s，采集进程继续以 PDH GPU 数据运行并撤销厂商能力位。
+- 默认开启（schemaVersion 3 起）；旧版本设置升级时自动开启一次；浅/深模式都可运行（部分厂商指标普通权限不可读）。
+- 全局设置 `sensors.enabled=false` 时采集进程不启动边车，行为与 M2 一致。
 
 ### 4.4 权限策略
 
@@ -178,7 +180,9 @@
 | 深模式 | 管理员或 Performance Log Users | 可用 | 完整 | 可用 | 可用 | 完整 |
 
 - 两个主进程默认均为 `asInvoker`，清单不声明 `requireAdministrator`。
-- 托盘菜单“以管理员身份重启”：UI 以 `runas` 重启，并先通过管道让旧采集进程退出；新 UI 以管理员身份启动采集进程。
+- 托盘菜单与状态卡“以管理员身份重启”：UI 以 `runas` 重启，并先通过管道让旧采集进程退出；新 UI 以管理员身份启动采集进程。
+- UI 启动时检测当前是否管理员：非管理员在“帧采集”按钮行显示“以管理员身份重启”；管理员隐藏该按钮。
+- `runas` 新实例携带 `--elevated-relaunch`，最多等待 10 秒接管单实例互斥体（旧实例退出中）；等待超时或用户取消 UAC（Win32 1223）时保留旧实例，重新拉起采集进程并提示“提权失败，继续以当前权限运行”。
 - **禁止混合权限**：采集进程与 UI 必须同权限运行，否则高完整性进程创建的 `Local\` 对象低权限 UI 无法读取。UI 检测到共享内存打开失败时，提示“请以相同权限重启”。
 - 深模式能力位由采集进程写入共享内存；UI 只读展示，不自行推断。
 - 拒绝 UAC 时保持浅模式，不重试、不骚扰。
@@ -187,18 +191,19 @@
 
 ### 5.1 共享内存（遥测）
 
-- 名称：`Local\AzureGameAssistant.Telemetry.v2`
+- 名称：`Local\AzureGameAssistant.Telemetry.v3`
 - 大小：8MB（固定），创建时 `PAGE_READWRITE`，UI 以只读映射打开。
 - 结构：Header + Sample 环形数组 + Event 环形数组 + Frame 环形数组。
+- 布局常量：Header 128 字节；Sample 区从 256 开始，槽位 256 字节 × 4500；Event 区 1,152,256，槽位 64 字节 × 256；Frame 区 1,168,640，槽位 48 字节 × 65,536。
 - 同步：采样区与帧区各自独立 seqlock。写者将 `Sequence` 加 1（变奇数）→ 写入 → 再加 1（变偶数）；读者读两次序号，奇数或前后不一致则重试。帧按批写入，一次只取一次锁，避免逐帧加锁放大重试。
 
 ```csharp
 [StructLayout(LayoutKind.Sequential, Pack = 8)]
 internal struct SharedHeader
 {
-    public long Magic;              // 'AGS2' = 0x32475341
-    public int ProtocolVersion;     // 2
-    public int SampleStride;
+    public long Magic;              // 'AGS3' = 0x33475341
+    public int ProtocolVersion;     // 3
+    public int SampleStride;        // 256
     public int SampleCapacity;      // 4500
     public int EventCapacity;       // 256
     public int FrameStride;
@@ -211,7 +216,7 @@ internal struct SharedHeader
     public long HeartbeatQpc;
     public int CollectorPid;
     public int SamplingIntervalMs;
-    public int ModeFlags;           // bit0 游戏模式, bit1 暂停, bit2 深模式, bit3 帧采集, bit4 边车可用
+    public int ModeFlags;           // bit0 游戏模式, bit1 暂停, bit2 深模式, bit3 帧采集, bit4 传感器边车（预留）
     public int CapabilityFlags;     // bit0 帧数据, bit1 厂商传感器, bit2 完整进程访问
     public int Flags;
 }
@@ -237,9 +242,10 @@ internal struct SampleRecord
     public float TimerJitterMs;
     public uint ForegroundPid;
     public ushort ProcessorQueueLength;
-    public ushort Flags;            // bit0 进程有效, bit1 GPU 有效, bit2 厂商有效, bit3 帧有效
+    public ushort Flags;            // bit0 进程有效, bit1 GPU 有效, bit2 厂商有效, bit3 帧有效, bit4 CPU 传感器有效
     public ProcessSlot P0, P1, P2, P3, P4;
     public VendorSlot V0;           // 目标 GPU 的厂商指标
+    public CpuSensorSlot C0;        // CPU 温度 / 封装功耗
 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
@@ -267,6 +273,13 @@ internal struct VendorSlot
     public float VramUsedMb;
     public float VramTotalMb;
 }
+
+[StructLayout(LayoutKind.Sequential, Pack = 8)]
+internal struct CpuSensorSlot
+{
+    public float TemperatureC;
+    public float PackagePowerW;
+}
 ```
 
 - `V0` 仅记录目标 GPU 的厂商数据；多 GPU 的完整厂商数据在 M3 视需要扩展为数组，PDH 侧仍按适配器分别展示。
@@ -291,15 +304,17 @@ internal struct FrameRecord
 ```
 
 - 容量按最快采样率计算：系统 15 分钟 × 5Hz = 4500 槽位；帧 65,536 槽位（约 3 分钟 @360fps、4.5 分钟 @240fps）。
-- 单槽大小：系统约 248 字节（约 1.1MB）；帧 48 字节（约 3.1MB）；总计约 4.3MB，8MB 映射留余量。
+- 单槽大小：系统 256 字节（约 1.15MB）；事件 64 字节 × 256（16KB）；帧 48 字节（约 3.1MB）；总计约 4.3MB，8MB 映射留余量。
+- 槽位对齐为 256 字节后，新增传感器字段不再改变区偏移；布局由 `TelemetryLayout.IsValid` 与单元测试断言。
 - UI 不依赖共享内存中的进程名：名称由 UI 自己的进程缓存（1 秒刷新）解析；会话文件中保存名称快照，避免进程退出后无法显示。
 
 ### 5.2 传感器共享内存
 
 - 名称：`Local\AzureGameAssistant.Sensors.v1`
-- 大小：128KB；Header + 900 个 1 秒槽位（15 分钟）。
-- 写者：边车；读者：采集进程、UI。
-- 槽位包含：时间戳、GPU 索引、LUID、温度、热点、功耗、核心/显存频率、风扇、显存已用/总量、能力位。
+- 大小：128KB；Header 128 字节 + 900 个 1 秒槽位，每槽 128 字节（15 分钟）。
+- 写者：边车；读者：采集进程、UI。边车 seqlock 写法与遥测一致：奇数序号 → 写槽位 → 更新写索引/心跳 → 偶数序号。
+- 槽位包含：QPC/UTC、GPU 索引、温度、热点、功耗、核心/显存频率、风扇、显存已用/总量、CPU 温度/封装功耗、能力位（bit0 GPU、bit1 CPU、bit2 显存）。
+- 缺失字段写 `NaN` 而非 0；采集进程仅在心跳 ≤ 3 秒时把边车数据并入 `V0` / `C0`。
 - 边车不写进程名、窗口标题等敏感信息。
 
 ### 5.3 命名管道（控制）
@@ -519,7 +534,7 @@ Stopped ──有目标 PID──► Starting ──首帧──► Capturing
 #### 6.7.1 项目与依赖
 
 - 项目：`src/AzureGameAssistant.Sensors/`，TFM `net8.0-windows`，自包含 win-x64（与 UI 共享运行时文件）。
-- NuGet：`LibreHardwareMonitorLib`，锁定版本；随包附带 MPL-2.0 许可证与源码链接。
+- NuGet：`LibreHardwareMonitorLib` 0.9.6（锁定版本）；随包附带 MPL-2.0 许可证与源码链接。
 - 仅启用 GPU：
 
 ```csharp
@@ -537,8 +552,10 @@ var computer = new Computer(new SensorSettings())
 computer.Open();
 ```
 
-- 不调用需要内核驱动的 CPU/主板访问路径；启动后检查 `WinRing0_1_2_0` / `inpoutx64` 服务是否被加载，若加载立即停止并写日志。
+- 不调用需要内核驱动的 CPU/主板访问路径；启动前后检查 `WinRing0_1_2_0`、`WinRing0x64`、`WinRing0`、`inpoutx64`、`RTCore64`、`MsIo` 服务是否运行，若检测到立即以退出码 3 停止并写日志。
 - 若当前 LHM 版本的 GPU-only 初始化仍触发驱动加载，则该版本不可用，按第 7 节风险表降级为 PDH。
+- CPU 温度使用独立用户态路径：每 5 秒尝试 `root\WMI` 的 `MSAcpi_ThermalZoneTemperature`；不支持时退避 30 秒，连续失败后拉长到 60 秒，且不影响 GPU 采集。AMD Ryzen 5 5600 等未暴露 ACPI 热区的平台会持续返回缺失，UI 显示“—”。
+- **不引入内核驱动读取 CPU 温度**：WinRing0 / SMN 类驱动会加载内核模块，与“无注入、无反作弊风险”约束冲突；宁可缺该指标。
 
 #### 6.7.2 传感器映射
 
@@ -553,14 +570,15 @@ computer.Open();
 | `VramUsedMb` | `SensorType.SmallData` | GPU Memory Used |
 | `VramTotalMb` | `SensorType.SmallData` | GPU Memory Total |
 
-- 按硬件 `HardwareType.GpuNvidia` / `GpuAmd` / `GpuIntel` 枚举；多 GPU 按 LUID/索引输出，采集进程用 LUID 与 PDH 适配器配对。
+- 按硬件 `HardwareType.GpuNvidia` / `GpuAmd` / `GpuIntel` 枚举；优先选择有温度与显存数据的独立 GPU（`GpuNvidia` / `GpuAmd`），多 GPU 的完整数据待 M3 扩展为数组。
 - 传感器缺失时写 `NaN`，UI 显示“—”；不把缺失当 0。
 - 1 秒节拍 `hardware.Update()`；单次调用超过 200ms 记录慢采样，连续 3 次降级该厂商。
+- 实测（RTX 4060 Laptop，LHM 0.9.6）：`GPU Core` / `GPU Hot Spot` 温度、`GPU Core` / `GPU Memory` 频率、`GPU Fan` 控制值、`GPU Memory Used` / `Total` 可用；**没有 `SensorType.Power`**，因此 `PowerW` 为 `NaN`。风扇控制值以百分比输出，最小/最大值随驱动变化。
 
 #### 6.7.3 边车与主进程的契约
 
 - 边车只写传感器共享内存；不读取游戏、不扫描进程、不联网。
-- 采集进程读取后写入 `SampleRecord.V0` 并置 `Flags` 厂商位；会话中保存原始值。
+- 采集进程读取后写入 `SampleRecord.V0`（GPU）与 `SampleRecord.C0`（CPU），并置 `VendorValid` / `CpuSensorValid`；会话中保存原始值。
 - 边车退出码：0 正常、2 初始化失败、3 检测到内核驱动、4 无可用 GPU。
 - 边车日志独立：`logs\sensors-YYYYMMDD.log`，不写敏感信息。
 
@@ -581,6 +599,7 @@ computer.Open();
 | PresentMon 崩溃 | 帧中断 | 退避重启；会话标注帧缺口 |
 | LHM 初始化失败 | 无温度/功耗/频率 | 边车退出；PDH GPU 数据继续 |
 | 部分厂商指标不可读 | 字段缺失 | 显示“—”；不写 0 |
+| CPU 温度无用户态来源（ACPI 不支持） | CPU 温度显示“—” | 不加载内核驱动；GPU 与其余指标继续 |
 | PDH GPU 计数器缺失 | 无 GPU 曲线 | 显示“不可用”；其余指标继续 |
 
 ## 7. 数据模型

@@ -4,7 +4,7 @@ namespace AzureGameAssistant.Core.Settings;
 
 public sealed class AppSettings
 {
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
     public SamplingSettings Sampling { get; set; } = new();
@@ -60,7 +60,7 @@ public sealed class AppSettings
             : Frames.PresentMonPath.Trim();
 
         Sensors ??= new SensorSettings();
-        Sensors.IntervalMs = Math.Clamp(Sensors.IntervalMs, 250, 10_000);
+        Sensors.IntervalMs = Math.Clamp(Sensors.IntervalMs, 500, 10_000);
 
         Hotkey = string.IsNullOrWhiteSpace(Hotkey) ? "Ctrl+Alt+M" : Hotkey.Trim();
 
@@ -118,6 +118,7 @@ public sealed class AppSettings
             !Overlay.ShowCpu &&
             !Overlay.ShowGpu &&
             !Overlay.ShowTemperature &&
+            !Overlay.ShowCpuTemperature &&
             !Overlay.ShowMemory &&
             !Overlay.ShowVram)
         {
@@ -201,7 +202,7 @@ public sealed class FrameSettings
 
 public sealed class SensorSettings
 {
-    public bool Enabled { get; set; }
+    public bool Enabled { get; set; } = true;
     public int IntervalMs { get; set; } = 1_000;
 }
 
@@ -226,6 +227,7 @@ public sealed class OverlaySettings
     public bool ShowCpu { get; set; } = true;
     public bool ShowGpu { get; set; } = true;
     public bool ShowTemperature { get; set; } = true;
+    public bool ShowCpuTemperature { get; set; } = true;
     public bool ShowMemory { get; set; } = true;
     public bool ShowVram { get; set; }
     public string Theme { get; set; } = "Default";

@@ -44,7 +44,14 @@ public sealed class SettingsService
                         $"设置文件版本 {settings.SchemaVersion} 高于支持的 {AppSettings.CurrentSchemaVersion}，已回退默认值");
                 }
 
+                bool enableSensors = settings.SchemaVersion < 3;
                 settings.Normalize();
+
+                if (enableSensors)
+                {
+                    settings.Sensors.Enabled = true;
+                }
+
                 return new SettingsLoadResult(settings, false, null);
             }
             catch (JsonException ex)
