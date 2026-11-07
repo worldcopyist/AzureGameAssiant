@@ -12,8 +12,18 @@
 
 - 使用项目：`AzureGameAssistant.Sensors`（独立边车进程）。
 - 许可证：Mozilla Public License 2.0；许可证全文：`third_party/licenses/LibreHardwareMonitorLib-MPL-2.0.txt`。
-- 使用方式：通过 NuGet 动态链接，未修改源文件；仅启用 GPU 硬件组，不启动 CPU/主板/存储等需要内核驱动的访问路径。
+- 使用方式：通过 NuGet 动态链接，未修改源文件；默认仅启用 GPU 硬件组。用户可选开启 `driver` CPU 模式，此时启用 CPU 硬件组，由 LHM 通过 PawnIO 读取 MSR/SMU。
 - 分发依据：MPL-2.0 允许以二进制形式随附分发；保留许可证全文与源码地址。若未来修改 LHM 文件，必须公开修改后的文件。
+
+## PawnIO（可选，用户自行安装，不随项目分发）
+
+- 版本：2.2.0（安装包 `PawnIO_setup.exe`，3,410,960 字节）
+- 来源：https://github.com/namazso/PawnIO.Setup/releases/tag/2.2.0
+- SHA256：`1f519a22e47187f70a1379a48ca604981c4fcf694f4e65b734aaa74a9fba3032`
+- Authenticode：有效，签名者 `CN=namazso.eu, O=namazso, C=HU`
+- 许可证：GPL-2.0（驱动本体）；本项目不分发该驱动，仅在用户自行安装后由 LHM 调用，不构成对驱动的再分发。
+- 使用方式：仅当用户在设置中选择“驱动”CPU 温度来源时，LHM 才会打开 `\Device\PawnIO` 读取 CPU 温度；程序不自动安装、不自动更新驱动。
+- 风险提示：内核驱动可能被游戏反作弊视为环境异常；是否安装由用户自行决定，可随时通过 `PawnIO_setup.exe -uninstall -silent` 卸载。
 
 ## System.Management 10.0.2
 
