@@ -22,7 +22,7 @@
 | 最新里程碑 | M2-0 PresentMon 版本锁定与 CLI 核验完成；M2-1 帧解析、帧统计与监督器完成；M2-2 悬浮窗帧显示、界面帧采集闭环与主窗口帧轨道（帧时间曲线 + 尖峰标记）完成；K-12 NativeAOT 与默认打包流程完成 |
 | 可运行产物 | `build/run-dev.ps1` 可启动；`build/package.ps1` 默认 AOT 流程可生成便携 ZIP（含 PresentMon） |
 | 代码分支 | `main`（`feat/m1-foundation` 已 squash 合入，分支保留） |
-| 当前提交 | `711a207 feat(ui): 主窗口帧时间曲线与尖峰标记` |
+| 当前提交 | `56886ef docs(handoff): 记录本机二号屏测试快捷方式` |
 | 未提交变更 | 无 |
 | 阻塞事项 | 3 款游戏 PresentMon 实测与反作弊评估待用户游戏环境；深模式内存/CPU 复测待提权环境 |
 
