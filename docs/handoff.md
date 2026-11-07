@@ -22,8 +22,8 @@
 | 最新里程碑 | M3-0 GPU 温度链路与悬浮窗 CPU 温度项完成；遥测协议升级 v3；明日方舟真实帧率实机验证通过；PresentMon 2.6 v2 CSV 解析修正；深浅权限切换入口完成 |
 | 可运行产物 | `build/run-dev.ps1` 可启动；`build/package.ps1` 默认 AOT 流程可生成便携 ZIP（含 PresentMon）；二号屏桌面快捷方式指向 Release |
 | 代码分支 | `main`（`feat/m1-foundation` 已 squash 合入，分支保留） |
-| 当前提交 | `fa66343 docs(handoff): 同步当前提交` |
-| 未提交变更 | 传感器边车、遥测 v3、CPU 温度、提权入口、PresentMon 解析修正与本轮文档更新（待提交） |
+| 当前提交 | `f20283e feat(sensors): 接入 GPU 温度与 CPU 温度槽并完善提权入口` |
+| 未提交变更 | 无 |
 | 阻塞事项 | 3 款游戏 PresentMon 实测与反作弊评估待用户游戏环境；CPU 温度在本机（Ryzen 5 5600）无安全用户态来源；深模式内存/CPU 复测待专项测量 |
 
 ## 2. 环境
