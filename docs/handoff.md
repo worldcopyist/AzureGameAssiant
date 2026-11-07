@@ -22,7 +22,7 @@
 | 最新里程碑 | 启动自动提权 + 权限自检窗口 + 前台游戏自动帧采集；CPU 温度新增可选驱动模式与缺失原因提示 |
 | 可运行产物 | `build/run-dev.ps1` 可启动；`build/package.ps1` 默认 AOT 流程可生成便携 ZIP（含 PresentMon）；二号屏桌面快捷方式指向 Release |
 | 代码分支 | `main`（`feat/m1-foundation` 已 squash 合入，分支保留） |
-| 当前提交 | `db87276 feat(ui): 启动自动提权、权限自检与前台自动帧采集` |
+| 当前提交 | `e8fff2c docs(handoff): 记录 PawnIO 安装与 CPU 温度验证` |
 | 未提交变更 | 无 |
 | 阻塞事项 | 3 款游戏 PresentMon 实测与反作弊评估待用户游戏环境；本机已由用户确认安装 PawnIO 2.2.0，CPU 温度可读，但驱动可能被 ACE 视为环境异常（用户已知悉）；深模式内存/CPU 复测待专项测量 |
 
