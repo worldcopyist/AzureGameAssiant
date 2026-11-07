@@ -88,6 +88,16 @@ internal sealed class PresentMonSupervisor : IDisposable
             return;
         }
 
+        if (!PresentMonBinary.Verify(_executablePath, out string actualHash))
+        {
+            _lastError = string.IsNullOrEmpty(actualHash)
+                ? $"PresentMon 无法读取：{_executablePath}"
+                : $"PresentMon 校验失败（SHA256 {actualHash}）";
+            _state = FrameCaptureState.Unavailable;
+            _logger.Warn(_lastError);
+            return;
+        }
+
         _job = JobObject.CreateKillOnClose();
         _logger.Info($"帧采集启动：PID {_targetPid}，PresentMon {_executablePath}");
         _task = Task.Run(() => RunAsync(_stop.Token), CancellationToken.None);

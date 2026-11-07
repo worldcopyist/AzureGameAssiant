@@ -430,7 +430,7 @@ cpuPct = (ΔKernel + ΔUser) / (ΔWallSeconds × LogicalProcessorCount) × 100
 
 - 路径：`third_party/presentmon/PresentMon-<version>-x64.exe`，随构建复制到输出目录 `presentmon\`。
 - 版本锁定 `2.6.0`（与 CapFrameX 随包版本一致）；升级必须记录变更理由、重新跑兼容性测试并更新 SHA256。
-- `third_party/presentmon/SHA256SUMS` 记录哈希；启动前校验，失败则禁用帧采集并提示“文件损坏”。
+- `third_party/presentmon/SHA256SUMS` 记录哈希；采集进程启动帧采集前校验文件哈希（`PresentMonBinary.Verify`），不匹配或不可读则禁用帧采集、记录日志并提示“文件损坏”。
 - 已核验（2026-11-07）：
   - 文件：`PresentMon-2.6.0-x64.exe`，980,320 字节。
   - SHA256：`b2a706bc6ad475749e3b7e3409263aa1e6906d45bdcf993f6dbc0f660188f1af`（与 GitHub Release 资产摘要一致）。
@@ -1392,20 +1392,23 @@ dotnet publish src/AzureGameAssistant.UI/AzureGameAssistant.UI.csproj `
 ```
 AzureGameAssistant-<version>-win-x64/
 ├─ AzureGameAssistant.exe
-├─ AzureGameAssistant.Collector.exe
-├─ AzureGameAssistant.Sensors.exe
-├─ presentmon/
-│  └─ PresentMon-2.6.0-x64.exe
+├─ AzureGameAssistant.Core.dll
+├─ collector/
+│  ├─ AzureGameAssistant.Collector.exe
+│  └─ presentmon/
+│     ├─ PresentMon-2.6.0-x64.exe
+│     ├─ LICENSE.txt
+│     └─ SHA256SUMS
 ├─ *.dll / *.json
-├─ README.md
+├─ LICENSE
 ├─ THIRD-PARTY-NOTICES.md
-└─ LICENSES/
-   ├─ PresentMon-MIT.txt
-   └─ LibreHardwareMonitor-MPL-2.0.txt
+└─ README.md（后续补充）
 ```
 
 - ZIP 根目录为版本化文件夹，解压即用，不写注册表（自启项由用户手动开启）。
-- 打包脚本校验 PresentMon SHA256，缺失或许可证缺失则构建失败。
+- 采集进程按 `AppContext.BaseDirectory` 解析 `presentMonPath`，因此 PresentMon 必须位于 `collector\presentmon\`，不能放在包根目录。
+- 打包脚本校验 PresentMon SHA256 与 LICENSE.txt，缺失或不匹配则构建失败。
+- `AzureGameAssistant.Sensors.exe` 与 `LICENSES/` 目录随 M3 传感器边车一并加入。
 - 发布前运行 `build/measure.ps1`，结果附在交接文档。
 
 ## 15. 测试策略

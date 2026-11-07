@@ -77,12 +77,26 @@ Get-ChildItem -Path $collectorOutput -File | Where-Object { $_.Extension -ne ".p
 }
 
 $presentMon = Join-Path $root "third_party\presentmon"
-if (Test-Path $presentMon) {
-    Copy-Item $presentMon -Destination $stage -Recurse -Force
+$presentMonExe = Join-Path $presentMon "PresentMon-2.6.0-x64.exe"
+$presentMonLicense = Join-Path $presentMon "LICENSE.txt"
+$expectedHash = "B2A706BC6AD475749E3B7E3409263AA1E6906D45BDCF993F6DBC0F660188F1AF"
+if (-not (Test-Path $presentMonExe)) {
+    Write-Error "PresentMon binary missing: $presentMonExe"
+    exit 1
 }
-else {
-    Write-Warning "third_party\presentmon not found; frame capture is unavailable in this package."
+
+if (-not (Test-Path $presentMonLicense)) {
+    Write-Error "PresentMon license missing: $presentMonLicense"
+    exit 1
 }
+
+$actualHash = (Get-FileHash -Path $presentMonExe -Algorithm SHA256).Hash
+if ($actualHash -ne $expectedHash) {
+    Write-Error "PresentMon SHA256 mismatch: $actualHash"
+    exit 1
+}
+
+Copy-Item $presentMon -Destination $collectorStage -Recurse -Force
 
 $licenseFiles = @("LICENSE", "LICENSE.md", "LICENSE.txt")
 foreach ($license in $licenseFiles) {

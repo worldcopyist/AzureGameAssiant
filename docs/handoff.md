@@ -7,10 +7,10 @@
 | 项目 | 内容 |
 | --- | --- |
 | 文档编号 | AGS-HANDOFF |
-| 当前版本 | v0.0.8 |
+| 当前版本 | v0.0.9 |
 | 最后更新 | 2026-11-07 |
 | 最后更新人 | Qoder |
-| 仓库状态 | M1 全部完成；M2-0 PresentMon 已锁定并核验，M2-1 帧 CSV 解析与帧统计已落地；VS C++ 工具链安装中 |
+| 仓库状态 | M1 全部完成；M2-0 PresentMon 已锁定并核验，M2-1 帧采集管线与 M2-2 悬浮窗帧显示已落地；NativeAOT 工具链与默认打包流程已打通 |
 
 ---
 
@@ -19,12 +19,12 @@
 | 项 | 值 |
 | --- | --- |
 | 产品阶段 | M1（v0.1）完成；M2（帧级真相）进行中 |
-| 最新里程碑 | M1-1 ~ M1-7 全部完成；M2-0 PresentMon 版本锁定与 CLI 核验完成；M2-1 帧 CSV 解析器与帧统计完成 |
-| 可运行产物 | `build/run-dev.ps1` 可启动；`build/package.ps1 -CollectorMode SelfContained` 可生成便携 ZIP |
+| 最新里程碑 | M2-0 PresentMon 版本锁定与 CLI 核验完成；M2-1 帧解析、帧统计与监督器完成；M2-2 悬浮窗帧显示完成；K-12 NativeAOT 与默认打包流程完成 |
+| 可运行产物 | `build/run-dev.ps1` 可启动；`build/package.ps1` 默认 AOT 流程可生成便携 ZIP（含 PresentMon） |
 | 代码分支 | `main`（`feat/m1-foundation` 已 squash 合入，分支保留） |
-| 当前提交 | `c8a300a docs(handoff): 同步 M1-7 提交哈希` |
-| 未提交变更 | PresentMon 随包文件与许可证、`THIRD-PARTY-NOTICES.md`、开发/调研文档、帧解析与帧统计源码及测试 |
-| 阻塞事项 | K-12：VS C++ 工具链安装进行中（`F:\VS2022BuildTools`），完成后才能验证 AOT 产物；3 款游戏实测与反作弊评估待用户游戏环境 |
+| 当前提交 | `c69fb04 feat(ui): 悬浮窗接入帧率与低帧显示` |
+| 未提交变更 | K-12 验证记录、打包布局与 PresentMon 哈希校验、交接/开发文档更新 |
+| 阻塞事项 | 3 款游戏 PresentMon 实测与反作弊评估待用户游戏环境；帧采集目标 PID 尚无界面入口（K-24） |
 
 ## 2. 环境
 
@@ -36,6 +36,7 @@
 | 默认分支 | `main` |
 | Git 身份 | `worldcopyist <2767263382@qq.com>` |
 | 仓库路径 | `C:\Users\worldcopyist\Documents\Qoder\2026-11-07\275e2b44` |
+| NativeAOT 工具链 | VS Build Tools 17.14（C++ x64）安装于 `F:\VS2022BuildTools`；Windows SDK 10.0.22621（C 盘既有） |
 | 远端 | 无（暂不上传 GitHub） |
 | 备注 | 仓库根 `NuGet.Config` 清空 fallbackPackageFolders，规避本机无效共享源 `D:\VS2022\Shared\NuGetPackages` |
 
@@ -67,6 +68,9 @@
 - [x] M2-1 帧共享内存：帧区使用独立 `FrameWriteSequence`，写者批量写帧、读者 `ReadFrames` / `TryReadLatestFrame` 整批校验；新增 4 项布局与结构尺寸测试，测试总数 36。
 - [x] M2-1 PresentMon 监督器：按 `Frames.TargetPid` 启动子进程（`--process_id` + `--v2_metrics`），64 帧或 100ms 批量写帧；kill-on-close Job Object；1s / 5s / 15s 退避，连续 3 次失败降级；识别退出码 6 与 access denied；目标退出即停止；采集进程同步能力位与 `FrameValid`。
 - [x] M2-2 悬浮窗帧数据：UI 增量读取帧区（`ReadFrames(startIndex)`），本地维护 `FrameStats`；FPS / 平均帧 / 1% Low 实时显示，2 秒无新帧回落为“—”。用 240 条合成帧实机验证：显示 `60 / 56 / 15`，停止注入后恢复“—”。
+- [x] K-12 NativeAOT：VS Build Tools C++ 工作负载安装到 `F:\VS2022BuildTools`（不占 C 盘）；`vswhere` 可定位实例；`dotnet publish -p:PublishAot=true` 与 `build/package.ps1` 默认 AOT 流程均成功，采集进程原生可执行文件 3.80 MB。
+- [x] K-12 AOT 实测：采集进程（浅模式）3 分钟专用工作集 10.1 MB、私有提交 12.5 MB、CPU 0.098%、句柄 304；30 秒退出码 0、CPU 0.72s。
+- [x] 打包修正：PresentMon 改放 `collector\presentmon\`（采集进程按自身目录解析），打包脚本校验 SHA256 与 LICENSE；采集进程启动帧采集前校验 `PresentMonBinary` 哈希（失败降级为不可用），新增 2 项测试，测试总数 39。
 
 ### 3.1 性能实测（Release，采样 1000ms，专用工作集口径）
 
@@ -137,19 +141,32 @@
 - 以上为短时抽测，不替代 8 小时稳定性测试；图表小窗位置与尺寸未持久化（K-20）。
 - 帧数据显示验证：向共享内存注入 240 条合成帧（16.7ms，每 50 帧一次 66.8ms 尖峰）后，悬浮窗显示 `60 / 56 / 15`；停止注入 2 秒后回落为“—”。真实 PresentMon 帧数据待提权与游戏环境验证。
 
+### 3.6 AOT 采集进程实测（Release NativeAOT，浅模式，采样 1000ms）
+
+| 项 | 值 |
+| --- | --- |
+| 可执行文件 | `AzureGameAssistant.Collector.exe`，3,803,648 字节 |
+| 专用工作集（3 分钟中位数，16 个采样） | 10.1 MB |
+| 私有提交 | 12.5 MB |
+| CPU（中位数） | 0.098% |
+| 句柄 | 304 |
+| 30 秒冒烟 | 退出码 0，CPU 0.72s，启动与退出正常 |
+
+- 命令：`dotnet publish src/AzureGameAssistant.Collector/AzureGameAssistant.Collector.csproj -c Release -r win-x64 -p:PublishAot=true -o artifacts/collector`。
+- 本次仅为浅模式基线；开启帧采集（PresentMon 子进程 + ETW）后的深模式内存与 CPU 列入 M2 验收复测。
+- 便携包实机验证：把采集进程临时指向 `explorer.exe` 运行 15 秒，日志显示从 `collector\presentmon\` 找到并校验 PresentMon，随后按预期报“权限不足”（非提权），证明包内路径与哈希校验生效；验证后已将 `frames.targetPid` 恢复为 `null`。
+
 ## 4. 进行中
 
-- **K-12**：VS Build Tools C++ 工作负载正在安装到 `F:\VS2022BuildTools`（不占 C 盘）；完成后用 `vswhere` 确认，再执行 NativeAOT 发布与正式打包。
 - **M2-0**：版本锁定、哈希/签名、CLI 与权限失败模式已验证；3 款游戏实测与反作弊兼容性评估待用户提供游戏环境。
+- **M2-2 剩余**：主窗口帧轨道（帧级曲线与尖峰标记）、帧采集目标进程选择与开始/停止入口（K-24）；当前只能通过 `settings.json` 的 `frames.targetPid` 指定目标。
 
 ## 5. 下一步（按顺序）
 
-1. **完成 K-12**：确认 `vswhere` 找到 VC 工具；NativeAOT 发布采集进程，核对体积、启动与专用工作集；运行 `build/package.ps1` 默认 AOT 流程。
-2. **M2-1 接入**：给共享内存帧区加独立写入门（当前 `WriteSequence` 只保护采样区），实现 `WriteFrames` / `ReadFrames`；接入 PresentMon 监督器（状态机、退避、作业对象收尾）与采集进程配置。
-3. **M2-2 UI**：主窗口帧轨道、悬浮窗 FPS / 平均帧 / 1% Low 显示；悬停与事件标记。
-4. **M2-0 实测**：3 款游戏 + 反作弊兼容性评估（K-07）。
-5. **M3-0 传感器与 AI 验证**：LHM GPU-only、不加载内核驱动；OpenAI 兼容接口与本地模型联调。
-6. **8 小时稳定性**：重点复核 Collector 句柄趋势（K-15）与睡眠唤醒。
+1. **M2-2 UI 闭环**：界面选择目标进程并启停帧采集；主窗口加入帧率/帧时间轨道与卡顿尖峰标记；帧采集状态与权限提示接入状态卡。
+2. **M2-0 实测**：3 款游戏 + 反作弊兼容性评估（K-07），并复测深模式内存/CPU。
+3. **M3-0 传感器与 AI 验证**：LHM GPU-only、不加载内核驱动；OpenAI 兼容接口与本地模型联调。
+4. **8 小时稳定性**：重点复核 Collector 句柄趋势（K-15）与睡眠唤醒。
 
 每个步骤完成后：更新本文件 → 按提交规范提交 → 在交接日志追加一行。
 
@@ -188,7 +205,7 @@
 
 | 编号 | 问题 | 影响 | 处理 |
 | --- | --- | --- | --- |
-| K-01 | 30MB 采集内存预算尚未在 AOT 产物上验证 | 核心卖点风险 | JIT 自包含版 30 分钟实测专用工作集 11.8MB；K-12 解决后复测 AOT 版 |
+| K-01 | ~~30MB 采集内存预算尚未在 AOT 产物上验证~~ | 已解决 | AOT 浅模式实测专用工作集 10.1MB、CPU 0.098%；深模式待 M2 验收复测 |
 | K-02 | PDH GPU 计数器在不同驱动上实例名/精度可能不同 | GPU 曲线缺失 | 已做实例解析与 `_Total` 过滤；能力探测与 M3 厂商边车补足 |
 | K-03 | 全屏独占游戏可能拦截全局热键 | 手动标记失效 | 文档说明；提供托盘/悬浮条入口（M2） |
 | K-04 | 本机仅安装 .NET SDK 9.0.100 | 构建 `net8.0` 需联网还原目标包 | 首次 `dotnet restore` 需可用网络 |
@@ -199,7 +216,7 @@
 | K-09 | 各 LLM 供应商兼容接口存在细节差异 | AI 调用失败 | 只依赖 `chat/completions` 最小子集；3 家云 + 本地联调 |
 | K-10 | 含帧会话体积可能超过 12MB 预算 | 存储增长 | M2 实测；必要时降低帧批字段或提高压缩率 |
 | K-11 | OCAT 许可证不明确 | 不可复用其代码 | 只参考思路；代码评审检查来源 |
-| K-12 | 本机缺少 NativeAOT 链接器（VS C++ 工作负载） | 无法产出正式采集进程 | VS Build Tools 正在安装到 `F:\VS2022BuildTools`；完成后 `vswhere` 验证并执行 `package.ps1` 默认 AOT 流程；当前产物仍为 SelfContained |
+| K-12 | ~~本机缺少 NativeAOT 链接器（VS C++ 工作负载）~~ | 已解决 | VS Build Tools 安装到 `F:\VS2022BuildTools`；`vswhere` 可定位，AOT 发布与默认打包流程均通过 |
 | K-22 | PresentMon 帧数据需要管理员或 Performance Log Users；未提权时退出码 6 | 浅模式无帧数据 | 已实测失败模式并按提示降级；深模式由用户显式提权，不静默弹 UAC |
 | K-24 | 帧采集目标只能通过 `settings.json` 的 `frames.targetPid` 指定 | 普通用户无法在界面开启帧采集 | M2-2 增加目标进程选择与“开始/停止帧采集”；本次仅验证管线 |
 | K-13 | UI 软件渲染在超大窗口/高 DPI 下可能增加 CPU | 界面开销上升 | 仅 2Hz 刷新；M2 增加渲染模式设置项后再评估 |
@@ -223,17 +240,18 @@ dotnet test AzureGameAssistant.sln
 powershell -File build/run-dev.ps1        # 启动界面与采集进程
 powershell -File build/measure.ps1 -DurationMinutes 1
 powershell -File build/measure.ps1 -DurationMinutes 30 -OutputPath artifacts/measurements/soak.csv
+powershell -File build/package.ps1          # 默认 NativeAOT 便携包
 ```
 
 预期：
 
-- 构建 0 警告、0 错误；测试 37 项全部通过（含 PresentMon CSV 解析、帧统计与共享内存布局）。
+- 构建 0 警告、0 错误；测试 39 项全部通过（含 PresentMon CSV 解析、帧统计、共享内存布局与 PresentMon 哈希校验）。
 - 界面显示六张指标卡（CPU / GPU / 内存 / 显存 / 磁盘 / 抖动）、五张可开关折线图、Top-5 进程与采集状态；标题栏显示猫耳头像图标。
 - 每张可见折线图卡头部有“↗”；点击后图表进入独立小窗，卡片显示“收回图表”，关闭小窗后图表回到原位。
 - 设置页可开关每张图、开关悬浮窗、选择四角位置与偏移、勾选悬浮内容；保存后立即生效。
 - 设置页“文字外观”可选择配色主题；仅选“自定义颜色”时颜色输入框可用，输入 `#RRGGBB` 后色块实时预览，非法值按白色处理。
 - 悬浮窗默认在左上角，无背景与边框，数据项从左到右排列，宽度不足时自动换行；切换主题或自定义颜色后立即变色；鼠标可穿透到下方窗口；关闭主窗口后仍持续刷新；托盘菜单可快速开关。
-- `measure.ps1` 输出的 `.summary.txt` 中 Collector 专用工作集约 12–13MB、CPU 约 0.1%；UI 可见约 46–47MB，托盘 + 悬浮窗约 47MB / 0.09–0.13%。
+- `measure.ps1` 输出的 `.summary.txt` 中 Collector 专用工作集约 10–13MB（AOT 浅模式约 10.1MB）、CPU 约 0.1%；UI 可见约 46–47MB，托盘 + 悬浮窗约 47MB / 0.09–0.13%。
 - 语言与主题设置生效；30 分钟运行的采样缺口为 0。
 
 关键文档自检：
@@ -258,6 +276,7 @@ powershell -File build/measure.ps1 -DurationMinutes 30 -OutputPath artifacts/mea
 | 2026-11-07 | Qoder | 帧共享内存改为独立 seqlock，新增批量写帧与整批读取；补充布局测试，测试增至 36 项 | `feat(frames): 帧区独立 seqlock 与批量读写` |
 | 2026-11-07 | Qoder | 接入 PresentMon 监督器：job object、批写、退避与权限降级；采集进程按目标 PID 启动帧采集并发布能力位 | `feat(collector): 接入 PresentMon 监督器` |
 | 2026-11-07 | Qoder | 悬浮窗接入帧统计：增量读取帧区、FPS/平均帧/1% Low 显示与 2 秒失效；合成帧实机验证通过 | `feat(ui): 悬浮窗接入帧率与低帧显示` |
+| 2026-11-07 | Qoder | 完成 K-12：安装 VS C++ 工具链到 F 盘，打通 NativeAOT 发布与默认打包；修正 PresentMon 包内路径，增加打包与运行时哈希校验；AOT 浅模式专用工作集 10.1MB；测试增至 39 项 | 本次提交 |
 
 ## 10. 下次交接模板
 
