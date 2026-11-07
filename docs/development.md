@@ -1266,6 +1266,13 @@ internal sealed record AiProviderProfile(
 - 导出 PNG：离屏渲染时间轴（`RenderTargetBitmap`），包含事件标记、帧轨与时间范围；不依赖屏幕尺寸。
 - 若存在 AI 报告，导出时可勾选“包含 AI 分析”；导出内容不含 API Key、请求体与原始响应。
 
+### 11.9 帧数据消费（M2）
+
+- `TelemetryService` 暴露 `FrameWriteIndex` 与 `ReadFrames(startIndex, span)`；UI 只读取新增帧，首次打开时从最近 1024 帧开始，避免整区复制。
+- `MainViewModel` 每次刷新把新帧送入本地 `FrameStats`；采集进程重启导致写索引回退时清空统计并重新对齐。
+- 悬浮窗显示瞬时 FPS、平均帧与 1% Low；2 秒无新帧即视为无数据并显示“—”，防止游戏退出后残留旧值。
+- 帧统计在 UI 线程内更新，不做跨线程共享；主窗口帧轨复用同一份 `FrameStats` 数据（后续迭代）。
+
 ## 12. 性能预算与实现约束
 
 ### 12.1 预算
@@ -1319,11 +1326,12 @@ AzureGameAssistant/
 ├─ third_party/
 │  └─ presentmon/
 │     ├─ PresentMon-2.6.0-x64.exe
-│     ├─ LICENSE
+│     ├─ LICENSE.txt
 │     └─ SHA256SUMS
+├─ THIRD-PARTY-NOTICES.md
 ├─ src/
 │  ├─ AzureGameAssistant.Core/          # 数据模型、环形缓冲、判定、会话、设置、日志（无 UI 依赖）
-│  ├─ AzureGameAssistant.Collector/     # NativeAOT 采集进程
+│  ├─ AzureGameAssistant.Collector/     # NativeAOT 采集进程；Frames/ 为 PresentMon 监督与解析
 │  ├─ AzureGameAssistant.Sensors/       # LHM 边车（可选）
 │  ├─ AzureGameAssistant.UI/            # WPF 界面 + AI 分析；Assets/app-icon.ico、OverlayWindow、ChartWindow
 │  └─ AzureGameAssistant.Tests/         # xUnit 单元与集成测试

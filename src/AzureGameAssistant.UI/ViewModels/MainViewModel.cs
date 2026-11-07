@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using AzureGameAssistant.Core.Frames;
 using AzureGameAssistant.Core.Models;
 using AzureGameAssistant.Core.Settings;
 using AzureGameAssistant.UI.Services;
@@ -18,8 +19,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly CancellationTokenSource _cts = new();
 
     private readonly SampleRecord[] _timeline = new SampleRecord[TelemetryLayout.SampleCapacity];
+    private readonly FrameRecord[] _frameBuffer = new FrameRecord[1024];
+    private readonly FrameStats _frameStats = new();
     private int _refreshing;
     private int _statusTicks;
+    private long _lastFrameIndex = -1;
+    private DateTime _lastFrameAt = DateTime.MinValue;
+    private FrameStatsSnapshot _frameSnapshot;
     private bool _connected;
     private bool _helloDone;
     private string _appVersion = string.Empty;
@@ -151,6 +157,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             {
                 UpdateMetrics();
                 UpdateProcesses();
+                UpdateFrames();
                 TimelineCount = _telemetry.CopyTo(_timeline);
             }
 
@@ -269,6 +276,46 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
     }
 
+    private void UpdateFrames()
+    {
+        long writeIndex = _telemetry.FrameWriteIndex;
+        if (writeIndex < _lastFrameIndex)
+        {
+            _frameStats.Clear();
+            _frameSnapshot = default;
+            _lastFrameIndex = -1;
+        }
+
+        if (_lastFrameIndex < 0)
+        {
+            _lastFrameIndex = Math.Max(0, writeIndex - _frameBuffer.Length);
+        }
+
+        bool added = false;
+        while (_lastFrameIndex < writeIndex)
+        {
+            int read = _telemetry.ReadFrames(_lastFrameIndex, _frameBuffer);
+            if (read <= 0)
+            {
+                break;
+            }
+
+            for (int i = 0; i < read; i++)
+            {
+                _frameStats.Add(_frameBuffer[i].FrameTimeMs);
+            }
+
+            _lastFrameIndex += read;
+            added = true;
+        }
+
+        if (added)
+        {
+            _lastFrameAt = DateTime.UtcNow;
+            _frameSnapshot = _frameStats.Snapshot();
+        }
+    }
+
     private void UpdateCollectorTexts()
     {
         switch (_launcher.State)
@@ -334,12 +381,15 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             TelemetryMath.TryGetVramTotalMb(sample, out vramTotal);
         }
 
+        bool hasFrames = _frameSnapshot.FrameCount > 0 &&
+            (DateTime.UtcNow - _lastFrameAt).TotalSeconds < 2.0;
+
         return new OverlayData(
             HasSample: hasSample,
-            HasFrames: false,
-            Fps: 0,
-            AverageFps: 0,
-            LowFps: 0,
+            HasFrames: hasFrames,
+            Fps: hasFrames ? _frameSnapshot.InstantFps : 0,
+            AverageFps: hasFrames ? _frameSnapshot.AverageFps : 0,
+            LowFps: hasFrames ? _frameSnapshot.OnePercentLowFps : 0,
             CpuPct: hasSample ? sample.CpuUtilityPct : 0,
             GpuPct: hasSample ? sample.GpuUtilPct : 0,
             HasTemperature: hasTemperature,

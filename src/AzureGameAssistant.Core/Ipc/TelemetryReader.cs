@@ -277,6 +277,56 @@ public sealed unsafe class TelemetryReader : IDisposable
         return 0;
     }
 
+    /// <summary>
+    /// Copies frames starting at <paramref name="startIndex"/> (oldest first).
+    /// Indices older than the ring's retained window are advanced to the oldest
+    /// available frame. Returns 0 when no new frame is available.
+    /// </summary>
+    public int ReadFrames(long startIndex, Span<FrameRecord> destination)
+    {
+        if (_header == null || destination.IsEmpty)
+        {
+            return 0;
+        }
+
+        for (int attempt = 0; attempt < ReadRetryLimit; attempt++)
+        {
+            long before = Volatile.Read(ref _header->FrameWriteSequence);
+            if ((before & 1) != 0)
+            {
+                Thread.SpinWait(128);
+                continue;
+            }
+
+            long writeIndex = Volatile.Read(ref _header->FrameWriteIndex);
+            long oldest = Math.Max(0, writeIndex - TelemetryLayout.FrameCapacity);
+            long from = Math.Max(startIndex, oldest);
+            if (from >= writeIndex)
+            {
+                return 0;
+            }
+
+            int count = (int)Math.Min(writeIndex - from, destination.Length);
+            for (int i = 0; i < count; i++)
+            {
+                long slot = (from + i) % TelemetryLayout.FrameCapacity;
+                var source = new ReadOnlySpan<byte>(
+                    _frameBase + (slot * TelemetryLayout.FrameStride),
+                    TelemetryLayout.FrameStride);
+
+                destination[i] = MemoryMarshal.Read<FrameRecord>(source);
+            }
+
+            long after = Volatile.Read(ref _header->FrameWriteSequence);
+            if (before == after && writeIndex == Volatile.Read(ref _header->FrameWriteIndex))
+            {
+                return count;
+            }
+        }
+
+        return 0;
+    }
+
     public long WriteIndex
     {
         get

@@ -84,4 +84,20 @@ public sealed class FrameStatsTests
         Assert.False(stats.Add(double.PositiveInfinity));
         Assert.Equal(0, stats.Count);
     }
+
+    [Fact]
+    public void Clear_ResetsWindowAndSpikeBaseline()
+    {
+        var stats = new FrameStats(capacity: 256);
+        for (int i = 0; i < 120; i++)
+        {
+            stats.Add(16.7);
+        }
+
+        stats.Clear();
+
+        Assert.Equal(0, stats.Count);
+        Assert.Equal(0, stats.Snapshot().FrameCount);
+        Assert.False(stats.Add(100.0));
+    }
 }

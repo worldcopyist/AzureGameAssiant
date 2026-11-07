@@ -41,6 +41,18 @@ public sealed class FrameStats
 
     public double LastFrameTimeMs => _lastFrameTimeMs;
 
+    public void Clear()
+    {
+        Array.Clear(_times);
+        Array.Clear(_median);
+        _start = 0;
+        _count = 0;
+        _medianStart = 0;
+        _medianCount = 0;
+        _lastFrameTimeMs = 0;
+        _sumFrameTimeMs = 0;
+    }
+
     /// <summary>
     /// Adds a frame time and returns true when it is a spike relative to the
     /// rolling median. Spike detection needs a full median window.

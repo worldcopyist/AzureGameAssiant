@@ -29,6 +29,11 @@ public sealed class TelemetryService : IDisposable
 
     public long WriteIndex => _reader.WriteIndex;
 
+    public long FrameWriteIndex => _reader.FrameWriteIndex;
+
+    public int ReadFrames(long startIndex, Span<FrameRecord> destination) =>
+        _reader.ReadFrames(startIndex, destination);
+
     public int CopyTo(Span<SampleRecord> destination) => _history.CopyTo(destination);
 
     public bool Refresh()
