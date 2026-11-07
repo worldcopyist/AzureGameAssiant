@@ -18,14 +18,27 @@ public enum ChartMetric
     Frame,
 }
 
+[Flags]
+public enum ChartSeries
+{
+    None = 0,
+    Cpu = 1,
+    Gpu = 2,
+    Memory = 4,
+    Vram = 8,
+    Disk = 16,
+    Frame = 32,
+}
+
 /// <summary>
-/// Custom painted timeline. Each pixel column aggregates the min/max of its time
-/// slice, so spikes survive downsampling without a charting dependency. A single
-/// metric can be isolated for the per-hardware chart cards.
+/// Custom painted timeline. The combined mode overlays the enabled metrics on a
+/// single 0-100% axis (VRAM is shown as a share of total) and keeps frame time on
+/// a secondary right axis. A single metric can be isolated for the split cards.
 /// </summary>
 public sealed class TimelineChart : FrameworkElement
 {
     private const double LeftGutter = 46;
+    private const double FrameGutter = 44;
     private const double TopMargin = 22;
     private const double BottomMargin = 16;
     private const double TrackGap = 8;
@@ -71,6 +84,8 @@ public sealed class TimelineChart : FrameworkElement
     private float[] _spikeValues = Array.Empty<float>();
 
     private ChartMetric _metric = ChartMetric.Combined;
+    private ChartSeries _series = ChartSeries.Cpu | ChartSeries.Gpu | ChartSeries.Memory |
+                                  ChartSeries.Vram | ChartSeries.Disk | ChartSeries.Frame;
     private double _windowSeconds = 60;
     private double _panSeconds;
     private int _version;
@@ -103,6 +118,21 @@ public sealed class TimelineChart : FrameworkElement
             }
 
             _metric = value;
+            InvalidateVisual();
+        }
+    }
+
+    public ChartSeries Series
+    {
+        get => _series;
+        set
+        {
+            if (_series == value)
+            {
+                return;
+            }
+
+            _series = value;
             InvalidateVisual();
         }
     }
@@ -164,10 +194,11 @@ public sealed class TimelineChart : FrameworkElement
             return;
         }
 
+        bool combinedFrame = combined && HasSeries(ChartSeries.Frame);
         _plot = new Rect(
             LeftGutter,
             TopMargin,
-            Math.Max(1, bounds.Width - LeftGutter - 8),
+            Math.Max(1, bounds.Width - LeftGutter - (combinedFrame ? FrameGutter : 8)),
             Math.Max(1, bounds.Height - TopMargin - BottomMargin));
 
         DrawLegend(dc, bounds);
@@ -180,7 +211,7 @@ public sealed class TimelineChart : FrameworkElement
         }
 
         double baseEndTicks = _count > 0 ? _samples[_count - 1].UtcTicks : _frames[_frameCount - 1].UtcTicks;
-        if (frameChart && _frameCount > 0)
+        if ((frameChart || combinedFrame) && _frameCount > 0)
         {
             baseEndTicks = Math.Max(baseEndTicks, _frames[_frameCount - 1].UtcTicks);
         }
@@ -195,18 +226,17 @@ public sealed class TimelineChart : FrameworkElement
             _panSeconds,
             _version,
             _frameVersion,
-            _metric);
+            _metric,
+            _series);
         if (key != _lastKey)
         {
             Rebuild(key, startTicks, endTicks);
             _lastKey = key;
         }
 
-        if (_metric == ChartMetric.Combined)
+        if (combined)
         {
-            DrawMetric(dc, TrackRect(0, 3), 0);
-            DrawMetric(dc, TrackRect(1, 3), 1);
-            DrawMetric(dc, TrackRect(2, 3), 2);
+            DrawCombined(dc);
         }
         else if (frameChart)
         {
@@ -240,9 +270,18 @@ public sealed class TimelineChart : FrameworkElement
 
         if (_metric == ChartMetric.Combined)
         {
-            BuildMetric(0, TrackRect(0, 3), startTicks, endTicks, span, width);
-            BuildMetric(1, TrackRect(1, 3), startTicks, endTicks, span, width);
-            BuildMetric(2, TrackRect(2, 3), startTicks, endTicks, span, width);
+            for (int index = 0; index < 5; index++)
+            {
+                if (HasSeries(SeriesForIndex(index)))
+                {
+                    BuildMetric(index, _plot, startTicks, endTicks, span, width, normalizeVram: true);
+                }
+            }
+
+            if (HasSeries(ChartSeries.Frame))
+            {
+                BuildFrameTrack(_plot, startTicks, endTicks, span, width);
+            }
         }
         else if (_metric == ChartMetric.Frame)
         {
@@ -254,7 +293,14 @@ public sealed class TimelineChart : FrameworkElement
         }
     }
 
-    private void BuildMetric(int index, Rect rect, double startTicks, double endTicks, double span, int width)
+    private void BuildMetric(
+        int index,
+        Rect rect,
+        double startTicks,
+        double endTicks,
+        double span,
+        int width,
+        bool normalizeVram = false)
     {
         switch (index)
         {
@@ -284,6 +330,21 @@ public sealed class TimelineChart : FrameworkElement
                 break;
 
             case 3:
+                if (normalizeVram)
+                {
+                    _seriesMax[3] = 100;
+                    _lines[3] = BuildSeries(
+                        rect,
+                        startTicks,
+                        span,
+                        width,
+                        static s => VramUsagePct(s),
+                        100,
+                        out Geometry vramPctBand);
+                    _bands[3] = vramPctBand;
+                    break;
+                }
+
                 double vramMax = Math.Max(
                     256,
                     Math.Ceiling(WindowMaximum(startTicks, endTicks, static s => s.GpuDedicatedMb) / 256.0) * 256);
@@ -527,6 +588,55 @@ public sealed class TimelineChart : FrameworkElement
         return max;
     }
 
+    private static double VramUsagePct(in SampleRecord sample) =>
+        TelemetryMath.TryGetVramTotalMb(sample, out double total) && total > 0
+            ? Math.Clamp(sample.GpuDedicatedMb / total * 100.0, 0, 100)
+            : 0;
+
+    private void DrawCombined(DrawingContext dc)
+    {
+        DrawGrid(dc, _plot, "100%", "0%");
+
+        for (int index = 0; index < 5; index++)
+        {
+            if (!HasSeries(SeriesForIndex(index)) || _lines[index] is not Geometry line)
+            {
+                continue;
+            }
+
+            dc.DrawGeometry(null, GetPen(GetBrush(BrushKey(index), Fallback(index)), 1.6), line);
+        }
+
+        if (!HasSeries(ChartSeries.Frame))
+        {
+            return;
+        }
+
+        if (_frameLine is not null)
+        {
+            dc.DrawGeometry(null, GetPen(GetBrush("ChartFrameBrush", FallbackFrame), 1.4), _frameLine);
+        }
+
+        Brush textBrush = GetBrush("TextSecondaryBrush", FallbackText);
+        DrawText(dc, _frameScaleMax.ToString("F0", CultureInfo.CurrentUICulture) + " ms",
+            new Point(_plot.Right + 4, _plot.Top - 6), textBrush, 10);
+        DrawText(dc, "0", new Point(_plot.Right + 4, _plot.Bottom - 12), textBrush, 10);
+    }
+
+    private void DrawGrid(DrawingContext dc, Rect rect, string topLabel, string bottomLabel)
+    {
+        Brush gridBrush = GetBrush("ChartGridBrush", FallbackGrid);
+        Brush textBrush = GetBrush("TextSecondaryBrush", FallbackText);
+
+        Pen gridPen = GetPen(gridBrush, 1);
+        dc.DrawLine(gridPen, new Point(rect.Left, rect.Top), new Point(rect.Right, rect.Top));
+        dc.DrawLine(gridPen, new Point(rect.Left, rect.Top + (rect.Height * 0.5)), new Point(rect.Right, rect.Top + (rect.Height * 0.5)));
+        dc.DrawLine(gridPen, new Point(rect.Left, rect.Bottom), new Point(rect.Right, rect.Bottom));
+
+        DrawText(dc, topLabel, new Point(4, rect.Top - 6), textBrush, 10);
+        DrawText(dc, bottomLabel, new Point(4, rect.Bottom - 12), textBrush, 10);
+    }
+
     private void DrawMetric(DrawingContext dc, Rect rect, int index)
     {
         string top = index == 3
@@ -609,9 +719,18 @@ public sealed class TimelineChart : FrameworkElement
 
         if (_metric == ChartMetric.Combined)
         {
-            x = DrawLegendItem(dc, x, y, loc["Cpu"], GetBrush("ChartCpuBrush", FallbackCpu));
-            x = DrawLegendItem(dc, x, y, loc["Gpu"], GetBrush("ChartGpuBrush", FallbackGpu));
-            DrawLegendItem(dc, x, y, loc["Memory"], GetBrush("ChartMemBrush", FallbackMem));
+            for (int index = 0; index < 5; index++)
+            {
+                if (HasSeries(SeriesForIndex(index)))
+                {
+                    x = DrawLegendItem(dc, x, y, loc[LegendKey(index)], GetBrush(BrushKey(index), Fallback(index)));
+                }
+            }
+
+            if (HasSeries(ChartSeries.Frame))
+            {
+                DrawLegendItem(dc, x, y, loc["FrameTimeAxis"], GetBrush("ChartFrameBrush", FallbackFrame));
+            }
         }
         else if (_metric == ChartMetric.Frame)
         {
@@ -698,16 +817,43 @@ public sealed class TimelineChart : FrameworkElement
         }
 
         SampleRecord sample = _samples[nearest];
-        string detail = _metric == ChartMetric.Combined
-            ? DescribeSample(sample, 0) + "\n" + DescribeSample(sample, 1) + "\n" + DescribeSample(sample, 2)
-            : DescribeSample(sample, MetricIndex(_metric));
+        string text = FormatTime(sample.UtcTicks);
+        if (_metric == ChartMetric.Combined)
+        {
+            for (int index = 0; index < 5; index++)
+            {
+                if (HasSeries(SeriesForIndex(index)))
+                {
+                    text += "\n" + DescribeSample(sample, index);
+                }
+            }
 
-        string text = FormatTime(sample.UtcTicks) + "\n" + detail;
+            if (HasSeries(ChartSeries.Frame) && TryFindNearestFrame(targetTicks, out FrameTimePoint frame))
+            {
+                text += "\n" + DescribeFrame(frame);
+            }
+        }
+        else
+        {
+            text += "\n" + DescribeSample(sample, MetricIndex(_metric));
+        }
+
         DrawHoverTip(dc, hover, text);
     }
 
     private void DrawFrameHover(DrawingContext dc, Point hover, long targetTicks)
     {
+        if (!TryFindNearestFrame(targetTicks, out FrameTimePoint frame))
+        {
+            return;
+        }
+
+        DrawHoverTip(dc, hover, FormatTime(frame.UtcTicks) + "\n" + DescribeFrame(frame));
+    }
+
+    private bool TryFindNearestFrame(long targetTicks, out FrameTimePoint frame)
+    {
+        frame = default;
         int nearest = -1;
         long best = long.MaxValue;
         for (int i = 0; i < _frameCount; i++)
@@ -722,11 +868,16 @@ public sealed class TimelineChart : FrameworkElement
 
         if (nearest < 0)
         {
-            return;
+            return false;
         }
 
+        frame = _frames[nearest];
+        return true;
+    }
+
+    private static string DescribeFrame(in FrameTimePoint frame)
+    {
         LocalizationService loc = LocalizationService.Instance;
-        FrameTimePoint frame = _frames[nearest];
         double fps = frame.FrameTimeMs > 0 ? 1000.0 / frame.FrameTimeMs : 0;
         string detail = loc.Format("FrameTimeHover", frame.FrameTimeMs, fps);
         if (frame.Spike)
@@ -734,7 +885,7 @@ public sealed class TimelineChart : FrameworkElement
             detail += " · " + loc["FrameSpike"];
         }
 
-        DrawHoverTip(dc, hover, FormatTime(frame.UtcTicks) + "\n" + detail);
+        return detail;
     }
 
     private void DrawHoverTip(DrawingContext dc, Point hover, string text)
@@ -782,7 +933,7 @@ public sealed class TimelineChart : FrameworkElement
                 string vram = $"{loc["Vram"]} {FormatMb(sample.GpuDedicatedMb)}";
                 if (TelemetryMath.TryGetVramTotalMb(sample, out double total))
                 {
-                    vram += $" / {FormatMb(total)}";
+                    vram += $" / {FormatMb(total)} ({VramUsagePct(sample):F1}%)";
                 }
 
                 return vram;
@@ -933,6 +1084,17 @@ public sealed class TimelineChart : FrameworkElement
 
     private Brush GetBrush(string key, Brush fallback) => TryFindResource(key) as Brush ?? fallback;
 
+    private bool HasSeries(ChartSeries series) => (_series & series) != 0;
+
+    private static ChartSeries SeriesForIndex(int index) => index switch
+    {
+        0 => ChartSeries.Cpu,
+        1 => ChartSeries.Gpu,
+        2 => ChartSeries.Memory,
+        3 => ChartSeries.Vram,
+        _ => ChartSeries.Disk,
+    };
+
     private static int MetricIndex(ChartMetric metric) => metric switch
     {
         ChartMetric.Cpu => 0,
@@ -1014,5 +1176,6 @@ public sealed class TimelineChart : FrameworkElement
         double PanSeconds,
         int Version,
         int FrameVersion,
-        ChartMetric Metric);
+        ChartMetric Metric,
+        ChartSeries Series);
 }

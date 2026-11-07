@@ -218,6 +218,7 @@ public sealed class SensorSettings
 
 public sealed class ChartSettings
 {
+    public bool Separate { get; set; }
     public bool Cpu { get; set; } = true;
     public bool Gpu { get; set; } = true;
     public bool Memory { get; set; } = true;

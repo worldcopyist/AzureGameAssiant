@@ -252,6 +252,12 @@
   <data name="ChartsSection" xml:space="preserve">
     <value>折线图</value>
   </data>
+  <data name="ChartSeparateToggle" xml:space="preserve">
+    <value>多个折线图（分开显示）</value>
+  </data>
+  <data name="ChartSeparateHint" xml:space="preserve">
+    <value>关闭时所有指标在同一张折线图中用不同颜色叠加显示；开启后每个指标使用独立图表。</value>
+  </data>
   <data name="ChartCpuToggle" xml:space="preserve">
     <value>CPU 占用折线图</value>
   </data>

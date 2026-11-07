@@ -7,6 +7,7 @@ using AzureGameAssistant.Ai;
 using AzureGameAssistant.Core.Frames;
 using AzureGameAssistant.Core.Models;
 using AzureGameAssistant.Core.Settings;
+using AzureGameAssistant.UI.Controls;
 using AzureGameAssistant.UI.Interop;
 using AzureGameAssistant.UI.Services;
 
@@ -139,17 +140,60 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     public bool IsConnectedToCollector => _connected;
 
-    public bool ShowCpuChart => _settings.Charts.Cpu;
+    public bool ShowCombinedChart => !_settings.Charts.Separate;
 
-    public bool ShowGpuChart => _settings.Charts.Gpu;
+    public bool ShowSeparateCharts => _settings.Charts.Separate;
 
-    public bool ShowMemoryChart => _settings.Charts.Memory;
+    public bool ShowCpuChart => ShowSeparateCharts && _settings.Charts.Cpu;
 
-    public bool ShowVramChart => _settings.Charts.Vram;
+    public bool ShowGpuChart => ShowSeparateCharts && _settings.Charts.Gpu;
 
-    public bool ShowDiskChart => _settings.Charts.Disk;
+    public bool ShowMemoryChart => ShowSeparateCharts && _settings.Charts.Memory;
 
-    public bool ShowFrameChart => _settings.Charts.Frames;
+    public bool ShowVramChart => ShowSeparateCharts && _settings.Charts.Vram;
+
+    public bool ShowDiskChart => ShowSeparateCharts && _settings.Charts.Disk;
+
+    public bool ShowFrameChart => ShowSeparateCharts && _settings.Charts.Frames;
+
+    public ChartSeries CombinedSeries
+    {
+        get
+        {
+            ChartSeries series = ChartSeries.None;
+            if (_settings.Charts.Cpu)
+            {
+                series |= ChartSeries.Cpu;
+            }
+
+            if (_settings.Charts.Gpu)
+            {
+                series |= ChartSeries.Gpu;
+            }
+
+            if (_settings.Charts.Memory)
+            {
+                series |= ChartSeries.Memory;
+            }
+
+            if (_settings.Charts.Vram)
+            {
+                series |= ChartSeries.Vram;
+            }
+
+            if (_settings.Charts.Disk)
+            {
+                series |= ChartSeries.Disk;
+            }
+
+            if (_settings.Charts.Frames)
+            {
+                series |= ChartSeries.Frame;
+            }
+
+            return series;
+        }
+    }
 
     public bool HasCollectorProblem =>
         _launcher.State is CollectorState.Missing or CollectorState.Failed ||
@@ -877,12 +921,15 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     public void RefreshDisplaySettings()
     {
+        OnPropertyChanged(nameof(ShowCombinedChart));
+        OnPropertyChanged(nameof(ShowSeparateCharts));
         OnPropertyChanged(nameof(ShowCpuChart));
         OnPropertyChanged(nameof(ShowGpuChart));
         OnPropertyChanged(nameof(ShowMemoryChart));
         OnPropertyChanged(nameof(ShowVramChart));
         OnPropertyChanged(nameof(ShowDiskChart));
         OnPropertyChanged(nameof(ShowFrameChart));
+        OnPropertyChanged(nameof(CombinedSeries));
     }
 
     private static string FormatMegabytes(double megabytes) => megabytes >= 1024

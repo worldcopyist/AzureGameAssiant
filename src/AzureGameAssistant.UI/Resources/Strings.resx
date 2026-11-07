@@ -252,6 +252,12 @@
   <data name="ChartsSection" xml:space="preserve">
     <value>Charts</value>
   </data>
+  <data name="ChartSeparateToggle" xml:space="preserve">
+    <value>Separate chart cards</value>
+  </data>
+  <data name="ChartSeparateHint" xml:space="preserve">
+    <value>Off: all metrics share one chart with colored lines. On: each metric gets its own chart card.</value>
+  </data>
   <data name="ChartCpuToggle" xml:space="preserve">
     <value>CPU usage chart</value>
   </data>

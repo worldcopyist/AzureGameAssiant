@@ -35,6 +35,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         AutoCapture = settings.Frames.AutoCapture;
         CpuMode = settings.Sensors.CpuMode;
 
+        ChartSeparate = settings.Charts.Separate;
         ChartCpu = settings.Charts.Cpu;
         ChartGpu = settings.Charts.Gpu;
         ChartMemory = settings.Charts.Memory;
@@ -199,6 +200,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     public bool AiKeyInputEnabled => AiRequiresKey;
 
     [ObservableProperty]
+    private bool _chartSeparate;
+
+    [ObservableProperty]
     private bool _chartCpu;
 
     [ObservableProperty]
@@ -357,6 +361,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         settings.Frames.AutoCapture = AutoCapture;
         settings.Sensors.CpuMode = CpuMode;
 
+        settings.Charts.Separate = ChartSeparate;
         settings.Charts.Cpu = ChartCpu;
         settings.Charts.Gpu = ChartGpu;
         settings.Charts.Memory = ChartMemory;

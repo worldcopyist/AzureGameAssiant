@@ -19,7 +19,7 @@ public partial class MainWindow : Window
         _viewModel = viewModel;
         DataContext = viewModel;
 
-        _charts = [FrameChart, CpuChart, GpuChart, MemoryChart, VramChart, DiskChart];
+        _charts = [CombinedChart, FrameChart, CpuChart, GpuChart, MemoryChart, VramChart, DiskChart];
 
         WindowSelector.SelectionChanged += OnWindowChanged;
         WindowSelector.SelectedIndex = 0;
@@ -52,6 +52,11 @@ public partial class MainWindow : Window
 
     public void RefreshChart()
     {
+        if (DesignToggle.IsChecked == true && !_viewModel.ShowSeparateCharts)
+        {
+            DesignToggle.IsChecked = false;
+        }
+
         bool mainVisible = IsVisible && WindowState != WindowState.Minimized;
         if (!mainVisible && !HasVisibleCharts)
         {
@@ -63,12 +68,16 @@ public partial class MainWindow : Window
             UpdateChartColumns();
         }
 
+        CombinedChart.Series = _viewModel.CombinedSeries;
+
         foreach (TimelineChart chart in _charts)
         {
             chart.SetSamples(_viewModel.TimelineBuffer, _viewModel.TimelineCount);
         }
 
-        FrameChart.SetFrames(_viewModel.FrameTimelineBuffer, _viewModel.CopyFrameTimeline());
+        int frameCount = _viewModel.CopyFrameTimeline();
+        FrameChart.SetFrames(_viewModel.FrameTimelineBuffer, frameCount);
+        CombinedChart.SetFrames(_viewModel.FrameTimelineBuffer, frameCount);
     }
 
     public void RefreshLocalization()
@@ -122,6 +131,16 @@ public partial class MainWindow : Window
             double.TryParse(tag, NumberStyles.Integer, CultureInfo.InvariantCulture, out double seconds))
         {
             ApplyWindowSeconds(seconds);
+        }
+    }
+
+    private void OnChartScrollSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (sender is ScrollViewer scroll && scroll.ViewportHeight > 0)
+        {
+            // Chart card padding (16) plus a small slack, so the merged chart never
+            // needs a scrollbar at the default window size.
+            CombinedChart.MinHeight = Math.Max(160, scroll.ViewportHeight - 24);
         }
     }
 
@@ -224,6 +243,7 @@ public partial class MainWindow : Window
 
     private TimelineChart? ChartFor(ChartMetric metric) => metric switch
     {
+        ChartMetric.Combined => CombinedChart,
         ChartMetric.Cpu => CpuChart,
         ChartMetric.Gpu => GpuChart,
         ChartMetric.Memory => MemoryChart,

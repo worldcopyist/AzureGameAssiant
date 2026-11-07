@@ -156,6 +156,7 @@
                         <CheckBox x:Name="DesignToggle" VerticalAlignment="Center" Margin="0,0,12,0"
                                   Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartDesignMode]}"
                                   ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartDesignHint]}"
+                                  Visibility="{Binding ShowSeparateCharts, Converter={StaticResource BoolToVisibility}}"
                                   Checked="OnDesignModeChanged" Unchecked="OnDesignModeChanged" />
                         <ComboBox x:Name="WindowSelector" MinWidth="100">
                             <ComboBoxItem Tag="60"
@@ -168,9 +169,14 @@
                     </StackPanel>
                 </Grid>
 
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                              Padding="10,0,10,10">
+                <ScrollViewer x:Name="ChartScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              Padding="10,0,10,10" SizeChanged="OnChartScrollSizeChanged">
                     <UniformGrid x:Name="ChartGrid" Columns="2">
+                        <Border Style="{StaticResource ChartCard}" Margin="4,0,4,0"
+                                Visibility="{Binding ShowCombinedChart, Converter={StaticResource BoolToVisibility}}">
+                            <controls:TimelineChart x:Name="CombinedChart" Metric="Combined" MinHeight="160" />
+                        </Border>
+
                         <Border Style="{StaticResource ChartCard}"
                                 Visibility="{Binding ShowFrameChart, Converter={StaticResource BoolToVisibility}}">
                             <Grid>
