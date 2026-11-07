@@ -90,7 +90,7 @@ public sealed class AppSettings
             .ToList();
 
         Charts ??= new ChartSettings();
-        if (!Charts.Cpu && !Charts.Gpu && !Charts.Memory && !Charts.Vram && !Charts.Disk)
+        if (!Charts.Cpu && !Charts.Gpu && !Charts.Memory && !Charts.Vram && !Charts.Disk && !Charts.Frames)
         {
             Charts.Cpu = true;
         }
@@ -212,6 +212,7 @@ public sealed class ChartSettings
     public bool Memory { get; set; } = true;
     public bool Vram { get; set; } = true;
     public bool Disk { get; set; }
+    public bool Frames { get; set; } = true;
 }
 
 public sealed class OverlaySettings

@@ -46,6 +46,8 @@
                            Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartsSection]}" />
                 <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                     <WrapPanel>
+                        <CheckBox Margin="0,0,24,8" IsChecked="{Binding ChartFrames, Mode=TwoWay}"
+                                  Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartFrameToggle]}" />
                         <CheckBox Margin="0,0,24,8" IsChecked="{Binding ChartCpu, Mode=TwoWay}"
                                   Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartCpuToggle]}" />
                         <CheckBox Margin="0,0,24,8" IsChecked="{Binding ChartGpu, Mode=TwoWay}"

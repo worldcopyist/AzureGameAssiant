@@ -163,6 +163,36 @@
                               Padding="10,0,10,10">
                     <UniformGrid x:Name="ChartGrid" Columns="2">
                         <Border Style="{StaticResource ChartCard}"
+                                Visibility="{Binding ShowFrameChart, Converter={StaticResource BoolToVisibility}}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Grid Margin="4,0,4,2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource CardLabel}" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource ChartFrameBrush}"
+                                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[FrameChartLabel]}" />
+                                        <TextBlock FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   Text="{Binding FrameSub}" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Margin="0,0,6,0" Style="{StaticResource MonoText}"
+                                               Text="{Binding FrameValue}" />
+                                    <Button Grid.Column="2" Style="{StaticResource FlatButton}" Padding="6,0" FontSize="10"
+                                            Content="↗" Tag="Frame" Click="OnDetachChart"
+                                            ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartDetach]}" />
+                                </Grid>
+                                <controls:TimelineChart Grid.Row="1" x:Name="FrameChart" Metric="Frame" MinHeight="170" />
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource ChartCard}"
                                 Visibility="{Binding ShowCpuChart, Converter={StaticResource BoolToVisibility}}">
                             <Grid>
                                 <Grid.RowDefinitions>

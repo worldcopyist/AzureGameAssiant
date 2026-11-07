@@ -1132,7 +1132,7 @@ internal sealed record AiProviderProfile(
 
 - `TimelineChart : FrameworkElement`，重写 `OnRender(DrawingContext)`。
 - 每个像素列取该列时间范围内采样的 min/max，绘制为竖线段 + 折线；事件标记绘制在独立层。
-- `ChartMetric` 枚举（Combined / Cpu / Gpu / Memory / Vram / Disk）：单指标模式只画一条全高曲线，Combined 模式保留 CPU/GPU/内存三轨。
+- `ChartMetric` 枚举（Combined / Cpu / Gpu / Memory / Vram / Disk / Frame）：单指标模式只画一条全高曲线，Combined 模式保留 CPU/GPU/内存三轨。
 - 主窗口使用 `UniformGrid` 承载五个独立图表卡；可见图数量 >1 时两列，仅 1 张时单列占满；图区可纵向滚动。
 - 纵轴口径：CPU/GPU/磁盘固定 0–100%；内存为提交占比 0–100%；显存按 MB 自动取整（256MB 粒度，最小 256MB）。
 - 每个图表卡头部显示指标名与当前值；单图模式图例只显示该指标；悬停提示按指标显示百分比或“已用 / 总量”。
@@ -1140,7 +1140,10 @@ internal sealed record AiProviderProfile(
 - 图表脱离：卡片头部的“↗”按钮把该 `TimelineChart` 从卡片 `Grid` 中移除，交给 `ChartWindow` 承载（不复制数据、不新建渲染器）；卡片原位显示本地化提示与“收回图表”按钮。
 - 同一指标只保留一个实例：脱离期间原按钮禁用；`ChartWindow.Closed` 时调用 `ReleaseChart()` 并删除占位、把图表插回卡片第 1 行，按钮恢复可用。
 - 脱离窗口标题为“指标名 · 蓝天游戏助手”，继承主窗口主题与当前语言；主窗口隐藏后，只要小窗可见，`App` 的 500ms 计时器继续运行并调用 `RefreshChart()`。
-- 帧轨（M2）作为独立子轨：frametime 折线 + 尖峰标记 + 显示空洞标记；与系统轨共用横轴。
+- 帧轨（M2）为独立图表卡（`Metric=Frame`），与其他指标共用横轴与缩放/平移状态；纵轴按窗口内最大值取 16.7 / 33.3 / 50 / 66.7 / 100ms 档位，超出时向上取整到 50ms 倍数。
+- 帧轨绘制每列 min/max 聚合的帧时间曲线，并在尖峰帧位置画红色圆点（上限 512 个，避免高密度时重绘过慢）；图例为“帧时间 (ms)”曲线色块 + “尖峰”圆点。
+- 帧轨悬停显示最近帧的“帧时间 · FPS”；无帧数据时图区显示空态，横轴仍取系统采样与帧时间戳的并集，避免两轨错位。
+- 帧轨同样支持“↗”脱离到 `ChartWindow`，并受 `charts.frames` 开关控制。
 - 几何缓存：仅在数据或视口变化时重建 `StreamGeometry`；画笔/画刷静态冻结（`Freeze()`）。
 - 交互：滚轮缩放、左键拖动平移、悬停十字线与浮动提示、双击回到实时。
 - 渲染节流：非交互状态最多 10fps；主窗口、悬浮窗与图表小窗全部隐藏/最小化时停止计时器。
@@ -1185,7 +1188,7 @@ internal sealed record AiProviderProfile(
 - UI 是唯一写入方；采集进程启动时读取，之后只接收管道补丁。
 - 写入采用临时文件 + 原子替换；读取失败时备份为 `settings.corrupt-<timestamp>.json` 并回退默认值。
 - `schemaVersion` 与迁移函数集中管理。
-- 加载时归一化：悬浮窗角落名转 PascalCase（缺省 TopLeft）；偏移量限制 0–4000；内容项全部关闭时强制打开 CPU 与 GPU，避免出现空窗口；配色主题名转 PascalCase（缺省 Default）；自定义颜色去 `#` 后校验 6 位十六进制并统一大写，非法值回退 `#FFFFFF`。
+- 加载时归一化：悬浮窗角落名转 PascalCase（缺省 TopLeft）；偏移量限制 0–4000；内容项全部关闭时强制打开 CPU 与 GPU，避免出现空窗口；配色主题名转 PascalCase（缺省 Default）；自定义颜色去 `#` 后校验 6 位十六进制并统一大写，非法值回退 `#FFFFFF`；图表全部关闭时强制打开 CPU 图（含新增的帧时间图，默认开启）。
 
 ```json
 {
@@ -1246,7 +1249,8 @@ internal sealed record AiProviderProfile(
     "gpu": true,
     "memory": true,
     "vram": true,
-    "disk": false
+    "disk": false,
+    "frames": true
   },
   "overlay": {
     "enabled": true,
@@ -1279,7 +1283,11 @@ internal sealed record AiProviderProfile(
 - `TelemetryService` 暴露 `FrameWriteIndex` 与 `ReadFrames(startIndex, span)`；UI 只读取新增帧，首次打开时从最近 1024 帧开始，避免整区复制。
 - `MainViewModel` 每次刷新把新帧送入本地 `FrameStats`；采集进程重启导致写索引回退时清空统计并重新对齐。
 - 悬浮窗显示瞬时 FPS、平均帧与 1% Low；2 秒无新帧即视为无数据并显示“—”，防止游戏退出后残留旧值。
-- 帧统计在 UI 线程内更新，不做跨线程共享；主窗口帧轨复用同一份 `FrameStats` 数据（后续迭代）。
+- 帧统计在 UI 线程内更新，不做跨线程共享；主窗口帧轨复用同一份 `FrameStats` 数据。
+- 帧时间轴：`Core/Frames/FrameTimeline` 为固定容量（16384 点，约 256KB）环形缓冲，只保留最近帧，避免长时间运行无限增长。
+- 时间对齐：帧记录只有 QPC 时间戳，UI 用最近的系统采样（`sample.QpcTicks` 与 `UtcTicks`）作为锚点；QPC 频率用当前环形缓冲首尾采样的差值估算（`qpcDelta * TicksPerSecond / utcDelta`，失败回退 10MHz），再换算为 UTC ticks 供图表与系统指标共用横轴。
+- 每帧依次写入本地 `FrameStats`（得到尖峰标记）与 `FrameTimeline`；采集进程重启导致帧写索引回退时清空两者并重新对齐。
+- `MainViewModel.CopyFrameTimeline()` 把环内数据拷到预分配缓冲，`MainWindow.RefreshChart()` 交给 `FrameChart.SetFrames(buffer, count)`，避免每拍分配数组。
 - 目标进程选择：主窗口状态卡提供下拉框，展开时枚举进程（带窗口的排在前面，名称/标题与 PID 同时显示，最多 200 项，排除助手自身）；默认选中当前前台进程。开始采集成功后写入 `settings.frames.targetPid` 并保存，下次启动由采集进程自动接管；停止时清空。
 - 帧状态文本由 `status` 轮询驱动（约 1 秒一次），与下拉框、开始/停止按钮一起构成闭环；`permissionDenied` 时详情显示采集进程给出的错误原因，提示以管理员身份运行或加入 Performance Log Users。
 

@@ -23,9 +23,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly SettingsService _settingsService;
     private readonly CancellationTokenSource _cts = new();
 
+    private const int FrameTimelineCapacity = 16_384;
+
     private readonly SampleRecord[] _timeline = new SampleRecord[TelemetryLayout.SampleCapacity];
     private readonly FrameRecord[] _frameBuffer = new FrameRecord[1024];
     private readonly FrameStats _frameStats = new();
+    private readonly FrameTimeline _frameTimeline = new(FrameTimelineCapacity);
+    private readonly FrameTimePoint[] _frameTimelineBuffer = new FrameTimePoint[FrameTimelineCapacity];
     private int _refreshing;
     private int _statusTicks;
     private long _lastFrameIndex = -1;
@@ -76,6 +80,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     public int TimelineCount { get; private set; }
 
+    public FrameTimePoint[] FrameTimelineBuffer => _frameTimelineBuffer;
+
+    public int CopyFrameTimeline() => _frameTimeline.CopyTo(_frameTimelineBuffer);
+
     public SampleRecord Latest => _telemetry.Latest;
 
     public bool IsConnectedToCollector => _connected;
@@ -89,6 +97,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public bool ShowVramChart => _settings.Charts.Vram;
 
     public bool ShowDiskChart => _settings.Charts.Disk;
+
+    public bool ShowFrameChart => _settings.Charts.Frames;
 
     public bool HasCollectorProblem =>
         _launcher.State is CollectorState.Missing or CollectorState.Failed ||
@@ -165,6 +175,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _frameCaptureDetail = string.Empty;
 
+    [ObservableProperty]
+    private string _frameValue = "—";
+
+    [ObservableProperty]
+    private string _frameSub = string.Empty;
+
     public async Task RefreshAsync()
     {
         if (Interlocked.Exchange(ref _refreshing, 1) == 1)
@@ -179,8 +195,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             {
                 UpdateMetrics();
                 UpdateProcesses();
-                UpdateFrames();
                 TimelineCount = _telemetry.CopyTo(_timeline);
+                UpdateFrames();
             }
 
             _statusTicks++;
@@ -398,6 +414,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (writeIndex < _lastFrameIndex)
         {
             _frameStats.Clear();
+            _frameTimeline.Clear();
             _frameSnapshot = default;
             _lastFrameIndex = -1;
         }
@@ -407,6 +424,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             _lastFrameIndex = Math.Max(0, writeIndex - _frameBuffer.Length);
         }
 
+        SampleRecord anchor = _telemetry.Latest;
+        double qpcTicksPerSecond = EstimateQpcTicksPerSecond();
         bool added = false;
         while (_lastFrameIndex < writeIndex)
         {
@@ -418,7 +437,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
             for (int i = 0; i < read; i++)
             {
-                _frameStats.Add(_frameBuffer[i].FrameTimeMs);
+                FrameRecord frame = _frameBuffer[i];
+                bool spike = _frameStats.Add(frame.FrameTimeMs);
+                long utcTicks = anchor.QpcTicks > 0
+                    ? FrameTimeline.ToUtcTicks(frame.QpcTicks, anchor.QpcTicks, anchor.UtcTicks, qpcTicksPerSecond)
+                    : 0;
+                _frameTimeline.Add(utcTicks, frame.FrameTimeMs, spike);
             }
 
             _lastFrameIndex += read;
@@ -430,6 +454,34 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             _lastFrameAt = DateTime.UtcNow;
             _frameSnapshot = _frameStats.Snapshot();
         }
+
+        UpdateFrameMetrics();
+    }
+
+    private double EstimateQpcTicksPerSecond()
+    {
+        if (TimelineCount >= 2)
+        {
+            SampleRecord first = _timeline[0];
+            SampleRecord last = _timeline[TimelineCount - 1];
+            long qpcDelta = last.QpcTicks - first.QpcTicks;
+            long utcDelta = last.UtcTicks - first.UtcTicks;
+            if (qpcDelta > 0 && utcDelta > 0)
+            {
+                return qpcDelta * (double)TimeSpan.TicksPerSecond / utcDelta;
+            }
+        }
+
+        return 10_000_000;
+    }
+
+    private void UpdateFrameMetrics()
+    {
+        bool fresh = _frameSnapshot.FrameCount > 0 && DateTime.UtcNow - _lastFrameAt < TimeSpan.FromSeconds(2);
+        FrameValue = fresh ? _frameSnapshot.InstantFps.ToString("F1") + " FPS" : "—";
+        FrameSub = fresh
+            ? _loc.Format("FrameStatsSub", _frameSnapshot.AverageFps, _frameSnapshot.OnePercentLowFps)
+            : string.Empty;
     }
 
     private void UpdateCollectorTexts()
@@ -538,6 +590,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ShowMemoryChart));
         OnPropertyChanged(nameof(ShowVramChart));
         OnPropertyChanged(nameof(ShowDiskChart));
+        OnPropertyChanged(nameof(ShowFrameChart));
     }
 
     private static string FormatMegabytes(double megabytes) => megabytes >= 1024
@@ -563,6 +616,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             UpdateMetrics();
             UpdateProcesses();
+            UpdateFrameMetrics();
         }
     }
 

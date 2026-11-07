@@ -145,6 +145,7 @@ public sealed class SettingsServiceTests : IDisposable
                 Cpu = false,
                 Gpu = false,
                 Memory = false,
+                Frames = false,
                 Vram = false,
                 Disk = false,
             },

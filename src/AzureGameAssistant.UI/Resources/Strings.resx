@@ -396,4 +396,22 @@
   <data name="FrameStateWithPid" xml:space="preserve">
     <value>{0} (PID {1})</value>
   </data>
+  <data name="FrameChartLabel" xml:space="preserve">
+    <value>Frames</value>
+  </data>
+  <data name="ChartFrameToggle" xml:space="preserve">
+    <value>Frame time chart</value>
+  </data>
+  <data name="FrameTimeAxis" xml:space="preserve">
+    <value>Frame time (ms)</value>
+  </data>
+  <data name="FrameSpike" xml:space="preserve">
+    <value>Spike</value>
+  </data>
+  <data name="FrameTimeHover" xml:space="preserve">
+    <value>{0:F1} ms · {1:F0} FPS</value>
+  </data>
+  <data name="FrameStatsSub" xml:space="preserve">
+    <value>Avg {0:F0} · 1% Low {1:F0}</value>
+  </data>
 </root>

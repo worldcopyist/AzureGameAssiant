@@ -29,6 +29,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         ChartMemory = settings.Charts.Memory;
         ChartVram = settings.Charts.Vram;
         ChartDisk = settings.Charts.Disk;
+        ChartFrames = settings.Charts.Frames;
 
         OverlayEnabled = settings.Overlay.Enabled;
         OverlayCorner = settings.Overlay.Corner;
@@ -126,6 +127,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     private bool _chartDisk;
 
     [ObservableProperty]
+    private bool _chartFrames;
+
+    [ObservableProperty]
     private bool _overlayEnabled;
 
     [ObservableProperty]
@@ -189,6 +193,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         settings.Charts.Memory = ChartMemory;
         settings.Charts.Vram = ChartVram;
         settings.Charts.Disk = ChartDisk;
+        settings.Charts.Frames = ChartFrames;
 
         settings.Overlay.Enabled = OverlayEnabled;
         settings.Overlay.Corner = OverlayCorner;

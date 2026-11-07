@@ -19,7 +19,7 @@ public partial class MainWindow : Window
         _viewModel = viewModel;
         DataContext = viewModel;
 
-        _charts = [CpuChart, GpuChart, MemoryChart, VramChart, DiskChart];
+        _charts = [FrameChart, CpuChart, GpuChart, MemoryChart, VramChart, DiskChart];
 
         WindowSelector.SelectionChanged += OnWindowChanged;
         WindowSelector.SelectedIndex = 0;
@@ -65,6 +65,8 @@ public partial class MainWindow : Window
         {
             chart.SetSamples(_viewModel.TimelineBuffer, _viewModel.TimelineCount);
         }
+
+        FrameChart.SetFrames(_viewModel.FrameTimelineBuffer, _viewModel.CopyFrameTimeline());
     }
 
     public void RefreshLocalization()
@@ -208,6 +210,7 @@ public partial class MainWindow : Window
         ChartMetric.Memory => MemoryChart,
         ChartMetric.Vram => VramChart,
         ChartMetric.Disk => DiskChart,
+        ChartMetric.Frame => FrameChart,
         _ => null,
     };
 
@@ -217,6 +220,7 @@ public partial class MainWindow : Window
         ChartMetric.Gpu => "Gpu",
         ChartMetric.Memory => "Memory",
         ChartMetric.Vram => "Vram",
+        ChartMetric.Frame => "FrameChartLabel",
         _ => "Disk",
     };
 

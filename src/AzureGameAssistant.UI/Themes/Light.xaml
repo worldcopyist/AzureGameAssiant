@@ -17,4 +17,5 @@
     <SolidColorBrush x:Key="ChartMemBrush" Color="#E08A00" />
     <SolidColorBrush x:Key="ChartVramBrush" Color="#7C5CE0" />
     <SolidColorBrush x:Key="ChartDiskBrush" Color="#0F9C8A" />
+    <SolidColorBrush x:Key="ChartFrameBrush" Color="#B0308F" />
 </ResourceDictionary>

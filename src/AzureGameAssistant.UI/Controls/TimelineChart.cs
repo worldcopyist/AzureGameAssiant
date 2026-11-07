@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
+using AzureGameAssistant.Core.Frames;
 using AzureGameAssistant.Core.Models;
 using AzureGameAssistant.UI.Services;
 
@@ -14,6 +15,7 @@ public enum ChartMetric
     Memory,
     Vram,
     Disk,
+    Frame,
 }
 
 /// <summary>
@@ -29,6 +31,7 @@ public sealed class TimelineChart : FrameworkElement
     private const double TrackGap = 8;
     private const double MinWindowSeconds = 10;
     private const double MaxWindowSeconds = 1800;
+    private const int SpikeMarkLimit = 512;
 
     private static readonly Typeface LabelTypeface = new(
         new FontFamily("Segoe UI, Microsoft YaHei UI"),
@@ -43,19 +46,29 @@ public sealed class TimelineChart : FrameworkElement
     private static readonly Brush FallbackMem = Frozen(Color.FromRgb(0xE0, 0x8A, 0x00));
     private static readonly Brush FallbackVram = Frozen(Color.FromRgb(0x7C, 0x5C, 0xE0));
     private static readonly Brush FallbackDisk = Frozen(Color.FromRgb(0x0F, 0x9C, 0x8A));
+    private static readonly Brush FallbackFrame = Frozen(Color.FromRgb(0xB0, 0x30, 0x8F));
+    private static readonly Brush FallbackSpike = Frozen(Color.FromRgb(0xD9, 0x3A, 0x3A));
     private static readonly Dictionary<(Brush, double), Pen> PenCache = new();
     private static readonly Dictionary<Brush, Pen> BandPenCache = new();
 
     private readonly List<Point> _linePoints = new(1200);
     private readonly List<Point> _bandPoints = new(1200);
+    private readonly List<Point> _spikePoints = new(64);
     private readonly Geometry?[] _lines = new Geometry?[5];
     private readonly Geometry?[] _bands = new Geometry?[5];
     private readonly double[] _seriesMax = new double[5];
 
     private SampleRecord[] _samples = Array.Empty<SampleRecord>();
     private int _count;
+    private FrameTimePoint[] _frames = Array.Empty<FrameTimePoint>();
+    private int _frameCount;
+    private int _frameVersion;
+    private double _frameScaleMax = 33.3;
+    private Geometry? _frameLine;
+    private Geometry? _frameBand;
     private float[] _minValues = Array.Empty<float>();
     private float[] _maxValues = Array.Empty<float>();
+    private float[] _spikeValues = Array.Empty<float>();
 
     private ChartMetric _metric = ChartMetric.Combined;
     private double _windowSeconds = 60;
@@ -121,6 +134,14 @@ public sealed class TimelineChart : FrameworkElement
         InvalidateVisual();
     }
 
+    public void SetFrames(FrameTimePoint[] frames, int count)
+    {
+        _frames = frames;
+        _frameCount = Math.Clamp(count, 0, frames.Length);
+        _frameVersion++;
+        InvalidateVisual();
+    }
+
     public void ResetPan()
     {
         if (_panSeconds == 0)
@@ -151,16 +172,30 @@ public sealed class TimelineChart : FrameworkElement
 
         DrawLegend(dc, bounds);
 
-        if (_count == 0)
+        bool frameChart = _metric == ChartMetric.Frame;
+        if (_count == 0 && (!frameChart || _frameCount == 0))
         {
             DrawCentered(dc, LocalizationService.Instance["NoData"], _plot, 12);
             return;
         }
 
-        double endTicks = _samples[_count - 1].UtcTicks - (_panSeconds * TimeSpan.TicksPerSecond);
+        double baseEndTicks = _count > 0 ? _samples[_count - 1].UtcTicks : _frames[_frameCount - 1].UtcTicks;
+        if (frameChart && _frameCount > 0)
+        {
+            baseEndTicks = Math.Max(baseEndTicks, _frames[_frameCount - 1].UtcTicks);
+        }
+
+        double endTicks = baseEndTicks - (_panSeconds * TimeSpan.TicksPerSecond);
         double startTicks = endTicks - (_windowSeconds * TimeSpan.TicksPerSecond);
 
-        var key = new RenderKey((int)_plot.Width, (int)_plot.Height, _windowSeconds, _panSeconds, _version, _metric);
+        var key = new RenderKey(
+            (int)_plot.Width,
+            (int)_plot.Height,
+            _windowSeconds,
+            _panSeconds,
+            _version,
+            _frameVersion,
+            _metric);
         if (key != _lastKey)
         {
             Rebuild(key, startTicks, endTicks);
@@ -172,6 +207,10 @@ public sealed class TimelineChart : FrameworkElement
             DrawMetric(dc, TrackRect(0, 3), 0);
             DrawMetric(dc, TrackRect(1, 3), 1);
             DrawMetric(dc, TrackRect(2, 3), 2);
+        }
+        else if (frameChart)
+        {
+            DrawFrameTrack(dc, TrackRect(0, 1));
         }
         else
         {
@@ -204,6 +243,10 @@ public sealed class TimelineChart : FrameworkElement
             BuildMetric(0, TrackRect(0, 3), startTicks, endTicks, span, width);
             BuildMetric(1, TrackRect(1, 3), startTicks, endTicks, span, width);
             BuildMetric(2, TrackRect(2, 3), startTicks, endTicks, span, width);
+        }
+        else if (_metric == ChartMetric.Frame)
+        {
+            BuildFrameTrack(TrackRect(0, 1), startTicks, endTicks, span, width);
         }
         else
         {
@@ -300,6 +343,11 @@ public sealed class TimelineChart : FrameworkElement
             }
         }
 
+        return CreateSeriesGeometry(plot, width, maxValue, out band);
+    }
+
+    private Geometry CreateSeriesGeometry(Rect plot, int width, double maxValue, out Geometry band)
+    {
         double left = plot.Left;
         double top = plot.Top;
         double height = plot.Height;
@@ -387,6 +435,83 @@ public sealed class TimelineChart : FrameworkElement
         return line;
     }
 
+    private void BuildFrameTrack(Rect rect, double startTicks, double endTicks, double span, int width)
+    {
+        if (_minValues.Length < width || _spikeValues.Length < width)
+        {
+            _minValues = new float[width];
+            _maxValues = new float[width];
+            _spikeValues = new float[width];
+        }
+
+        Array.Fill(_minValues, float.NaN, 0, width);
+        Array.Fill(_maxValues, float.NaN, 0, width);
+        Array.Fill(_spikeValues, float.NaN, 0, width);
+
+        double windowMax = 0;
+        for (int i = 0; i < _frameCount; i++)
+        {
+            FrameTimePoint frame = _frames[i];
+            double offset = (frame.UtcTicks - startTicks) / span;
+            if (offset < 0 || offset > 1)
+            {
+                continue;
+            }
+
+            float value = frame.FrameTimeMs;
+            if (!(value > 0))
+            {
+                continue;
+            }
+
+            int x = Math.Clamp((int)(offset * width), 0, width - 1);
+            if (float.IsNaN(_minValues[x]) || value < _minValues[x])
+            {
+                _minValues[x] = value;
+            }
+
+            if (float.IsNaN(_maxValues[x]) || value > _maxValues[x])
+            {
+                _maxValues[x] = value;
+            }
+
+            if (frame.Spike && (float.IsNaN(_spikeValues[x]) || value > _spikeValues[x]))
+            {
+                _spikeValues[x] = value;
+            }
+
+            windowMax = Math.Max(windowMax, value);
+        }
+
+        _frameScaleMax = FrameScaleMax(windowMax);
+        _frameLine = CreateSeriesGeometry(rect, width, _frameScaleMax, out Geometry band);
+        _frameBand = band;
+
+        _spikePoints.Clear();
+        double scale = rect.Height / _frameScaleMax;
+        for (int x = 0; x < width && _spikePoints.Count < SpikeMarkLimit; x++)
+        {
+            float spike = _spikeValues[x];
+            if (float.IsNaN(spike))
+            {
+                continue;
+            }
+
+            double y = Math.Clamp(rect.Bottom - (spike * scale), rect.Top, rect.Bottom);
+            _spikePoints.Add(new Point(rect.Left + x, y));
+        }
+    }
+
+    private static double FrameScaleMax(double max) => max switch
+    {
+        <= 16.7 => 16.7,
+        <= 33.3 => 33.3,
+        <= 50 => 50,
+        <= 66.7 => 66.7,
+        <= 100 => 100,
+        _ => Math.Ceiling(max / 50.0) * 50.0,
+    };
+
     private double WindowMaximum(double startTicks, double endTicks, Func<SampleRecord, double> selector)
     {
         double max = 0;
@@ -410,6 +535,37 @@ public sealed class TimelineChart : FrameworkElement
         string bottom = index == 3 ? "0" : "0%";
 
         DrawTrack(dc, rect, _lines[index], _bands[index], top, bottom, BrushKey(index), Fallback(index));
+    }
+
+    private void DrawFrameTrack(DrawingContext dc, Rect rect)
+    {
+        Brush gridBrush = GetBrush("ChartGridBrush", FallbackGrid);
+        Brush textBrush = GetBrush("TextSecondaryBrush", FallbackText);
+        Brush seriesBrush = GetBrush("ChartFrameBrush", FallbackFrame);
+
+        Pen gridPen = GetPen(gridBrush, 1);
+        dc.DrawLine(gridPen, new Point(rect.Left, rect.Top), new Point(rect.Right, rect.Top));
+        dc.DrawLine(gridPen, new Point(rect.Left, rect.Top + (rect.Height * 0.5)), new Point(rect.Right, rect.Top + (rect.Height * 0.5)));
+        dc.DrawLine(gridPen, new Point(rect.Left, rect.Bottom), new Point(rect.Right, rect.Bottom));
+
+        DrawText(dc, _frameScaleMax.ToString("F0", CultureInfo.CurrentUICulture) + " ms", new Point(4, rect.Top - 6), textBrush, 10);
+        DrawText(dc, "0", new Point(4, rect.Bottom - 12), textBrush, 10);
+
+        if (_frameBand is not null)
+        {
+            dc.DrawGeometry(null, GetBandPen(seriesBrush), _frameBand);
+        }
+
+        if (_frameLine is not null)
+        {
+            dc.DrawGeometry(null, GetPen(seriesBrush, 1.4), _frameLine);
+        }
+
+        Brush spikeBrush = GetBrush("DangerBrush", FallbackSpike);
+        foreach (Point point in _spikePoints)
+        {
+            dc.DrawEllipse(spikeBrush, null, point, 2, 2);
+        }
     }
 
     private void DrawTrack(
@@ -457,6 +613,11 @@ public sealed class TimelineChart : FrameworkElement
             x = DrawLegendItem(dc, x, y, loc["Gpu"], GetBrush("ChartGpuBrush", FallbackGpu));
             DrawLegendItem(dc, x, y, loc["Memory"], GetBrush("ChartMemBrush", FallbackMem));
         }
+        else if (_metric == ChartMetric.Frame)
+        {
+            x = DrawLegendItem(dc, x, y, loc["FrameTimeAxis"], GetBrush("ChartFrameBrush", FallbackFrame));
+            DrawDotLegendItem(dc, x, y, loc["FrameSpike"], GetBrush("DangerBrush", FallbackSpike));
+        }
         else
         {
             int index = MetricIndex(_metric);
@@ -477,6 +638,13 @@ public sealed class TimelineChart : FrameworkElement
     private double DrawLegendItem(DrawingContext dc, double x, double y, string text, Brush brush)
     {
         dc.DrawRectangle(brush, null, new Rect(x, y + 4, 8, 8));
+        double width = DrawText(dc, text, new Point(x + 12, y), GetBrush("TextSecondaryBrush", FallbackText), 11);
+        return x + 12 + width + 14;
+    }
+
+    private double DrawDotLegendItem(DrawingContext dc, double x, double y, string text, Brush brush)
+    {
+        dc.DrawEllipse(brush, null, new Point(x + 4, y + 8), 3, 3);
         double width = DrawText(dc, text, new Point(x + 12, y), GetBrush("TextSecondaryBrush", FallbackText), 11);
         return x + 12 + width + 14;
     }
@@ -506,6 +674,12 @@ public sealed class TimelineChart : FrameworkElement
         double ratio = (hover.X - _plot.Left) / _plot.Width;
         long targetTicks = (long)(startTicks + (ratio * (endTicks - startTicks)));
 
+        if (_metric == ChartMetric.Frame)
+        {
+            DrawFrameHover(dc, hover, targetTicks);
+            return;
+        }
+
         int nearest = -1;
         long best = long.MaxValue;
         for (int i = 0; i < _count; i++)
@@ -524,14 +698,50 @@ public sealed class TimelineChart : FrameworkElement
         }
 
         SampleRecord sample = _samples[nearest];
-        Brush lineBrush = GetBrush("TextSecondaryBrush", FallbackText);
-        dc.DrawLine(GetPen(lineBrush, 1), new Point(hover.X, _plot.Top), new Point(hover.X, _plot.Bottom));
-
         string detail = _metric == ChartMetric.Combined
             ? DescribeSample(sample, 0) + "\n" + DescribeSample(sample, 1) + "\n" + DescribeSample(sample, 2)
             : DescribeSample(sample, MetricIndex(_metric));
 
         string text = FormatTime(sample.UtcTicks) + "\n" + detail;
+        DrawHoverTip(dc, hover, text);
+    }
+
+    private void DrawFrameHover(DrawingContext dc, Point hover, long targetTicks)
+    {
+        int nearest = -1;
+        long best = long.MaxValue;
+        for (int i = 0; i < _frameCount; i++)
+        {
+            long distance = Math.Abs(_frames[i].UtcTicks - targetTicks);
+            if (distance < best)
+            {
+                best = distance;
+                nearest = i;
+            }
+        }
+
+        if (nearest < 0)
+        {
+            return;
+        }
+
+        LocalizationService loc = LocalizationService.Instance;
+        FrameTimePoint frame = _frames[nearest];
+        double fps = frame.FrameTimeMs > 0 ? 1000.0 / frame.FrameTimeMs : 0;
+        string detail = loc.Format("FrameTimeHover", frame.FrameTimeMs, fps);
+        if (frame.Spike)
+        {
+            detail += " · " + loc["FrameSpike"];
+        }
+
+        DrawHoverTip(dc, hover, FormatTime(frame.UtcTicks) + "\n" + detail);
+    }
+
+    private void DrawHoverTip(DrawingContext dc, Point hover, string text)
+    {
+        Brush lineBrush = GetBrush("TextSecondaryBrush", FallbackText);
+        dc.DrawLine(GetPen(lineBrush, 1), new Point(hover.X, _plot.Top), new Point(hover.X, _plot.Bottom));
+
         FormattedText formatted = Format(text, GetBrush("TextPrimaryBrush", FallbackText), 11);
         double width = formatted.Width + 14;
         double height = formatted.Height + 10;
@@ -803,5 +1013,6 @@ public sealed class TimelineChart : FrameworkElement
         double WindowSeconds,
         double PanSeconds,
         int Version,
+        int FrameVersion,
         ChartMetric Metric);
 }
