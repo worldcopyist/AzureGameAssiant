@@ -7,10 +7,10 @@
 | 项目 | 内容 |
 | --- | --- |
 | 文档编号 | AGS-HANDOFF |
-| 当前版本 | v0.0.7 |
+| 当前版本 | v0.0.8 |
 | 最后更新 | 2026-11-07 |
 | 最后更新人 | Qoder |
-| 仓库状态 | M1 基础闭环、图标、分指标图表、无背景悬浮数据、图表弹窗与悬浮窗配色已完成，可本地运行与打包测试 |
+| 仓库状态 | M1 全部完成；M2-0 PresentMon 已锁定并核验，M2-1 帧 CSV 解析与帧统计已落地；VS C++ 工具链安装中 |
 
 ---
 
@@ -18,13 +18,13 @@
 
 | 项 | 值 |
 | --- | --- |
-| 产品阶段 | M1（v0.1）基础闭环 + UI 增强 |
-| 最新里程碑 | M1-1 ~ M1-6 全部完成（含 30 分钟连续运行验收）；M1-7 图标 / 分指标图表 / 无背景悬浮数据 / 图表弹窗 / 悬浮窗配色完成 |
+| 产品阶段 | M1（v0.1）完成；M2（帧级真相）进行中 |
+| 最新里程碑 | M1-1 ~ M1-7 全部完成；M2-0 PresentMon 版本锁定与 CLI 核验完成；M2-1 帧 CSV 解析器与帧统计完成 |
 | 可运行产物 | `build/run-dev.ps1` 可启动；`build/package.ps1 -CollectorMode SelfContained` 可生成便携 ZIP |
 | 代码分支 | `main`（`feat/m1-foundation` 已 squash 合入，分支保留） |
-| 当前提交 | `d6247f3 feat(ui): 图表弹窗与悬浮窗配色主题` |
-| 未提交变更 | 无（本轮提交后） |
-| 阻塞事项 | 本机缺少 NativeAOT 链接器（见 K-12），暂不能产出 AOT 采集进程 |
+| 当前提交 | `c8a300a docs(handoff): 同步 M1-7 提交哈希` |
+| 未提交变更 | PresentMon 随包文件与许可证、`THIRD-PARTY-NOTICES.md`、开发/调研文档、帧解析与帧统计源码及测试 |
+| 阻塞事项 | K-12：VS C++ 工具链安装进行中（`F:\VS2022BuildTools`），完成后才能验证 AOT 产物；3 款游戏实测与反作弊评估待用户游戏环境 |
 
 ## 2. 环境
 
@@ -61,6 +61,9 @@
 - [x] M1-7 悬浮窗样式调整：去掉背景面板与边框，只显示数据；数据项从左到右横向排列，宽度不足时按数据项自动换行；文字加细阴影保证可读性；默认位置改为左上角并同步默认配置与测试。
 - [x] M1-7 图表弹窗：每张折线图卡头部新增“↗”，把实时 `TimelineChart` 移入独立 `ChartWindow`；主窗口卡片显示占位与“收回图表”；关闭小窗自动归还并恢复按钮；主窗口隐藏但小窗可见时继续按 500ms 节拍刷新。
 - [x] M1-7 悬浮窗配色：新增默认 / 浅色 / 天空蓝 / 自定义四套文字主题；自定义颜色支持 `#RRGGBB`，标签同色降透明度，阴影按亮度自动黑/白；设置页提供主题下拉、颜色输入与实时色块，非法值回退白色。
+- [x] M2-0 PresentMon 随包：下载 2.6.0 x64 控制台程序到 `third_party/presentmon/`，核验 SHA256 与 Intel Authenticode 签名，附 MIT 许可证与 `SHA256SUMS`；根目录新增 `THIRD-PARTY-NOTICES.md`。
+- [x] M2-0 CLI 核验：确认 `--process_id`、`--output_stdout`、`--v2_metrics`、`--session_name`、`--terminate_on_proc_exit`、`--stop_existing_session` 可用；默认输出 2.x PascalCase 指标（`CPUStartTime` 为毫秒）；非提权启动退出码 `6`，stderr 为 `failed to start trace session: access denied.`。
+- [x] M2-1 帧解析基础：`FrameCsvParser` 按表头建映射（大小写不敏感，不硬编码列序），输出 `PresentMonFrame`；`FrameStats` 提供瞬时/平均 FPS、1% / 0.1% Low 与基于 120 帧中位数的尖峰判定；新增 10 项单元测试。
 
 ### 3.1 性能实测（Release，采样 1000ms，专用工作集口径）
 
@@ -132,14 +135,17 @@
 
 ## 4. 进行中
 
-无。M1 已满足出口条件，下一步处理 K-12 并进入 M2-0。
+- **K-12**：VS Build Tools C++ 工作负载正在安装到 `F:\VS2022BuildTools`（不占 C 盘）；完成后用 `vswhere` 确认，再执行 NativeAOT 发布与正式打包。
+- **M2-0**：版本锁定、哈希/签名、CLI 与权限失败模式已验证；3 款游戏实测与反作弊兼容性评估待用户提供游戏环境。
 
 ## 5. 下一步（按顺序）
 
-1. **解决 K-12**：安装 VS Build Tools C++ 工作负载，验证 NativeAOT 采集进程体积与启动，产出正式包。
-2. **M2-0 PresentMon 验证**：锁定版本与 SHA256、核对列名/参数、权限模型、3 款游戏实测、反作弊兼容性评估。
-3. **M3-0 传感器与 AI 验证**：LHM GPU-only、不加载内核驱动；OpenAI 兼容接口与本地模型联调。
-4. **8 小时稳定性**：在 M2 开始前补做长时运行，重点复核 Collector 句柄趋势（K-15）与睡眠唤醒。
+1. **完成 K-12**：确认 `vswhere` 找到 VC 工具；NativeAOT 发布采集进程，核对体积、启动与专用工作集；运行 `build/package.ps1` 默认 AOT 流程。
+2. **M2-1 接入**：给共享内存帧区加独立写入门（当前 `WriteSequence` 只保护采样区），实现 `WriteFrames` / `ReadFrames`；接入 PresentMon 监督器（状态机、退避、作业对象收尾）与采集进程配置。
+3. **M2-2 UI**：主窗口帧轨道、悬浮窗 FPS / 平均帧 / 1% Low 显示；悬停与事件标记。
+4. **M2-0 实测**：3 款游戏 + 反作弊兼容性评估（K-07）。
+5. **M3-0 传感器与 AI 验证**：LHM GPU-only、不加载内核驱动；OpenAI 兼容接口与本地模型联调。
+6. **8 小时稳定性**：重点复核 Collector 句柄趋势（K-15）与睡眠唤醒。
 
 每个步骤完成后：更新本文件 → 按提交规范提交 → 在交接日志追加一行。
 
@@ -189,7 +195,9 @@
 | K-09 | 各 LLM 供应商兼容接口存在细节差异 | AI 调用失败 | 只依赖 `chat/completions` 最小子集；3 家云 + 本地联调 |
 | K-10 | 含帧会话体积可能超过 12MB 预算 | 存储增长 | M2 实测；必要时降低帧批字段或提高压缩率 |
 | K-11 | OCAT 许可证不明确 | 不可复用其代码 | 只参考思路；代码评审检查来源 |
-| K-12 | 本机缺少 NativeAOT 链接器（VS C++ 工作负载） | 无法产出正式采集进程 | 安装 Build Tools C++ 后执行 `package.ps1` 默认 AOT 流程；当前用 `-CollectorMode SelfContained` 验证 |
+| K-12 | 本机缺少 NativeAOT 链接器（VS C++ 工作负载） | 无法产出正式采集进程 | VS Build Tools 正在安装到 `F:\VS2022BuildTools`；完成后 `vswhere` 验证并执行 `package.ps1` 默认 AOT 流程；当前产物仍为 SelfContained |
+| K-22 | PresentMon 帧数据需要管理员或 Performance Log Users；未提权时退出码 6 | 浅模式无帧数据 | 已实测失败模式并按提示降级；深模式由用户显式提权，不静默弹 UAC |
+| K-23 | 帧区与采样区目前共用 `WriteSequence` | 帧写入接入后可能放大重试与丢样 | M2-1 为帧区引入独立写入门后再接入 PresentMon |
 | K-13 | UI 软件渲染在超大窗口/高 DPI 下可能增加 CPU | 界面开销上升 | 仅 2Hz 刷新；M2 增加渲染模式设置项后再评估 |
 | K-14 | 当前仅验证单显示器、单 GPU、本机驱动 | 兼容性未知 | M2-0 扩展手工验收矩阵；高 DPI/多显示器在 M2 验收 |
 | K-15 | Collector 句柄在 30 分钟可见状态下 381 → 455 缓慢上升 | 长时运行可能累积 | 托盘 10 分钟窗口内回落且内存稳定；8 小时稳定性测试复核，必要时用句柄表定位 |
@@ -215,7 +223,7 @@ powershell -File build/measure.ps1 -DurationMinutes 30 -OutputPath artifacts/mea
 
 预期：
 
-- 构建 0 警告、0 错误；测试 22 项全部通过。
+- 构建 0 警告、0 错误；测试 32 项全部通过（含 PresentMon CSV 解析与帧统计）。
 - 界面显示六张指标卡（CPU / GPU / 内存 / 显存 / 磁盘 / 抖动）、五张可开关折线图、Top-5 进程与采集状态；标题栏显示猫耳头像图标。
 - 每张可见折线图卡头部有“↗”；点击后图表进入独立小窗，卡片显示“收回图表”，关闭小窗后图表回到原位。
 - 设置页可开关每张图、开关悬浮窗、选择四角位置与偏移、勾选悬浮内容；保存后立即生效。
@@ -242,6 +250,7 @@ powershell -File build/measure.ps1 -DurationMinutes 30 -OutputPath artifacts/mea
 | 2026-11-07 | Qoder | 接入应用图标；拆分五张可开关折线图；实现桌面悬浮数据窗（四角定位、内容开关、鼠标穿透）；Release 抽测内存与 CPU 达标 | `feat(ui): 应用图标、分指标图表与桌面悬浮数据` |
 | 2026-11-07 | Qoder | 悬浮数据窗改为无背景、横向排列自动换行、默认左上；文字加细阴影；抽测隐藏主窗口时 UI CPU 0.094% | `feat(ui): 悬浮数据改为无背景横向换行并默认左上` |
 | 2026-11-07 | Qoder | 折线图支持脱离为独立小窗并自动归还；悬浮窗新增配色主题与自定义颜色；22 项测试通过，Release 实测小窗可见 UI CPU 0.391%、关闭后 0.052% | `d6247f3 feat(ui): 图表弹窗与悬浮窗配色主题` |
+| 2026-11-07 | Qoder | 锁定 PresentMon 2.6.0 并核验 SHA256/签名；登记第三方许可证与 CLI/CSV 列名；新增帧 CSV 解析器与帧统计，测试增至 32 项 | `chore(frames): 锁定 PresentMon 2.6.0 并落地帧解析与统计` |
 
 ## 10. 下次交接模板
 

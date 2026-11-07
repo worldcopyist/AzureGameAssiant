@@ -76,6 +76,13 @@
 - PresentMon 版本升级可能改变列名与参数，必须锁定版本、记录 SHA256，并在启动时校验。
 - 只对目标游戏进程采集，不对全系统采集，避免无关开销。
 
+**2.6.0 实测（2026-11-07）**
+
+- 官方资产 `PresentMon-2.6.0-x64.exe` 已下载并校验：SHA256 `b2a706bc...18f1af`，Authenticode 有效、签名者为 Intel。
+- `--help` 确认支持 `--process_id`、`--output_stdout`、`--v2_metrics`、`--terminate_on_proc_exit`、`--stop_existing_session`；默认输出 2.x 指标，时间列为 `CPUStartTime`（自录制开始的毫秒数），1.x 的 `TimeInSeconds` 不存在。
+- 非提权运行返回退出码 `6`，stderr 明确要求管理员或 Performance Log Users；与浅/深模式设计一致。
+- 3 款游戏实测与反作弊兼容性仍需在用户游戏环境完成，不在本次结论内。
+
 ### 4.2 厂商 GPU 传感器：复用 LibreHardwareMonitorLib
 
 **做法**

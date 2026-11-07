@@ -428,19 +428,24 @@ cpuPct = (ΔKernel + ΔUser) / (ΔWallSeconds × LogicalProcessorCount) × 100
 #### 6.6.1 分发与版本
 
 - 路径：`third_party/presentmon/PresentMon-<version>-x64.exe`，随构建复制到输出目录 `presentmon\`。
-- 初始版本锁定 `2.6.0`（与 CapFrameX 随包版本一致）；实施时如升级必须记录变更理由、重新跑兼容性测试并更新 SHA256。
+- 版本锁定 `2.6.0`（与 CapFrameX 随包版本一致）；升级必须记录变更理由、重新跑兼容性测试并更新 SHA256。
 - `third_party/presentmon/SHA256SUMS` 记录哈希；启动前校验，失败则禁用帧采集并提示“文件损坏”。
-- 附带 PresentMon 的 MIT 许可证全文；`THIRD-PARTY-NOTICES.md` 登记版本、来源、许可证。
+- 已核验（2026-11-07）：
+  - 文件：`PresentMon-2.6.0-x64.exe`，980,320 字节。
+  - SHA256：`b2a706bc6ad475749e3b7e3409263aa1e6906d45bdcf993f6dbc0f660188f1af`（与 GitHub Release 资产摘要一致）。
+  - Authenticode：`Valid`，签名者 `CN=Intel Corporation`。
+- 附带 PresentMon 的 MIT 许可证全文 `third_party/presentmon/LICENSE.txt`；`THIRD-PARTY-NOTICES.md` 登记版本、来源、许可证与哈希。
 
 #### 6.6.2 启动参数
 
-以随包版本 `--help` 为准，初始使用：
+以随包版本 `--help` 为准（2.6.0 已实测存在下列参数）：
 
 ```
-PresentMon.exe --process_name <game.exe> --output_stdout --session_name AzureGameAssistant --terminate_on_proc_exit --stop_existing_session
+PresentMon.exe --process_id <pid> --output_stdout --v2_metrics --session_name AzureGameAssistant --terminate_on_proc_exit --stop_existing_session
 ```
 
-- 使用 `--process_name` 而非全系统采集；同名多进程时优先 PID 匹配（若版本支持 `--process_id` 则优先）。
+- 2.6.0 确认支持 `--process_id`，已知目标 PID 时优先使用；未拿到 PID 时回退 `--process_name`。
+- 默认输出即为 2.x 指标；仍显式传入 `--v2_metrics`，防止上游更改默认值导致列名漂移。
 - `--output_stdout` 便于流式解析；不写临时 CSV 文件，减少磁盘 IO。
 - 不使用 `--restart_as_admin`：提权必须由用户显式触发，禁止静默弹 UAC。
 - 不使用 `--hotkey`：热键由本项目的隐藏窗口统一管理。
@@ -450,22 +455,25 @@ PresentMon.exe --process_name <game.exe> --output_stdout --session_name AzureGam
 
 - 读取 stdout 的 UTF-8 文本流，按行解析；首行是表头，建立“列名 → 索引”映射，禁止硬编码列序。
 - 使用 `CultureInfo.InvariantCulture` 解析浮点数；`ReadOnlySpan<char>` 分割，避免每帧字符串分配。
-- 目标列（缺失时降级对应字段，不整体失败）：
+- 2.6.0 默认输出 2.x 指标，列名为 PascalCase；下表按实际列名登记（1.x 的 `TimeInSeconds` / `msBetweenPresents` 等不再适用）。缺失列时降级对应字段，不整体失败。
 
-| 列 | 字段 | 用途 |
+| 列 | 字段 | 单位 / 用途 |
 | --- | --- | --- |
-| `TimeInSeconds` | 相对时间 | 换算 QPC |
-| `msBetweenPresents` | `FrameTimeMs` | frametime、FPS、1%/0.1% low |
-| `msCPUBusy` | `CpuBusyMs` | CPU 忙 |
-| `msCPUWait` | `CpuWaitMs` | CPU 等待（CPU 瓶颈关键证据） |
-| `msGPULatency` | `GpuLatencyMs` | GPU 延迟 |
-| `msGPUBusy` | `GpuBusyMs` | GPU 忙 |
-| `msGPUWait` | `GpuWaitMs` | GPU 等待（GPU 瓶颈关键证据） |
+| `CPUStartTime` | 相对时间 | 自录制开始的毫秒数，用于换算 QPC |
+| `MsBetweenPresents` | `FrameTimeMs` | frametime、FPS、1%/0.1% low |
+| `MsCPUBusy` | `CpuBusyMs` | CPU 忙 |
+| `MsCPUWait` | `CpuWaitMs` | CPU 等待（CPU 瓶颈关键证据） |
+| `MsGPULatency` | `GpuLatencyMs` | GPU 延迟 |
+| `MsGPUTime` | `GpuTimeMs` | GPU 工作总时长 |
+| `MsGPUBusy` | `GpuBusyMs` | GPU 忙 |
+| `MsGPUWait` | `GpuWaitMs` | GPU 等待（GPU 瓶颈关键证据） |
 | `DisplayLatency` | `DisplayLatencyMs` | 显示延迟 |
-| `msAnimationError` | `AnimationErrorMs` | 动画误差/呈现节奏 |
+| `MsAnimationError` | `AnimationErrorMs` | 动画误差/呈现节奏 |
 | `PresentMode` | `PresentMode` | 呈现模式 |
-| `msBetweenDisplayChange` | 显示间隔 | 检测显示空洞 |
+| `MsBetweenDisplayChange` | 显示间隔 | 检测显示空洞 |
 | `ProcessID` | `Pid` | 目标进程校验 |
+
+- 需要兼容 1.x 数据时，仅在解析器中增加别名映射（大小写不敏感）；运行路径仍固定 `--v2_metrics`。
 
 - 每 256 行或 100ms 批量写入帧环形缓冲，避免逐帧加锁。
 - 解析失败行计数；连续 100 行失败或 5 秒无有效帧 → 判定 PresentMon 异常，重启子进程。
@@ -484,7 +492,7 @@ Stopped ──进入游戏/手动指定──► Starting ──首帧──► 
 ```
 
 - 重启退避 1s / 5s / 15s；连续 3 次失败停止，写能力位“帧不可用”，UI 显示原因。
-- 权限不足：识别 stderr 中的访问拒绝/ETW 错误，提示“需要管理员权限或 Performance Log Users”。
+- 权限不足：非提权启动实测退出码 `6`，stderr 包含 `failed to start trace session: access denied.` 与 “Performance Log Users” 提示；据此提示“需要管理员权限或 Performance Log Users”。
 - 反作弊：不注入、不 Hook、不读写游戏内存；只运行官方 PresentMon。文档明确“不承诺兼容所有反作弊”，不在游戏中自动提权。
 
 #### 6.6.5 帧统计
