@@ -10,7 +10,7 @@
 | 当前版本 | v0.1.0 |
 | 最后更新 | 2026-11-07 |
 | 最后更新人 | Qoder |
-| 仓库状态 | M1 全部完成；M2-0/M2-1/M2-2 完成并实机验证（含明日方舟真实帧采集）；M3-0 传感器边车与 GPU 温度已落地；M3-1 启动自动提权、权限自检、前台自动帧采集已完成并实机验证；CPU 温度在本机无安全用户态来源，需用户自行安装 PawnIO 并切到驱动模式 |
+| 仓库状态 | M1 全部完成；M2-0/M2-1/M2-2 完成并实机验证（含明日方舟真实帧采集）；M3-0 传感器边车与 GPU 温度已落地；M3-1 启动自动提权、权限自检、前台自动帧采集已完成并实机验证；AI 手动分析（OpenAI 兼容）与 MCP 只读服务已落地；CPU 温度在本机无安全用户态来源，需用户自行安装 PawnIO 并切到驱动模式 |
 
 ---
 
@@ -18,13 +18,13 @@
 
 | 项 | 值 |
 | --- | --- |
-| 产品阶段 | M1（v0.1）完成；M2（帧级真相）完成核心闭环；M3-1 权限与自动采集闭环完成 |
-| 最新里程碑 | 启动自动提权 + 权限自检窗口 + 前台游戏自动帧采集；CPU 温度新增可选驱动模式与缺失原因提示 |
-| 可运行产物 | `build/run-dev.ps1` 可启动；`build/package.ps1` 默认 AOT 流程可生成便携 ZIP（含 PresentMon）；二号屏桌面快捷方式指向 Release |
+| 产品阶段 | M1（v0.1）完成；M2（帧级真相）完成核心闭环；M3-1 权限与自动采集闭环完成；M3 的 AI 手动分析与 MCP 只读服务已落地 |
+| 最新里程碑 | AI 手动分析窗口（预览 / 同意 / 预算 / 结构化报告 / 本地兜底）+ MCP stdio 只读硬件数据服务（6 个有界工具） |
+| 可运行产物 | `build/run-dev.ps1` 可启动；`build/package.ps1` 默认 AOT 流程可生成便携 ZIP（含 PresentMon）；`build/publish-mcp.ps1` 生成 `artifacts/mcp/AzureGameAssistant.Mcp.exe`；二号屏桌面快捷方式指向 Release |
 | 代码分支 | `main`（`feat/m1-foundation` 已 squash 合入，分支保留） |
-| 当前提交 | `e8fff2c docs(handoff): 记录 PawnIO 安装与 CPU 温度验证` |
+| 当前提交 | `817c051` |
 | 未提交变更 | 无 |
-| 阻塞事项 | 3 款游戏 PresentMon 实测与反作弊评估待用户游戏环境；本机已由用户确认安装 PawnIO 2.2.0，CPU 温度可读，但驱动可能被 ACE 视为环境异常（用户已知悉）；深模式内存/CPU 复测待专项测量 |
+| 阻塞事项 | 3 款游戏 PresentMon 实测与反作弊评估待用户游戏环境；本机已由用户确认安装 PawnIO 2.2.0，CPU 温度可读，但驱动可能被 ACE 视为环境异常（用户已知悉）；AI 窗口因当前运行实例已提权并占用 Release 产物，未做点击级验证；深模式内存/CPU 复测待专项测量 |
 
 ## 2. 环境
 
@@ -90,6 +90,9 @@
 - [x] 设置重启判定修正：改为与启动时应用的采样间隔、传感器开关/间隔、CPU 模式比较，避免设置保存后同一实例被提前归一化导致采集进程不重启。
 - [x] 测试：53 项全部通过（新增 CPU 模式归一化与自动采集/提权设置用例）；Release 构建 0 警告 0 错误。
 - [x] M3-1 CPU 温度驱动模式实测：经用户确认后安装 PawnIO 2.2.0（官方 GitHub 发布，SHA256 与 Authenticode 校验通过）；设置切到 `driver` 后边车读到 `Core (Tctl/Tdie) 47°C`、`Package 45W`，悬浮窗显示“CPU 温度 47°C”，权限自检“CPU 温度”变为 OK。驱动为 `DEMAND_START`，不随系统自动加载；用户知悉 ACE 可能将其视为环境异常，可执行 `sc stop PawnIO` 或卸载。
+- [x] M3 AI 接口：新增 `AzureGameAssistant.Ai` 库（预设/地址校验、Credential Manager、事实层、脱敏、提示词、OpenAI 兼容 SSE/JSON 客户端、严格 JSON 校验、危险建议过滤、预算与用量、本地兜底、报告落盘）。主界面“AI 分析”打开 `AiAnalysisWindow`：请求摘要、JSON 预览、同意、进度、取消、结构化结果与本地兜底；设置页新增 AI 分组与 Key 保存/删除。默认关闭、手动触发、Key 只存凭据管理器。
+- [x] M3 MCP：新增 `AzureGameAssistant.Mcp` 只读 stdio 服务（JSON-RPC 2.0，协议 `2024-11-05`），固定 6 个有界工具：快照、历史聚合、帧统计、Top 进程、链路诊断、采集状态；`build/publish-mcp.ps1` 生成单文件产物。实机以 stdio 对运行中的采集进程冒烟：`sampleCount` 1801、`frameCount` 78234，非管理员时状态正确标记 `degraded` 并说明控制管道需同权限。
+- [x] 测试补齐：新增 `AiEndpointTests`、`AiRedactorTests`、`AiFactsBuilderTests`、`AiReportValidatorTests`、`OpenAiCompatibleClientTests`、`AiAnalysisServiceTests`、`McpServerTests`；测试总数 106 项，全部通过；Release 全解决方案 0 警告 0 错误（因运行实例锁定 `bin\Release`，使用 `BaseOutputPath` 输出到 `artifacts/build` 验证）。
 
 ### 3.1 性能实测（Release，采样 1000ms，专用工作集口径）
 
@@ -209,17 +212,22 @@
 
 ## 4. 进行中
 
+- **M3 AI**：库、UI 与自动化测试已完成；`AiAnalysisWindow` 尚未在本机点击验证（当前 Release 实例已提权并锁定产物）。验证时先退出托盘中的旧实例，再重新构建 Release 并双击桌面快捷方式。
+- **M3 MCP**：协议与真实采集数据冒烟通过；尚未在第三方 Agent 客户端中登记配置验证（需要用户选择 Agent）。
 - **M3-1**：启动提权、权限自检、前台自动采集已实机闭环；本机已装 PawnIO 并切到驱动模式，CPU 温度可读。
 - **M3-0**：GPU 传感器链路已通；边车进程内存/CPU 与其他厂商真机待补测。
 - **M2-0**：明日方舟已实测；其余 2 款游戏与反作弊兼容性评估待用户提供环境。
 
 ## 5. 下一步（按顺序）
 
-1. **ACE 兼容性观察**：在装有 PawnIO 的当前环境启动明日方舟，确认 ACE 是否拦截；若出现异常，立即 `sc stop PawnIO` 并切回 ACPI 模式。任何情况下不注入、不绕过反作弊。
-2. **M2-0 实测**：再测 2 款游戏 + 反作弊兼容性评估（K-07），并复测深模式（PresentMon + 传感器边车运行中）采集进程与边车的内存/CPU。
-3. **M3-0 传感器补测**：边车专用工作集与 CPU 占用；AMD/Intel GPU 各验证一次；确认 GPU-only 永不触发驱动加载。
-4. **8 小时稳定性**：重点复核 Collector 句柄趋势（K-15）与睡眠唤醒。
-5. **多显示器悬浮窗**：按显示器工作区定位（K-16）。
+1. **AI 窗口人工验证**：退出旧实例 → `dotnet build -c Release` → 双击二号屏快捷方式 → 设置页填写供应商 / Base URL / 模型 / API Key（或选 Ollama）→ 主界面“AI 分析”核对预览 JSON、同意、预算与错误提示。默认不联网，只有点击“运行”后才发请求。
+2. **MCP Agent 接入验证**：运行 `powershell -File build/publish-mcp.ps1`，在目标 Agent 中登记 `artifacts/mcp/AzureGameAssistant.Mcp.exe`，依次调用 `diagnose`、`get_hardware_snapshot`、`get_history`、`get_frame_stats`。
+3. **ACE 兼容性观察**：在装有 PawnIO 的当前环境启动明日方舟，确认 ACE 是否拦截；若出现异常，立即 `sc stop PawnIO` 并切回 ACPI 模式。任何情况下不注入、不绕过反作弊。
+4. **M2-0 实测**：再测 2 款游戏 + 反作弊兼容性评估（K-07），并复测深模式（PresentMon + 传感器边车运行中）采集进程与边车的内存/CPU。
+5. **M3-0 传感器补测**：边车专用工作集与 CPU 占用；AMD/Intel GPU 各验证一次；确认 GPU-only 永不触发驱动加载。
+6. **自动分析（FR-020 剩余项）**：需先有事件评分写入源；在此之前不要添加“自动分析”开关。
+7. **8 小时稳定性**：重点复核 Collector 句柄趋势（K-15）与睡眠唤醒。
+8. **多显示器悬浮窗**：按显示器工作区定位（K-16）。
 
 每个步骤完成后：更新本文件 → 按提交规范提交 → 在交接日志追加一行。
 
@@ -244,6 +252,8 @@
 | AI 接口 | OpenAI 兼容 `/v1/chat/completions` + 自定义 Base URL，BYOK | 用户要求通用 LLM 接口；ADR-015 |
 | AI 数据边界 | 本地事实层 + 默认脱敏 + 发送前预览 + 手动触发 + 预算上限 | 隐私与成本；ADR-017 |
 | API Key | Windows Credential Manager | ADR-016 |
+| AI 触发 | 手动触发（主界面“AI 分析”按钮 + 预览/同意）；严重事件自动分析未实现，不提供开关 | 当前无事件评分写入源；避免后台请求与无效控件 |
+| MCP 服务 | 独立只读 stdio 进程，6 个有界工具，不写系统、不执行命令 | 用户要求 Agent 直读硬件数据；ADR-024 |
 | 默认联网 | 禁止；仅用户显式开启 AI 后访问其确认的地址 | 用户此前“纯本地”要求，按新需求放宽为“本地优先” |
 | 提交标注 | 人类作者不变，footer 加 `Agent: Qoder`；其他 Agent 用自己名称 | 用户确认 |
 | 分支模型 | 主干 + 短分支 + PR Squash | 用户确认 |
@@ -290,6 +300,10 @@
 | K-25 | 传感器边车进程的专用工作集 / CPU 占用尚未单独测量 | 深模式整体预算未定论 | 下一轮专项测量；边车仅 1s 节拍、无 GUI，预计远低于 35MB 预算 |
 | K-26 | LHM 0.9.6 对本机 RTX 4060 不提供功耗传感器 | GPU 功耗为“—” | 不写 0；改用驱动 SDK 或新版 LHM 时再补，保持缺失语义 |
 | K-27 | 便携包尚未包含 `AzureGameAssistant.Sensors.exe` 与 LHM 依赖 | 分发版本的 GPU/CPU 温度不显示 | 开发态从同仓 Release 输出解析边车；M3 打包阶段把边车与 LICENSES 一并放入 `sensors\` 并校验 |
+| K-29 | `AiAnalysisWindow` 尚未做本机点击级验证 | UI 交互问题可能未被发现 | 当前 Release 实例已提权并锁定产物，无法原地替换；下一步退出旧实例后重建 Release 并按第 8 节步骤验证。服务层已有 106 项测试覆盖 |
+| K-30 | FR-020“严重事件自动分析”未实现 | 与需求文档原描述存在差距 | 已在需求文档标注实现现状；不提供开关，避免后台请求。待事件评分源落地后实现 |
+| K-31 | MCP 以非管理员运行时 `get_collector_status` 为 `degraded` | 缺少运行时长与最近错误 | 属设计行为；快照/历史/帧统计/进程排行不受影响。需要完整状态时由用户以管理员身份运行 Agent |
+| K-32 | MCP 默认框架依赖单文件，目标机需 .NET 8 运行时 | 无运行时环境无法启动 | `build/publish-mcp.ps1 -SelfContained` 生成自包含版本 |
 
 ## 8. 如何验证当前状态
 
@@ -303,6 +317,15 @@ powershell -File build/run-dev.ps1        # 启动界面与采集进程
 powershell -File build/measure.ps1 -DurationMinutes 1
 powershell -File build/measure.ps1 -DurationMinutes 30 -OutputPath artifacts/measurements/soak.csv
 powershell -File build/package.ps1          # 默认 NativeAOT 便携包
+powershell -File build/publish-mcp.ps1      # 生成 Agent 可接入的 MCP 单文件服务
+```
+
+MCP 冒烟（无需 Agent 客户端，直接走 stdio）：
+
+```powershell
+'{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05"}}',
+'{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"get_collector_status","arguments":{}}}' |
+    .\artifacts\mcp\AzureGameAssistant.Mcp.exe
 ```
 
 本机已在二号显示器（1080×1920，位于物理坐标 2560,0）桌面放置“蓝天游戏助手”快捷方式，指向 `src/AzureGameAssistant.UI/bin/Release/net8.0-windows/AzureGameAssistant.exe`，双击即可启动界面并自动拉起 Release 采集进程；若清理过 Release 产物，需先执行 `dotnet build -c Release`。该快捷方式为开发机本地便利项，不随仓库分发。
@@ -310,13 +333,16 @@ powershell -File build/package.ps1          # 默认 NativeAOT 便携包
 预期：
 
 - 首次启动若未提权且“启动时请求管理员权限”开启，会弹出一次 UAC；确认后界面与采集进程均以管理员运行，取消则继续浅模式且不再重复请求；启动参数加 `--no-elevate` 可跳过。
-- 构建 0 警告、0 错误；测试 53 项全部通过（含 PresentMon CSV 解析、帧统计、共享内存布局、传感器布局、PresentMon 哈希校验、帧时间轴与设置迁移）。
+- 构建 0 警告、0 错误；测试 106 项全部通过（覆盖 AI 端点/脱敏/事实层/JSON 校验/HTTP 客户端/编排预算，以及 MCP 协议与 schema 边界）。
 - 界面显示六张指标卡（CPU / GPU / 内存 / 显存 / 磁盘 / 抖动）、六张可开关折线图（含帧时间图，默认开启）、Top-5 进程与采集状态；标题栏显示猫耳头像图标。
 - 每张可见折线图卡头部有“↗”；点击后图表进入独立小窗，卡片显示“收回图表”，关闭小窗后图表回到原位。
 - 设置页可开关每张图、开关悬浮窗、选择四角位置与偏移、勾选悬浮内容；保存后立即生效。
 - 状态卡“帧采集”区域可展开下拉框选择目标进程，开始后显示“帧采集启动中 / 运行中 / 需要管理员权限 / 不可用（PID …）”，停止后回到“帧采集未运行”；开启自动采集时，切换到前台游戏会自动开始采集，悬浮窗出现帧率数据。
 - “权限自检”按钮随时打开诊断窗口：管理员权限、Performance Log Users、PresentMon 哈希、ETW 会话、遥测心跳、帧采集、GPU 传感器、CPU 温度逐项显示 OK / 警告 / 缺失；可重新检测、复制报告；未提权时显示提权按钮。
 - 设置页“权限与采集”可开关启动提权与自动帧采集，并选择 CPU 温度来源（ACPI / 驱动 / 关闭）；切换采样间隔、传感器开关/间隔或 CPU 模式保存后会重启采集进程。
+- 设置页“AI 分析”可启用 AI、选择供应商、填写 Base URL / 模型、保存或删除 API Key（只显示“已保存 / 未保存”）、开关脱敏与进程名隐藏、设置每日/每月预算。
+- 主界面“AI 分析”打开分析窗口：显示供应商、端点、预计 token/费用、预算、脱敏状态与 Key 状态；展示将要发送的 JSON 预览；首次启用需勾选同意；只有点击“运行”才会联网；401/429/超时/预算不足均有可读提示；失败时展示本地兜底报告。
+- MCP：`artifacts\mcp\AzureGameAssistant.Mcp.exe` 按第 8 节 stdio 命令返回初始化与状态帧；非管理员时状态含 `degraded: true` 与原因。
 - “帧”图表卡在无帧数据时为空态、头部显示“—”；有数据后显示瞬时 FPS、“平均 / 1% Low”副标题与帧时间曲线，尖峰帧标红点。
 - 设置页“文字外观”可选择配色主题；仅选“自定义颜色”时颜色输入框可用，输入 `#RRGGBB` 后色块实时预览，非法值按白色处理。
 - 悬浮窗默认在左上角，无背景与边框，数据项从左到右排列，宽度不足时自动换行；有传感器数据时显示“GPU 温度 / GPU 热点 / CPU 温度”；本机驱动模式下 CPU 温度实测 47°C，ACPI 模式或未装 PawnIO 时为“—”；切换主题或自定义颜色后立即变色；鼠标可穿透到下方窗口；关闭主窗口后仍持续刷新；托盘菜单可快速开关。
@@ -326,8 +352,8 @@ powershell -File build/package.ps1          # 默认 NativeAOT 便携包
 
 关键文档自检：
 
-- 需求文档包含 FR-019（帧级）、FR-020（LLM）、FR-021（AI 隐私/成本/安全）。
-- 开发文档包含 ADR-013（PresentMon）、ADR-014（LHM 边车）、ADR-015（AI 接口）、ADR-021（UI 软件渲染）。
+- 需求文档包含 FR-019（帧级）、FR-020（LLM）、FR-021（AI 隐私/成本/安全）、FR-022（MCP 只读数据服务）。
+- 开发文档包含 ADR-013（PresentMon）、ADR-014（LHM 边车）、ADR-015（AI 接口）、ADR-021（UI 软件渲染）、ADR-024（MCP 只读进程）与第 21 节 MCP 说明。
 - 调研文档包含 PresentMon / CapFrameX / LHM 的许可证与复用边界。
 - 提交规范包含 `Agent: Qoder` 强制规则与第三方/密钥禁令。
 
@@ -352,6 +378,7 @@ powershell -File build/package.ps1          # 默认 NativeAOT 便携包
 | 2026-11-07 | Qoder | 完成传感器边车与 GPU 温度：LHM 0.9.6 GPU-only、传感器共享内存、驱动检测与监督退避；遥测升级 v3 并新增 CPU 温度槽；悬浮窗加入 CPU 温度与提权入口；修正 PresentMon 2.6 v2 CSV 列名；明日方舟真实帧率/温度实机验证通过；测试增至 49 项 | `feat(sensors): 接入 GPU 温度与 CPU 温度槽并完善提权入口` |
 | 2026-11-07 | Qoder | 完成 M3-1：启动自动提权与单实例接管、内置权限自检窗口、前台游戏自动帧采集；CPU 温度新增 ACPI/驱动/关闭三档来源；设置保存后正确重启采集进程；Release 构建 0 警告、53 项测试通过；实机验证自动采集明日方舟帧率与自检结果 | `feat(ui): 启动自动提权、权限自检与前台自动帧采集` |
 | 2026-11-07 | Qoder | 经用户确认安装 PawnIO 2.2.0（SHA256 + Authenticode 校验）并切到驱动模式；CPU 温度实测 47°C、Package 45W，权限自检转为 OK；登记第三方声明与 ACE 风险/回退方式 | `docs(handoff): 记录 PawnIO 安装与 CPU 温度验证` |
+| 2026-11-07 | Qoder | 接入 AI 手动分析（OpenAI 兼容）：供应商预设与地址校验、Credential Manager、事实层/脱敏/预览/同意、SSE 客户端、严格 JSON 与危险建议过滤、预算与本地兜底、报告落盘；新增 MCP 只读 stdio 服务与发布脚本；测试增至 106 项 | `817c051` |
 
 ## 10. 下次交接模板
 
