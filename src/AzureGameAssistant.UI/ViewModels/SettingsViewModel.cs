@@ -197,7 +197,20 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private string _aiKeyStatus = string.Empty;
 
+    [ObservableProperty]
+    private IReadOnlyList<string> _aiModelOptions = Array.Empty<string>();
+
+    [ObservableProperty]
+    private string _aiModelsStatus = string.Empty;
+
+    [ObservableProperty]
+    private bool _aiModelsBusy;
+
     public bool AiKeyInputEnabled => AiRequiresKey;
+
+    public bool CanFetchAiModels => !AiModelsBusy;
+
+    public bool HasAiModelOptions => AiModelOptions.Count > 0;
 
     [ObservableProperty]
     private bool _chartSeparate;
@@ -282,6 +295,11 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     partial void OnAiRequiresKeyChanged(bool value) => OnPropertyChanged(nameof(AiKeyInputEnabled));
 
+    partial void OnAiModelsBusyChanged(bool value) => OnPropertyChanged(nameof(CanFetchAiModels));
+
+    partial void OnAiModelOptionsChanged(IReadOnlyList<string> value) =>
+        OnPropertyChanged(nameof(HasAiModelOptions));
+
     public void RefreshKeyStatus()
     {
         if (!AiRequiresKey)
@@ -299,6 +317,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     {
         string key = (id ?? string.Empty).Trim().ToLowerInvariant();
         AiProviderPreset preset = AiProviderPresets.Resolve(key);
+        AiModelOptions = Array.Empty<string>();
+        AiModelsStatus = string.Empty;
 
         if (_aiDrafts.TryGetValue(key, out AiProviderDraft draft))
         {

@@ -615,6 +615,27 @@
   <data name="AiModelLabel" xml:space="preserve">
     <value>Model</value>
   </data>
+  <data name="AiModelsFetch" xml:space="preserve">
+    <value>Fetch models</value>
+  </data>
+  <data name="AiModelsPickHint" xml:space="preserve">
+    <value>Pick a fetched model to fill the field.</value>
+  </data>
+  <data name="AiModelsHint" xml:space="preserve">
+    <value>Calls the provider's /models endpoint to list available models. Nothing is sent until you click.</value>
+  </data>
+  <data name="AiModelsFetching" xml:space="preserve">
+    <value>Fetching model list…</value>
+  </data>
+  <data name="AiModelsLoaded" xml:space="preserve">
+    <value>{0} models available. Pick one from the list or keep typing.</value>
+  </data>
+  <data name="AiModelsNeedKey" xml:space="preserve">
+    <value>Fill in and save the API key first, then fetch models.</value>
+  </data>
+  <data name="AiModelsFailed" xml:space="preserve">
+    <value>Could not fetch the model list. Check Base URL and API key.</value>
+  </data>
   <data name="AiApiKeyLabel" xml:space="preserve">
     <value>API key</value>
   </data>

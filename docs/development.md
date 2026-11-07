@@ -945,6 +945,7 @@ internal sealed record AiProviderProfile(
 | 自定义 | 用户填写 | 必须 HTTPS，回环地址除外 |
 
 - 预设只提供默认 Base URL 与模型名占位；模型名由用户确认，避免硬编码过时模型。
+- 模型列表查询：`AiEndpoint.TryNormalizeModels` 从同一 Base URL 推导 `GET /models`（去掉 `/chat/completions` 后按 `/v1`、`/v4` 或补 `/v1` 组合），复用 HTTPS/回环/无凭证校验；`OpenAiCompatibleClient.ListModelsAsync` 读取 `data[].id`，去重排序并过滤 embedding / whisper / tts / dall-e / moderation / rerank 等非对话模型（若过滤后为空则保留全部）。设置页“获取模型”仅在用户点击时请求，未保存 Key 时提示先保存；结果填入模型框旁的下拉列表，选择后写回可编辑的模型名输入框，仍支持手动输入。
 - 价格由用户填写（每百万 token），默认 0 表示只显示 token 不显示金额，避免展示过期价格。
 - 自定义地址必须通过 `Uri` 校验：`https`，或 `http` 且主机为 `127.0.0.1` / `localhost` / `::1`。
 
@@ -1156,7 +1157,7 @@ internal sealed record AiProviderProfile(
 | 事实层 | `FactsBuilder.cs` / `FactsDocument.cs` | 完成：固定白名单；环境、指标、帧、传感器、进程、数据缺口 |
 | 脱敏 | `Redactor.cs` | 完成：路径、用户名、机器名、IP/MAC、邮箱；对序列化后的 JSON 做最后一步 |
 | 提示词与严格 JSON | `PromptBuilder.cs`、`AiReportValidator` | 完成：数据区隔离、未知枚举归一、危险建议过滤 |
-| HTTP 客户端 | `OpenAiCompatibleClient.cs` | 完成：SSE 流式 + JSON 回落；60s 超时；429/5xx/超时重试 1 次；401/403 不重试 |
+| HTTP 客户端 | `OpenAiCompatibleClient.cs` | 完成：SSE 流式 + JSON 回落；60s 超时；429/5xx/超时重试 1 次；401/403 不重试；`ListModelsAsync` 读取 `/models`（20s 超时、Bearer、错误分类与脱敏） |
 | 预算与用量 | `AiBudget.cs` | 完成：UTF8/3 估算 token，日/月滚动，原子落盘 |
 | 本地兜底 | `LocalReportBuilder.cs` | 完成 |
 | UI | `AiAnalysisWindow`、设置页 AI 分组、主界面“AI 分析” | 完成，单元测试通过；因当前运行实例已提权并占用 Release 产物，本机未做点击级验证 |

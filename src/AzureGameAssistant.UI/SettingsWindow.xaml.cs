@@ -13,6 +13,7 @@ public partial class SettingsWindow : Window
 {
     private readonly SettingsViewModel _viewModel;
     private readonly AppSettings _settings;
+    private CancellationTokenSource? _modelFetch;
 
     public SettingsWindow(SettingsViewModel viewModel, AppSettings settings)
     {
@@ -60,6 +61,91 @@ public partial class SettingsWindow : Window
         CredentialStore.Shared.Delete(_viewModel.AiActiveProvider);
         AiKeyBox.Clear();
         _viewModel.RefreshKeyStatus();
+    }
+
+    private async void OnFetchAiModels(object sender, RoutedEventArgs e)
+    {
+        LocalizationService loc = LocalizationService.Instance;
+        string provider = _viewModel.AiActiveProvider;
+
+        string key = AiKeyBox.Password.Trim();
+        if (key.Length == 0)
+        {
+            CredentialStore.Shared.TryRead(provider, out key);
+        }
+
+        if (_viewModel.AiRequiresKey && string.IsNullOrWhiteSpace(key))
+        {
+            _viewModel.AiModelsStatus = loc["AiModelsNeedKey"];
+            return;
+        }
+
+        if (!AiEndpoint.TryNormalizeModels(_viewModel.AiBaseUrl, out Uri endpoint, out string? error))
+        {
+            _viewModel.AiModelsStatus = error ?? loc["AiModelsFailed"];
+            return;
+        }
+
+        _modelFetch?.Cancel();
+        _modelFetch?.Dispose();
+        _modelFetch = new CancellationTokenSource();
+        CancellationToken token = _modelFetch.Token;
+
+        _viewModel.AiModelsBusy = true;
+        _viewModel.AiModelsStatus = loc["AiModelsFetching"];
+
+        try
+        {
+            using var client = new OpenAiCompatibleClient();
+            AiModelList result = await client.ListModelsAsync(endpoint, key, token);
+
+            if (!string.Equals(provider, _viewModel.AiActiveProvider, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            if (result.Success)
+            {
+                _viewModel.AiModelOptions = result.Models;
+                if (string.IsNullOrWhiteSpace(_viewModel.AiModel))
+                {
+                    _viewModel.AiModel = result.Models[0];
+                }
+
+                _viewModel.AiModelsStatus = loc.Format("AiModelsLoaded", result.Models.Count);
+            }
+            else if (result.Failure != AiFailureKind.Cancelled)
+            {
+                _viewModel.AiModelsStatus = result.Error ?? loc["AiModelsFailed"];
+            }
+        }
+        catch (Exception) when (_modelFetch?.IsCancellationRequested == true)
+        {
+        }
+        catch (Exception)
+        {
+            _viewModel.AiModelsStatus = loc["AiModelsFailed"];
+        }
+        finally
+        {
+            _viewModel.AiModelsBusy = false;
+        }
+    }
+
+    private void OnAiModelPicked(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.ComboBox { SelectedItem: string model } && model.Length > 0)
+        {
+            _viewModel.AiModel = model;
+        }
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _modelFetch?.Cancel();
+        _modelFetch?.Dispose();
+        _modelFetch = null;
+        base.OnClosed(e);
     }
 
     private void OnOpenLogs(object sender, RoutedEventArgs e)

@@ -37,6 +37,12 @@ public sealed record AiRequest(
     int TimeoutSeconds = 60,
     IReadOnlyDictionary<string, string>? ExtraHeaders = null);
 
+public sealed record AiModelList(
+    bool Success,
+    IReadOnlyList<string> Models,
+    AiFailureKind Failure,
+    string? Error);
+
 /// <summary>
 /// Minimal OpenAI-compatible client: chat/completions only, SSE streaming with
 /// cancellation, one retry for 429/5xx/timeout, no retry for 401/403 or a
@@ -158,6 +164,137 @@ public sealed class OpenAiCompatibleClient : IDisposable
         }
 
         return new AiCompletion(false, string.Empty, null, null, lastFailure, lastError, attempts, false);
+    }
+
+    /// <summary>
+    /// Lists chat model ids from an OpenAI-compatible GET /models endpoint.
+    /// Called only from the explicit "fetch models" action in settings.
+    /// </summary>
+    public async Task<AiModelList> ListModelsAsync(
+        Uri endpoint,
+        string? apiKey,
+        CancellationToken cancellationToken)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(20));
+
+        try
+        {
+            using var message = new HttpRequestMessage(HttpMethod.Get, endpoint);
+            message.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            if (!string.IsNullOrWhiteSpace(apiKey))
+            {
+                message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey.Trim());
+            }
+
+            using HttpResponseMessage response = await _http
+                .SendAsync(message, HttpCompletionOption.ResponseHeadersRead, timeout.Token)
+                .ConfigureAwait(false);
+            string body = await ReadLimitedAsync(response.Content, timeout.Token).ConfigureAwait(false);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                (AiFailureKind kind, string error) = Classify(response.StatusCode, body);
+                return new AiModelList(false, Array.Empty<string>(), kind, error);
+            }
+
+            return ParseModels(body);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return new AiModelList(false, Array.Empty<string>(), AiFailureKind.Cancelled, "已取消");
+        }
+        catch (OperationCanceledException)
+        {
+            return new AiModelList(false, Array.Empty<string>(), AiFailureKind.Timeout, "获取模型列表超时");
+        }
+        catch (HttpRequestException ex)
+        {
+            return new AiModelList(
+                false,
+                Array.Empty<string>(),
+                AiFailureKind.Offline,
+                "无法连接模型服务：" + Redactor.SanitizeError(ex.Message));
+        }
+        catch (IOException ex)
+        {
+            return new AiModelList(
+                false,
+                Array.Empty<string>(),
+                AiFailureKind.InvalidResponse,
+                "读取响应失败：" + Redactor.SanitizeError(ex.Message));
+        }
+    }
+
+    private static readonly string[] NonChatModelMarkers =
+    [
+        "embedding", "embed-", "whisper", "tts", "dall-e", "moderation", "rerank", "transcribe",
+    ];
+
+    private static AiModelList ParseModels(string payload)
+    {
+        try
+        {
+            using JsonDocument document = JsonDocument.Parse(payload);
+            JsonElement root = document.RootElement;
+
+            if (root.TryGetProperty("error", out JsonElement error) &&
+                error.ValueKind == JsonValueKind.Object)
+            {
+                string message = error.TryGetProperty("message", out JsonElement text)
+                    ? text.GetString() ?? "模型服务返回错误"
+                    : "模型服务返回错误";
+                return new AiModelList(false, Array.Empty<string>(), AiFailureKind.InvalidResponse,
+                    Redactor.SanitizeError(message));
+            }
+
+            if (!root.TryGetProperty("data", out JsonElement data) || data.ValueKind != JsonValueKind.Array)
+            {
+                return new AiModelList(false, Array.Empty<string>(), AiFailureKind.InvalidResponse,
+                    "响应缺少 data 数组");
+            }
+
+            var all = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+            var chat = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (JsonElement item in data.EnumerateArray())
+            {
+                string? id = item.ValueKind switch
+                {
+                    JsonValueKind.String => item.GetString(),
+                    JsonValueKind.Object when item.TryGetProperty("id", out JsonElement value) &&
+                                              value.ValueKind == JsonValueKind.String => value.GetString(),
+                    _ => null,
+                };
+
+                if (string.IsNullOrWhiteSpace(id))
+                {
+                    continue;
+                }
+
+                string trimmed = id.Trim();
+                all.Add(trimmed);
+                if (!NonChatModelMarkers.Any(marker => trimmed.Contains(marker, StringComparison.OrdinalIgnoreCase)))
+                {
+                    chat.Add(trimmed);
+                }
+            }
+
+            // If a provider only exposes embedding-style ids, keep them rather
+            // than claiming the list is empty.
+            SortedSet<string> result = chat.Count > 0 ? chat : all;
+            if (result.Count == 0)
+            {
+                return new AiModelList(false, Array.Empty<string>(), AiFailureKind.InvalidResponse,
+                    "厂商未返回可用模型");
+            }
+
+            return new AiModelList(true, result.ToList(), AiFailureKind.None, null);
+        }
+        catch (JsonException)
+        {
+            return new AiModelList(false, Array.Empty<string>(), AiFailureKind.InvalidResponse,
+                "响应不是有效 JSON");
+        }
     }
 
     private static HttpRequestMessage BuildMessage(AiRequest request, AiPrompt prompt)

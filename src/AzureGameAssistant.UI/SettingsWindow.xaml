@@ -9,6 +9,9 @@
         Foreground="{DynamicResource TextPrimaryBrush}"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+    </Window.Resources>
     <Grid Margin="18">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
@@ -156,6 +159,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
                             <TextBlock VerticalAlignment="Center"
@@ -171,12 +175,28 @@
 
                             <TextBlock Grid.Row="2" Margin="0,10,0,0" VerticalAlignment="Center"
                                        Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiModelLabel]}" />
-                            <TextBox Grid.Row="2" Grid.Column="1" Width="280" Margin="0,10,0,0"
-                                     Text="{Binding AiModel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,10,0,0" Orientation="Horizontal">
+                                <TextBox Width="150"
+                                         Text="{Binding AiModel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <ComboBox Width="130" Margin="6,0,0,0"
+                                          ItemsSource="{Binding AiModelOptions}"
+                                          Visibility="{Binding HasAiModelOptions, Converter={StaticResource BoolToVisibility}}"
+                                          ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiModelsPickHint]}"
+                                          SelectionChanged="OnAiModelPicked" />
+                                <Button Style="{StaticResource FlatButton}" Padding="8,2" Margin="6,0,0,0"
+                                        Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiModelsFetch]}"
+                                        ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiModelsHint]}"
+                                        IsEnabled="{Binding CanFetchAiModels}"
+                                        Click="OnFetchAiModels" />
+                            </StackPanel>
 
-                            <TextBlock Grid.Row="3" Margin="0,10,0,0" VerticalAlignment="Center"
+                            <TextBlock Grid.Row="3" Grid.Column="1" Margin="0,4,0,0" FontSize="11" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Text="{Binding AiModelsStatus}" />
+
+                            <TextBlock Grid.Row="4" Margin="0,10,0,0" VerticalAlignment="Center"
                                        Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiApiKeyLabel]}" />
-                            <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Margin="0,10,0,0">
+                            <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Margin="0,10,0,0">
                                 <PasswordBox x:Name="AiKeyBox" Width="176" IsEnabled="{Binding AiKeyInputEnabled}" />
                                 <Button Style="{StaticResource FlatButton}" Padding="8,2" Margin="6,0,0,0"
                                         Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiKeySave]}"
@@ -186,7 +206,7 @@
                                         Click="OnDeleteAiKey" />
                             </StackPanel>
 
-                            <TextBlock Grid.Row="4" Grid.Column="1" Margin="0,4,0,0" FontSize="11" TextWrapping="Wrap"
+                            <TextBlock Grid.Row="5" Grid.Column="1" Margin="0,4,0,0" FontSize="11" TextWrapping="Wrap"
                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                        Text="{Binding AiKeyStatus}" />
                         </Grid>

@@ -615,6 +615,27 @@
   <data name="AiModelLabel" xml:space="preserve">
     <value>模型</value>
   </data>
+  <data name="AiModelsFetch" xml:space="preserve">
+    <value>获取模型</value>
+  </data>
+  <data name="AiModelsPickHint" xml:space="preserve">
+    <value>选择已获取的模型会填入左侧输入框。</value>
+  </data>
+  <data name="AiModelsHint" xml:space="preserve">
+    <value>调用厂商的 /models 接口列出可用模型；只有点击时才联网。</value>
+  </data>
+  <data name="AiModelsFetching" xml:space="preserve">
+    <value>正在获取模型列表…</value>
+  </data>
+  <data name="AiModelsLoaded" xml:space="preserve">
+    <value>已获取 {0} 个模型，可从列表选择，也可继续手动输入。</value>
+  </data>
+  <data name="AiModelsNeedKey" xml:space="preserve">
+    <value>请先填写并保存 API Key，再获取模型列表。</value>
+  </data>
+  <data name="AiModelsFailed" xml:space="preserve">
+    <value>获取模型列表失败，请检查 Base URL 与 API Key。</value>
+  </data>
   <data name="AiApiKeyLabel" xml:space="preserve">
     <value>API Key</value>
   </data>

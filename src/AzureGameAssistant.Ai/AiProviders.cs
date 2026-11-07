@@ -36,6 +36,8 @@ public static class AiProviderPresets
 
 public static class AiEndpoint
 {
+    private const string ChatLeaf = "/chat/completions";
+
     /// <summary>
     /// Normalizes a user-supplied base URL into a chat-completions endpoint.
     /// Plain HTTP is rejected unless the host is a loopback address, and
@@ -44,6 +46,34 @@ public static class AiEndpoint
     public static bool TryNormalize(string? baseUrl, out Uri endpoint, out string? error)
     {
         endpoint = null!;
+        if (!TryCreateBase(baseUrl, out Uri baseUri, out error))
+        {
+            return false;
+        }
+
+        endpoint = Compose(baseUri, "chat/completions");
+        return true;
+    }
+
+    /// <summary>
+    /// Builds the OpenAI-compatible models endpoint (GET /models) from the same
+    /// base URL used for chat completions.
+    /// </summary>
+    public static bool TryNormalizeModels(string? baseUrl, out Uri endpoint, out string? error)
+    {
+        endpoint = null!;
+        if (!TryCreateBase(baseUrl, out Uri baseUri, out error))
+        {
+            return false;
+        }
+
+        endpoint = Compose(baseUri, "models");
+        return true;
+    }
+
+    private static bool TryCreateBase(string? baseUrl, out Uri baseUri, out string? error)
+    {
+        baseUri = null!;
         error = null;
 
         string text = (baseUrl ?? string.Empty).Trim();
@@ -78,23 +108,35 @@ public static class AiEndpoint
         }
 
         string path = uri.AbsolutePath.TrimEnd('/');
-        if (!path.EndsWith("/chat/completions", StringComparison.OrdinalIgnoreCase))
+        if (path.EndsWith(ChatLeaf, StringComparison.OrdinalIgnoreCase))
         {
-            path = path.EndsWith("/v1", StringComparison.OrdinalIgnoreCase) ||
-                   path.EndsWith("/v4", StringComparison.OrdinalIgnoreCase)
-                ? path + "/chat/completions"
-                : path + "/v1/chat/completions";
+            path = path[..^ChatLeaf.Length];
         }
 
-        var builder = new UriBuilder(uri)
+        baseUri = new UriBuilder(uri)
         {
             Path = path,
             Query = string.Empty,
             Fragment = string.Empty,
-        };
-
-        endpoint = builder.Uri;
+        }.Uri;
         return true;
+    }
+
+    private static Uri Compose(Uri baseUri, string leaf)
+    {
+        string path = baseUri.AbsolutePath.TrimEnd('/');
+        if (!path.EndsWith("/v1", StringComparison.OrdinalIgnoreCase) &&
+            !path.EndsWith("/v4", StringComparison.OrdinalIgnoreCase))
+        {
+            path += "/v1";
+        }
+
+        return new UriBuilder(baseUri)
+        {
+            Path = path + "/" + leaf,
+            Query = string.Empty,
+            Fragment = string.Empty,
+        }.Uri;
     }
 
     public static bool IsLoopback(Uri uri) =>

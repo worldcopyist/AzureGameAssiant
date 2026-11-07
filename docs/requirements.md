@@ -349,6 +349,7 @@
 - **描述**：用户可为单个事件请求大模型分析；模型基于本地生成的事实层输出结构化报告与设备优化建议。
 - **规则**：
   - 供应商采用 **OpenAI 兼容接口**（`/v1/chat/completions`），支持 OpenAI、DeepSeek、通义千问兼容模式、智谱、Moonshot、SiliconFlow、Ollama、LM Studio 与自定义 Base URL。
+  - 设置页提供“获取模型”按钮：按当前 Base URL 与 API Key 调用厂商的 `GET /models`，把返回的模型名填入可选项供用户直接选择；模型名仍可手动输入。只有用户点击时才发起该请求，未保存 Key 时提示先保存。
   - 用户自带 API Key（BYOK）；Key 存入 Windows Credential Manager，不写入 `settings.json`、日志或会话文件。
   - 默认**手动触发**；可选“严重事件自动分析”，必须设置每日预算与每月上限，默认关闭。
   - 发送前必须展示将要发送的 JSON 预览；默认发送脱敏后的事实摘要，用户可显式选择“包含完整会话数据”。

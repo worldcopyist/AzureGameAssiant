@@ -103,6 +103,82 @@ public sealed class OpenAiCompatibleClientTests
             client.CompleteAsync(Request(), Prompt, null, cancellation.Token));
     }
 
+    [Fact]
+    public async Task ListModelsParsesAndFiltersNonChatIds()
+    {
+        using var handler = new StubHandler((_, _) => Json(
+            HttpStatusCode.OK,
+            """{"data":[{"id":"gpt-4o-mini"},{"id":"text-embedding-3-small"},{"id":"gpt-4o"},{"id":"tts-1"},{"id":"whisper-1"},{"id":"gpt-4o"}]}"""));
+
+        using var client = new OpenAiCompatibleClient(handler, TimeSpan.Zero);
+        AiModelList result = await client.ListModelsAsync(Models(), "sk-test", CancellationToken.None);
+
+        Assert.True(result.Success);
+        Assert.Equal(AiFailureKind.None, result.Failure);
+        Assert.Equal(["gpt-4o", "gpt-4o-mini"], result.Models);
+    }
+
+    [Fact]
+    public async Task ListModelsSendsGetWithBearerToken()
+    {
+        HttpRequestMessage? seen = null;
+        using var handler = new StubHandler((request, _) =>
+        {
+            seen = request;
+            return Json(HttpStatusCode.OK, """{"data":[{"id":"m1"}]}""");
+        });
+
+        using var client = new OpenAiCompatibleClient(handler, TimeSpan.Zero);
+        AiModelList result = await client.ListModelsAsync(Models(), " sk-test ", CancellationToken.None);
+
+        Assert.True(result.Success);
+        Assert.Equal(HttpMethod.Get, seen!.Method);
+        Assert.Equal("https://example.com/v1/models", seen.RequestUri!.ToString());
+        Assert.Equal("Bearer", seen.Headers.Authorization!.Scheme);
+        Assert.Equal("sk-test", seen.Headers.Authorization!.Parameter);
+    }
+
+    [Fact]
+    public async Task ListModelsReportsUnauthorized()
+    {
+        using var handler = new StubHandler((_, _) =>
+            Json(HttpStatusCode.Unauthorized, """{"error":{"message":"bad key"}}"""));
+
+        using var client = new OpenAiCompatibleClient(handler, TimeSpan.Zero);
+        AiModelList result = await client.ListModelsAsync(Models(), "sk-test", CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal(AiFailureKind.Unauthorized, result.Failure);
+        Assert.Contains("API Key", result.Error);
+    }
+
+    [Fact]
+    public async Task ListModelsRejectsMissingData()
+    {
+        using var handler = new StubHandler((_, _) => Json(HttpStatusCode.OK, """{"models":[]}"""));
+        using var client = new OpenAiCompatibleClient(handler, TimeSpan.Zero);
+
+        AiModelList result = await client.ListModelsAsync(Models(), null, CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal(AiFailureKind.InvalidResponse, result.Failure);
+    }
+
+    [Fact]
+    public async Task ListModelsKeepsNonChatIdsWhenNothingElseIsOffered()
+    {
+        using var handler = new StubHandler((_, _) =>
+            Json(HttpStatusCode.OK, """{"data":[{"id":"text-embedding-3-small"}]}"""));
+        using var client = new OpenAiCompatibleClient(handler, TimeSpan.Zero);
+
+        AiModelList result = await client.ListModelsAsync(Models(), null, CancellationToken.None);
+
+        Assert.True(result.Success);
+        Assert.Equal(["text-embedding-3-small"], result.Models);
+    }
+
+    private static Uri Models() => new("https://example.com/v1/models");
+
     private static AiRequest Request() => new(Endpoint, "test-model", "sk-test", 512);
 
     private static HttpResponseMessage Json(HttpStatusCode status, string body) => new(status)
