@@ -2,10 +2,19 @@ namespace AzureGameAssistant.Core.Models;
 
 public static class TelemetryMath
 {
-    public static double MemoryUsagePct(in SampleRecord sample) =>
-        sample.MemCommitLimitMb == 0
+    public static double MemoryUsagePct(in SampleRecord sample)
+    {
+        if (SystemMemory.TryGetUsage(sample, out double usedMb, out double totalMb))
+        {
+            return Math.Clamp(100.0 * usedMb / totalMb, 0, 100);
+        }
+
+        // Commit limit is physical + page file, so it is only a fallback when
+        // the machine's physical size cannot be read.
+        return sample.MemCommitLimitMb == 0
             ? 0
             : Math.Clamp(100.0 * sample.MemCommitMb / sample.MemCommitLimitMb, 0, 100);
+    }
 
     public static bool HasVendorData(in SampleRecord sample) =>
         (sample.Flags & SampleFlags.VendorValid) != 0;

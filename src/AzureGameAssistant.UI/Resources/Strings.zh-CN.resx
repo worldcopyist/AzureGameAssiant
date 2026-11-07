@@ -79,7 +79,7 @@
     <value>专用显存 {0} MB</value>
   </data>
   <data name="MemorySub" xml:space="preserve">
-    <value>提交 {0} / {1} GB</value>
+    <value>使用 {0} / {1} GB</value>
   </data>
   <data name="DiskSub" xml:space="preserve">
     <value>延迟 {0} ms</value>

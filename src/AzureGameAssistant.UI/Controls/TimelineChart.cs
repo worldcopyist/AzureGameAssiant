@@ -926,6 +926,12 @@ public sealed class TimelineChart : FrameworkElement
                 return $"GPU {sample.GpuUtilPct:F1}%";
 
             case 2:
+                if (SystemMemory.TryGetUsage(sample, out double usedMb, out double totalMb))
+                {
+                    return $"{loc["Memory"]} {TelemetryMath.MemoryUsagePct(sample):F1}%  " +
+                           $"{FormatMb(usedMb)} / {FormatMb(totalMb)}";
+                }
+
                 return $"{loc["Memory"]} {TelemetryMath.MemoryUsagePct(sample):F1}%  " +
                        $"{FormatMb(sample.MemCommitMb)} / {FormatMb(sample.MemCommitLimitMb)}";
 

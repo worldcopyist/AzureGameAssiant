@@ -134,16 +134,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OnChartScrollSizeChanged(object sender, SizeChangedEventArgs e)
-    {
-        if (sender is ScrollViewer scroll && scroll.ViewportHeight > 0)
-        {
-            // Chart card padding (16) plus a small slack, so the merged chart never
-            // needs a scrollbar at the default window size.
-            CombinedChart.MinHeight = Math.Max(160, scroll.ViewportHeight - 24);
-        }
-    }
-
     private void OnDetachChart(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: string tag } button ||

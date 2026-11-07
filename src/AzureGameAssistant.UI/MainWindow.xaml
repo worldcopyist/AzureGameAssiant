@@ -169,14 +169,15 @@
                     </StackPanel>
                 </Grid>
 
-                <ScrollViewer x:Name="ChartScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                              Padding="10,0,10,10" SizeChanged="OnChartScrollSizeChanged">
-                    <UniformGrid x:Name="ChartGrid" Columns="2">
-                        <Border Style="{StaticResource ChartCard}" Margin="4,0,4,0"
-                                Visibility="{Binding ShowCombinedChart, Converter={StaticResource BoolToVisibility}}">
-                            <controls:TimelineChart x:Name="CombinedChart" Metric="Combined" MinHeight="160" />
-                        </Border>
+                <Border x:Name="CombinedCard" Grid.Row="1" Style="{StaticResource ChartCard}" Margin="14,0,14,10"
+                        Visibility="{Binding ShowCombinedChart, Converter={StaticResource BoolToVisibility}}">
+                    <controls:TimelineChart x:Name="CombinedChart" Metric="Combined" MinHeight="120" />
+                </Border>
 
+                <ScrollViewer x:Name="ChartScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              Padding="10,0,10,10"
+                              Visibility="{Binding ShowSeparateCharts, Converter={StaticResource BoolToVisibility}}">
+                    <UniformGrid x:Name="ChartGrid" Columns="2">
                         <Border Style="{StaticResource ChartCard}"
                                 Visibility="{Binding ShowFrameChart, Converter={StaticResource BoolToVisibility}}">
                             <Grid>

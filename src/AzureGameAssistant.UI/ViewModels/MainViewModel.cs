@@ -690,10 +690,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         GpuValue = sample.GpuUtilPct.ToString("F1") + "%";
         GpuSub = _loc.Format("GpuMemorySub", sample.GpuDedicatedMb.ToString());
         MemoryValue = TelemetryMath.MemoryUsagePct(sample).ToString("F1") + "%";
-        MemorySub = _loc.Format(
-            "MemorySub",
-            (sample.MemCommitMb / 1024.0).ToString("F1"),
-            (sample.MemCommitLimitMb / 1024.0).ToString("F1"));
+        MemorySub = SystemMemory.TryGetUsage(sample, out double usedMb, out double totalMb)
+            ? _loc.Format("MemorySub", (usedMb / 1024.0).ToString("F1"), (totalMb / 1024.0).ToString("F1"))
+            : _loc.Format(
+                "MemorySub",
+                (sample.MemCommitMb / 1024.0).ToString("F1"),
+                (sample.MemCommitLimitMb / 1024.0).ToString("F1"));
         VramValue = sample.GpuDedicatedMb > 0 ? FormatMegabytes(sample.GpuDedicatedMb) : _loc["NotAvailable"];
         VramSub = TelemetryMath.TryGetVramTotalMb(sample, out double vramTotal)
             ? _loc.Format("VramTotalSub", (vramTotal / 1024.0).ToString("F1"))

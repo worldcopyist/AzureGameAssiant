@@ -386,7 +386,8 @@ internal struct FrameRecord
 | 处理器队列 | `\System\Processor Queue Length` |
 | 上下文切换 | `\System\Context Switches/sec` |
 | 可用内存 | `\Memory\Available MBytes` |
-| 已提交 / 上限 | `\Memory\Committed Bytes`、`\Memory\Commit Limit` |
+| 物理内存总量 | `GlobalMemoryStatusEx().ullTotalPhys`（`SystemMemory`，进程内缓存一次）；使用率 = (总量 − 可用) / 总量 |
+| 已提交 / 上限 | `\Memory\Committed Bytes`、`\Memory\Commit Limit`（仅用于提交压力判断，不当作物理内存总量展示） |
 | 硬缺页 | `\Memory\Pages Input/sec` |
 | 页面文件 | `\Paging File(_Total)\% Usage` |
 | 磁盘占用 | `\PhysicalDisk(_Total)\% Disk Time` |
@@ -1192,8 +1193,8 @@ internal sealed record AiProviderProfile(
 - `ChartMetric` 枚举（Combined / Cpu / Gpu / Memory / Vram / Disk / Frame）：单指标模式只画一条全高曲线；Combined 模式默认启用，把所有指标叠加在同一坐标系内。
 - `ChartSeries` 标志枚举（CPU/GPU/Memory/Vram/Disk/Frame）由 `charts` 节点映射到 `CombinedSeries`，控制合并图渲染哪些线条；`Separate=false` 时只显示合并卡片，`Separate=true` 时切换为独立卡片并显示对应开关（旧设置文件缺省 false，自然落到合并模式）。
 - 合并图纵轴：CPU/GPU/内存/磁盘/显存统一为 0–100%（显存按 `专用显存 / 总显存` 归一化）；帧时间单独使用右侧副轴（`FrameGutter=44`），顶部/底部标注最大值与 0，避免与百分比混淆。线条颜色：CPU 蓝、GPU 绿、内存橙、显存紫、磁盘青、帧时间洋红（深色主题另有回退色）。
-- 主窗口使用 `UniformGrid` 承载图表卡；合并模式只有一张卡片，自动单列占满。合并卡片通过 `ScrollViewer.SizeChanged` 把高度设为可视区高度（下限 160 DIP），默认窗口尺寸下不出现滚动条，保证 0%/100%、右侧 ms 刻度与横轴时间标签完整可见。
-- 竖轴口径：CPU/GPU/磁盘固定 0–100%；内存为提交占比 0–100%；显存在合并模式为容量百分比，在独立卡片模式按 MB 自动取整（256MB 粒度，最小 256MB）。
+- 主窗口使用 `UniformGrid` 承载图表卡；合并模式只有一张卡片，自动单列占满。合并图卡片直接放在“实时时间轴”卡片第 1 行并拉伸铺满（不进入 `ScrollViewer`），随窗口高度自适应；`ScrollViewer` 只在“分开显示图表卡片”模式下显示，避免合并图因滚动视口测量时序导致高度异常或坐标轴被裁切。
+- 竖轴口径：CPU/GPU/磁盘固定 0–100%；内存为物理内存使用率 0–100%（`(总物理内存 − Available MBytes) / 总物理内存`，总量来自 `SystemMemory`，提交上限只用于压力判定）；显存在合并模式为容量百分比，在独立卡片模式按 MB 自动取整（256MB 粒度，最小 256MB）。
 - 每个独立图表卡头部显示指标名与当前值；合并图例只列出启用的指标；悬停提示按指标显示百分比或“已用 / 总量”，合并图额外附带最近帧时间。
 - 图表开关由 `settings.json` 的 `charts` 节点控制，设置保存后调用 `RefreshChart()` 重新绑定可见性并重排。
 - 图表脱离：卡片头部的“↗”按钮把该 `TimelineChart` 从卡片 `Grid` 中移除，交给 `ChartWindow` 承载（不复制数据、不新建渲染器）；卡片原位显示本地化提示与“收回图表”按钮。

@@ -82,6 +82,8 @@ public sealed class HardwareInspector : IDisposable
             },
             ["memory"] = new JsonObject
             {
+                ["totalMb"] = Round(SystemMemory.TotalPhysicalMb),
+                ["usedMb"] = Round(Math.Max(0, SystemMemory.TotalPhysicalMb - sample.MemAvailableMb)),
                 ["availableMb"] = sample.MemAvailableMb,
                 ["commitMb"] = sample.MemCommitMb,
                 ["commitLimitMb"] = sample.MemCommitLimitMb,
