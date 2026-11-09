@@ -22,7 +22,7 @@
 | 最新里程碑 | FR-010 游戏自动识别完成：前台 PID 取自遥测，`SHQueryUserNotificationState` 全屏独占、窗口覆盖 ≥95%、GPU ≥5% 三路判定，内置与用户排除名单；`GameModeTracker` 离开全屏保 10 秒宽限。识别后经控制管道 `sampling` 命令把采样切到 200ms（共享内存头与 `status.gameMode` 同步），采集进程不重启，退出宽限后回到 1000ms 并停止自动帧采集。`frames.stop` 改为后台释放 PresentMon、控制管道立即返回；UI 对未确认的停止请求按节拍重试并抑制同目标自动重启。`GameModeTests` 14 项通过，总数 185；实机星穹铁道全屏 `200ms → 帧采集 → 切走 10 秒 → 1000ms + 帧采集已停止`，无边框全屏探针同样通过。Release 0 警告 0 错误。 |
 | 可运行产物 | `build/run-dev.ps1` 可启动；`build/package.ps1` 默认 AOT 流程可生成便携 ZIP（含 PresentMon）；`build/publish-mcp.ps1` 生成 `artifacts/mcp/AzureGameAssistant.Mcp.exe`；二号屏桌面快捷方式指向 Release |
 | 代码分支 | `main`（`feat/m1-foundation` 已 squash 合入，分支保留） |
-| 当前提交 | `4097d13` |
+| 当前提交 | `308d7c6` |
 | 未提交变更 | 无 |
 | 阻塞事项 | 帧率准确性需在用户真实游戏（原神 60 帧、三角洲行动）长测确认；AI 窗口与“测试连接”按钮待点击验证；掉帧/高负载标记需在真实游戏复现后核对事件与报告；3 款游戏 PresentMon 实测与反作弊评估待用户游戏环境（已测明日方舟、三角洲行动）；深模式内存/CPU 与 60 分钟连续性待专项测量；本机默认热键 `Ctrl+Alt+M` 被其他程序占用，需用户在设置页改键（实测 `Ctrl+Alt+F9` 可用）；卡顿判定召回率与误报需真实游戏长测 |
 
@@ -519,7 +519,7 @@ MCP 冒烟（无需 Agent 客户端，直接走 stdio）：
 | 2026-11-10 | Qoder | FR-007 会话记录与回放：gzip JSONL v2（头部重复事件摘要、64 帧/批、尾部 SHA256）、事件确认即写 `recording` 并在 `end+30s` 原位原子重写为 `complete`、`.tmp` + `Flush(true)` + `File.Move(overwrite)`、启动清理未完成文件、留存 20 个 / 500MB 可调；`SessionsWindow` 支持列表、时间轴回放、本地报告与删除；主界面与托盘新增入口；新增 5 项测试，总数 161 项通过，Release 0 警告 0 错误 | `feat(sessions): 会话记录、原子落盘与回放窗口` |
 | 2026-11-10 | Qoder | 会话实机闭环与修复：点击“标记卡顿”后 0.14 秒出现 `recording`、30 秒后 `complete`；发现 NaN/Infinity 使 JSON 写入中断并留下半截 `.tmp`，在写入边界统一清洗并在失败时返回异常类型；新增回归测试，总数 162 项通过，Release 0 警告 0 错误 | `fix(sessions): 清洗非有限数并诊断写入失败` |
 | 2026-11-10 | Qoder | FR-008 本地归因报告：7 类主因规则、温度阈值、断帧与尖峰分离、主因/帧证据一致性、可疑进程前 3、无数据兜底与中英报告；会话窗新增断帧数与一致性行，修正热降频标签与过时提示；新增 9 项报告测试，总数 171 项通过；实机会话报告 `gapCount 8 / spikeCount 0 / max 896.5ms / consistent true`；Release 0 警告 0 错误 | `4097d13` |
-| 2026-11-10 | Qoder | FR-010 游戏自动识别与动态采样：`SHQueryUserNotificationState` / 95% 覆盖 / GPU≥5% 三路判定 + 排除名单，`GameModeTracker` 10 秒宽限；控制管道新增 `sampling` 命令，200ms / 1000ms 切换不重启采集进程，共享内存头与状态同步；修复 `frames.stop` 阻塞管道导致离开全屏后采集残留（后台释放 PresentMon + 客户端 6 秒超时 + UI 待办重试与目标抑制）；新增 `GameModeTests` 14 项，总数 185 项通过；实机全屏探针与星穹铁道均验证 200ms→自动采集→回落 1000ms→帧采集已停止；Release 0 警告 0 错误 | `feat(detection): 游戏自动识别与动态采样` |
+| 2026-11-10 | Qoder | FR-010 游戏自动识别与动态采样：`SHQueryUserNotificationState` / 95% 覆盖 / GPU≥5% 三路判定 + 排除名单，`GameModeTracker` 10 秒宽限；控制管道新增 `sampling` 命令，200ms / 1000ms 切换不重启采集进程，共享内存头与状态同步；修复 `frames.stop` 阻塞管道导致离开全屏后采集残留（后台释放 PresentMon + 客户端 6 秒超时 + UI 待办重试与目标抑制）；新增 `GameModeTests` 14 项，总数 185 项通过；实机全屏探针与星穹铁道均验证 200ms→自动采集→回落 1000ms→帧采集已停止；Release 0 警告 0 错误 | `308d7c6` |
 
 ## 10. 下次交接模板
 
