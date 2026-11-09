@@ -517,9 +517,10 @@ PresentMon.exe --process_id <pid> --output_stdout --v2_metrics --session_name Az
 - 需要兼容 1.x 数据时，仅在解析器中增加别名映射（大小写不敏感）；运行路径仍固定 `--v2_metrics`。
 
 - 每 64 帧或 100ms 批量写入帧环形缓冲，避免逐帧加锁。
-- 解析失败行计数；连续 100 行失败或 20 秒无首帧 → 判定 PresentMon 异常，重启子进程。
-- 读取循环每 500ms 轮询一次：已出帧后连续 10 秒无新帧，且目标仍活跃（前台窗口或 GPU 占用 ≥ 5%）时，判定会话静默失效并重启；目标已最小化/暂停时不反复重启。
-- 记录首帧延迟；启动后 20 秒仍无帧 → 降级并提示（常见原因：权限不足、进程无呈现、反作弊拦截）。
+- 解析失败行计数；连续 100 行失败或 20 秒无首帧（且目标活跃）→ 判定 PresentMon 异常，重启子进程。
+- 读取循环每 500ms 轮询一次：已出帧后连续 25 秒无新帧，且目标仍活跃（前台窗口或 GPU 占用 ≥ 5%）时，才判定 ETW 会话静默失效并重启；实测 PresentMon 静默 2–5 秒后会自行恢复，过早重启会把短暂抖动放大成十几秒空洞，因此只在长时间无帧时兜底。
+- 记录首帧延迟；启动后 20 秒仍无帧且目标活跃 → 降级并提示（常见原因：权限不足、进程无呈现、反作弊拦截）；目标不在前台且无 GPU 占用（最小化/暂停）时不重启、不超时。
+- 因停帧而重启时不计入“连续 3 次失败”，避免目标长时间暂停后直接进入 `Unavailable`。
 
 #### 6.6.4 监督与降级
 
@@ -532,13 +533,13 @@ Stopped ──有目标 PID──► Starting ──首帧──► Capturing
    │                       ▼                      ▼
    └──── PermissionDenied / Unavailable ◄── 连续 3 次失败
                                     ▲
-                                    │ 10s 无新帧且目标活跃 → 重启会话
+                                    │ 25s 无新帧且目标活跃 → 重启会话
 ```
 
-- `Capturing` 期间若 10 秒没有新帧而目标仍活跃，读取循环主动结束本次尝试，走同一套退避重启；这覆盖“PresentMon 进程还活着但 ETW 会话已失效”的情况。
-- 启动前清理同名 ETW 会话（`--terminate_existing_session`），避免残留会话污染新会话。
+- `Capturing` 期间若 25 秒没有新帧而目标仍活跃，读取循环主动结束本次尝试，走同一套退避重启；这覆盖“PresentMon 进程还活着但 ETW 会话已失效”的情况。25 秒内自行恢复的静默只记录 `帧数据中断 N 秒后自行恢复`，不重启。
+- 启动前清理同名 ETW 会话（`--terminate_existing_session`），避免残留会话污染新会话；只有上次是被强制结束或非零退出（可能漏掉自身 ETW 清理）时才做这一步，正常退出直接重启。
 
-- 重启退避 1s / 5s / 15s；连续 3 次失败停止，写能力位“帧不可用”，UI 显示原因；目标进程已退出时不再重启。
+- 重启退避 0.25s / 1s / 3s；连续 3 次失败停止，写能力位“帧不可用”，UI 显示原因；目标进程已退出时不再重启。
 - 可执行文件路径：设置中的相对路径按 `AppContext.BaseDirectory` 解析；采集项目把 `third_party/presentmon` 复制到输出与发布目录的 `presentmon\`。
 - 权限不足：非提权启动实测退出码 `6`，stderr 包含 `failed to start trace session: access denied.` 与 “Performance Log Users” 提示；据此提示“需要管理员权限或 Performance Log Users”。
 - 反作弊：不注入、不 Hook、不读写游戏内存；只运行官方 PresentMon。文档明确“不承诺兼容所有反作弊”，不在游戏中自动提权。
@@ -1381,7 +1382,8 @@ internal sealed record AiProviderProfile(
 
 - `TelemetryService` 暴露 `FrameWriteIndex` 与 `ReadFrames(startIndex, span)`；UI 只读取新增帧，首次打开时从最近 1024 帧开始，避免整区复制。
 - `MainViewModel` 每次刷新把新帧送入本地 `FrameStats`；采集进程重启导致写索引回退时清空统计并重新对齐。
-- 悬浮窗显示瞬时 FPS、平均帧与 1% Low；2 秒无新帧即视为无数据并显示“—”，防止游戏退出后残留旧值。
+- 悬浮窗显示瞬时 FPS、平均帧与 1% Low；主窗口在 30 秒、悬浮窗在 20 秒内无新帧时继续显示最后一次统计（不加“恢复中”之类的标注），超过后显示“—”。目标退出或采集停止会立刻清空，不会残留旧值。
+- `IsFrameDataFresh`（2 秒）只用于诊断与运行日志，不参与卡片显示判断。
 - 帧统计在 UI 线程内更新，不做跨线程共享；主窗口帧轨复用同一份 `FrameStats` 数据。
 - 帧时间轴：`Core/Frames/FrameTimeline` 为固定容量（16384 点，约 256KB）环形缓冲，只保留最近帧，避免长时间运行无限增长。
 - 时间对齐：帧记录只有 QPC 时间戳，UI 用最近的系统采样（`sample.QpcTicks` 与 `UtcTicks`）作为锚点；QPC 频率用当前环形缓冲首尾采样的差值估算（`qpcDelta * TicksPerSecond / utcDelta`，失败回退 10MHz），再换算为 UTC ticks 供图表与系统指标共用横轴。

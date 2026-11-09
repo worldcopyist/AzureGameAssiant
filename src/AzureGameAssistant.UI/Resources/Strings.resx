@@ -471,9 +471,6 @@
   <data name="FrameStatsSub" xml:space="preserve">
     <value>Avg {0:F0} · 1% Low {1:F0}</value>
   </data>
-  <data name="FrameRecovering" xml:space="preserve">
-    <value>Recovering…</value>
-  </data>
   <data name="PermissionCheckButton" xml:space="preserve">
     <value>Permission check</value>
   </data>

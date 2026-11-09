@@ -33,13 +33,13 @@ internal sealed class PresentMonSupervisor : IDisposable
     private const int PollIntervalMs = 500;
     private static readonly TimeSpan FlushInterval = TimeSpan.FromMilliseconds(100);
     private static readonly TimeSpan FirstFrameTimeout = TimeSpan.FromSeconds(20);
-    private static readonly TimeSpan StallTimeout = TimeSpan.FromSeconds(6);
-    private static readonly TimeSpan SessionCleanupTimeout = TimeSpan.FromMilliseconds(1500);
+    private static readonly TimeSpan StallTimeout = TimeSpan.FromSeconds(25);
+    private static readonly TimeSpan SessionCleanupTimeout = TimeSpan.FromMilliseconds(800);
     private static readonly TimeSpan[] RetryDelays =
     [
-        TimeSpan.FromMilliseconds(500),
-        TimeSpan.FromSeconds(2),
-        TimeSpan.FromSeconds(5),
+        TimeSpan.FromMilliseconds(250),
+        TimeSpan.FromSeconds(1),
+        TimeSpan.FromSeconds(3),
     ];
 
     private readonly FileLogger _logger;
@@ -61,6 +61,7 @@ internal sealed class PresentMonSupervisor : IDisposable
     private long _frameCount;
     private volatile FrameCaptureState _state;
     private volatile string? _lastError;
+    private volatile bool _restartNeedsCleanup = true;
 
     public PresentMonSupervisor(
         FileLogger logger,
@@ -167,13 +168,16 @@ internal sealed class PresentMonSupervisor : IDisposable
                 catch (Exception ex)
                 {
                     _logger.Warn($"PresentMon 运行异常：{ex.Message}");
-                    result = new AttemptResult(-1, false, ex.Message);
+                    result = new AttemptResult(-1, false, ex.Message, true);
                 }
 
                 if (token.IsCancellationRequested)
                 {
                     break;
                 }
+
+                // An abnormal exit may have skipped PresentMon's own ETW teardown.
+                _restartNeedsCleanup = result.Killed || result.ExitCode != 0;
 
                 if (result.PermissionDenied)
                 {
@@ -192,7 +196,9 @@ internal sealed class PresentMonSupervisor : IDisposable
                     return;
                 }
 
-                failures = produced > 0 ? 1 : failures + 1;
+                // A stall is a dead ETW session, not a broken target: keep
+                // restarting at the shortest delay instead of giving up.
+                failures = produced > 0 || result.Stalled ? 1 : failures + 1;
                 if (failures >= FailureLimit)
                 {
                     _lastError = result.Error ?? $"PresentMon 连续 {failures} 次退出（代码 {result.ExitCode}）";
@@ -283,10 +289,16 @@ internal sealed class PresentMonSupervisor : IDisposable
 
     private async Task<AttemptResult> RunOnceAsync(CancellationToken token)
     {
-        await ClearStaleSessionAsync(token).ConfigureAwait(false);
-        if (token.IsCancellationRequested)
+        // A graceful PresentMon exit stops its own ETW session, so the cleanup
+        // pass is only needed after we terminated it ourselves.
+        if (_restartNeedsCleanup)
         {
-            return new AttemptResult(0, false, null);
+            _restartNeedsCleanup = false;
+            await ClearStaleSessionAsync(token).ConfigureAwait(false);
+            if (token.IsCancellationRequested)
+            {
+                return new AttemptResult(0, false, null, false);
+            }
         }
 
         using var process = new Process
@@ -298,16 +310,16 @@ internal sealed class PresentMonSupervisor : IDisposable
         {
             if (!process.Start())
             {
-                return new AttemptResult(-1, false, "无法启动 PresentMon");
+                return new AttemptResult(-1, false, "无法启动 PresentMon", false);
             }
         }
         catch (Win32Exception ex)
         {
-            return new AttemptResult(ex.NativeErrorCode, false, ex.Message);
+            return new AttemptResult(ex.NativeErrorCode, false, ex.Message, false);
         }
         catch (InvalidOperationException ex)
         {
-            return new AttemptResult(-1, false, ex.Message);
+            return new AttemptResult(-1, false, ex.Message, false);
         }
 
         _process = process;
@@ -331,6 +343,8 @@ internal sealed class PresentMonSupervisor : IDisposable
         FrameCsvParser? parser = null;
         Task<string?>? pendingLine = null;
         bool gotFrame = false;
+        bool killed = false;
+        bool stalled = false;
         int invalidRun = 0;
         string? error = null;
         long startTicks = Stopwatch.GetTimestamp();
@@ -355,7 +369,10 @@ internal sealed class PresentMonSupervisor : IDisposable
                     double idleMs = ElapsedMs(lastProgressTicks);
                     if (!gotFrame)
                     {
-                        if (ElapsedMs(startTicks) >= FirstFrameTimeout.TotalMilliseconds)
+                        // A minimised or unfocused game may legitimately produce
+                        // no presents, so only give up while it is actually busy.
+                        if (ElapsedMs(startTicks) >= FirstFrameTimeout.TotalMilliseconds &&
+                            _isTargetActive())
                         {
                             error = "PresentMon 启动后 20 秒内未产生帧";
                             break;
@@ -363,6 +380,7 @@ internal sealed class PresentMonSupervisor : IDisposable
                     }
                     else if (idleMs >= StallTimeout.TotalMilliseconds && _isTargetActive())
                     {
+                        stalled = true;
                         error = $"帧采集停顿 {StallTimeout.TotalSeconds:0} 秒（最后一帧后 {idleMs / 1000.0:0.0} 秒无数据）";
                         _logger.Warn($"帧采集停顿：最后一帧后 {idleMs / 1000.0:0.0} 秒无数据，重启 PresentMon");
                         break;
@@ -438,6 +456,8 @@ internal sealed class PresentMonSupervisor : IDisposable
 
         if (!process.HasExited && !process.WaitForExit(2000))
         {
+            killed = true;
+
             try
             {
                 process.Kill(entireProcessTree: true);
@@ -470,7 +490,7 @@ internal sealed class PresentMonSupervisor : IDisposable
 
         if (permissionDenied)
         {
-            return new AttemptResult(exitCode, true, "需要管理员权限或 Performance Log Users");
+            return new AttemptResult(exitCode, true, "需要管理员权限或 Performance Log Users", killed);
         }
 
         string diagnostics = Compact(stderr);
@@ -484,7 +504,7 @@ internal sealed class PresentMonSupervisor : IDisposable
             error = diagnostics.Length > 0 ? diagnostics : $"PresentMon 退出代码 {exitCode}";
         }
 
-        return new AttemptResult(exitCode, false, error);
+        return new AttemptResult(exitCode, false, error, killed, stalled);
     }
 
     private ProcessStartInfo BuildStartInfo(bool terminateExisting = false)
@@ -643,5 +663,10 @@ internal sealed class PresentMonSupervisor : IDisposable
         _stop.Dispose();
     }
 
-    private readonly record struct AttemptResult(int ExitCode, bool PermissionDenied, string? Error);
+    private readonly record struct AttemptResult(
+        int ExitCode,
+        bool PermissionDenied,
+        string? Error,
+        bool Killed,
+        bool Stalled = false);
 }

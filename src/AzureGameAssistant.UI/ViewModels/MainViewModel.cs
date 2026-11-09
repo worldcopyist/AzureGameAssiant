@@ -130,8 +130,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     ];
 
     private static readonly TimeSpan FrameFreshWindow = TimeSpan.FromSeconds(2);
-    private static readonly TimeSpan FrameHoldWindow = TimeSpan.FromSeconds(10);
-    private static readonly TimeSpan OverlayFrameHoldWindow = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan FrameHoldWindow = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan OverlayFrameHoldWindow = TimeSpan.FromSeconds(20);
     private static readonly TimeSpan AutoCaptureDwell = TimeSpan.FromSeconds(2);
 
     public MainViewModel(
@@ -1056,23 +1056,15 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         TimeSpan age = DateTime.UtcNow - _lastFrameAt;
         bool hasFrames = _frameSnapshot.FrameCount > 0 && _lastFrameAt != DateTime.MinValue;
-        bool fresh = IsFrameDataFresh;
+
+        // PresentMon and ETW can pause for a few seconds; the supervisor now
+        // lets it recover, so hold the last reading instead of blanking the card.
         bool holding = hasFrames && age < FrameHoldWindow;
 
         FrameValue = holding ? _frameSnapshot.InstantFps.ToString("F1") + " FPS" : "—";
-        if (!holding)
-        {
-            FrameSub = string.Empty;
-        }
-        else if (fresh)
-        {
-            FrameSub = _loc.Format("FrameStatsSub", _frameSnapshot.AverageFps, _frameSnapshot.OnePercentLowFps);
-        }
-        else
-        {
-            FrameSub = _loc.Format("FrameStatsSub", _frameSnapshot.AverageFps, _frameSnapshot.OnePercentLowFps)
-                + " · " + _loc["FrameRecovering"];
-        }
+        FrameSub = holding
+            ? _loc.Format("FrameStatsSub", _frameSnapshot.AverageFps, _frameSnapshot.OnePercentLowFps)
+            : string.Empty;
     }
 
     private void UpdateCollectorTexts()

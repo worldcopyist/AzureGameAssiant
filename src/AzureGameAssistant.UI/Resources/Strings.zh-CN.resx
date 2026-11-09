@@ -471,9 +471,6 @@
   <data name="FrameStatsSub" xml:space="preserve">
     <value>平均 {0:F0} · 1% Low {1:F0}</value>
   </data>
-  <data name="FrameRecovering" xml:space="preserve">
-    <value>恢复中…</value>
-  </data>
   <data name="PermissionCheckButton" xml:space="preserve">
     <value>权限自检</value>
   </data>
