@@ -23,6 +23,7 @@ public sealed class AppSettings
     public ChartSettings Charts { get; set; } = new();
     public OverlaySettings Overlay { get; set; } = new();
     public DiagnosticsSettings Diagnostics { get; set; } = new();
+    public LogSettings Logs { get; set; } = new();
 
     public void Normalize()
     {
@@ -110,6 +111,9 @@ public sealed class AppSettings
             < 20 => 10,
             _ => 30,
         };
+
+        Logs ??= new LogSettings();
+        Logs.RetentionDays = Math.Clamp(Logs.RetentionDays, 1, 30);
 
         Overlay ??= new OverlaySettings();
         Overlay.Corner = Overlay.Corner?.Trim().ToLowerInvariant() switch
@@ -240,6 +244,12 @@ public sealed class DiagnosticsSettings
 {
     public bool LongRunRecord { get; set; }
     public int IntervalSeconds { get; set; } = 5;
+}
+
+public sealed class LogSettings
+{
+    public bool Enabled { get; set; } = true;
+    public int RetentionDays { get; set; } = 3;
 }
 
 public sealed class OverlaySettings

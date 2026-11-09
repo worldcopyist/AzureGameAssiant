@@ -12,6 +12,8 @@ public sealed class AiReport
     public List<AiEvidence> Evidence { get; set; } = [];
     public List<AiSuspect> Suspects { get; set; } = [];
     public AiFrameAnalysis? FrameAnalysis { get; set; }
+    public List<AiDropAnalysis> DropAnalysis { get; set; } = [];
+    public List<AiHighLoadAttribution> HighLoadAttribution { get; set; } = [];
     public List<AiRecommendation> Recommendations { get; set; } = [];
     public List<string> Limitations { get; set; } = [];
     public string Disclaimer { get; set; } = string.Empty;
@@ -37,6 +39,21 @@ public sealed class AiFrameAnalysis
     public bool CpuBound { get; set; }
     public bool GpuBound { get; set; }
     public bool PacingIssue { get; set; }
+}
+
+public sealed class AiDropAnalysis
+{
+    public double SecondsAgo { get; set; }
+    public string Cause { get; set; } = "unknown";
+    public string Explanation { get; set; } = string.Empty;
+    public string? SuspectProcess { get; set; }
+}
+
+public sealed class AiHighLoadAttribution
+{
+    public string Resource { get; set; } = "cpu";
+    public string Process { get; set; } = string.Empty;
+    public string Explanation { get; set; } = string.Empty;
 }
 
 public sealed class AiRecommendation
@@ -80,6 +97,18 @@ public static class AiReportValidator
     private static readonly HashSet<string> Risks = new(StringComparer.Ordinal)
     {
         "low", "medium", "high",
+    };
+
+    private static readonly HashSet<string> DropCauses = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "long-stall", "gpu-wait", "cpu-wait", "mixed", "shader-compilation",
+        "asset-streaming", "thermal-throttle", "vram-pressure", "memory-pressure",
+        "disk-stall", "unknown",
+    };
+
+    private static readonly HashSet<string> LoadResources = new(StringComparer.Ordinal)
+    {
+        "cpu", "gpu", "vram", "memory", "disk",
     };
 
     private static readonly (Regex Pattern, string Label)[] DangerousPatterns =
@@ -131,6 +160,8 @@ public static class AiReportValidator
         ValidateEvidence(report, facts, errors, warnings);
         NormalizeSuspects(report, warnings);
         NormalizeFrameAnalysis(report, warnings);
+        ValidateDropAnalysis(report, facts, errors, warnings);
+        ValidateHighLoadAttribution(report, facts, errors, warnings);
         ValidateRecommendations(report, warnings);
         NormalizeLimitations(report);
         NormalizeDisclaimer(report);
@@ -338,6 +369,137 @@ public static class AiReportValidator
         {
             report.FrameAnalysis.Summary = "未提供";
         }
+    }
+
+    private static void ValidateDropAnalysis(
+        AiReport report,
+        FactsDocument facts,
+        List<string> errors,
+        List<string> warnings)
+    {
+        var kept = new List<AiDropAnalysis>();
+        foreach (AiDropAnalysis entry in report.DropAnalysis ?? [])
+        {
+            string cause = (entry.Cause ?? string.Empty).Trim();
+            if (!DropCauses.Contains(cause))
+            {
+                warnings.Add($"未知掉帧原因：{cause}，已改为 unknown");
+                cause = "unknown";
+            }
+
+            entry.Cause = cause.ToLowerInvariant();
+            entry.Explanation = Trim(StripControl(entry.Explanation), 300);
+            entry.SuspectProcess = string.IsNullOrWhiteSpace(entry.SuspectProcess)
+                ? null
+                : Trim(StripControl(entry.SuspectProcess), 64);
+            entry.SecondsAgo = Math.Round(entry.SecondsAgo, 1);
+
+            if (entry.Explanation.Length == 0)
+            {
+                warnings.Add("丢弃缺少解释的掉帧分析项");
+                continue;
+            }
+
+            kept.Add(entry);
+            if (kept.Count >= 12)
+            {
+                break;
+            }
+        }
+
+        report.DropAnalysis = kept;
+        if (facts.Drops.Count == 0)
+        {
+            return;
+        }
+
+        foreach (FactsDrop drop in facts.Drops)
+        {
+            bool covered = kept.Any(entry => Math.Abs(entry.SecondsAgo - drop.SecondsAgo) <= 2.0);
+            if (!covered)
+            {
+                errors.Add($"掉帧事件（约 {drop.SecondsAgo:0.#} 秒前）没有给出原因分析");
+            }
+        }
+    }
+
+    private static void ValidateHighLoadAttribution(
+        AiReport report,
+        FactsDocument facts,
+        List<string> errors,
+        List<string> warnings)
+    {
+        var kept = new List<AiHighLoadAttribution>();
+        foreach (AiHighLoadAttribution entry in report.HighLoadAttribution ?? [])
+        {
+            string resource = (entry.Resource ?? string.Empty).Trim().ToLowerInvariant();
+            if (!LoadResources.Contains(resource))
+            {
+                warnings.Add($"未知高负载资源：{entry.Resource}");
+                continue;
+            }
+
+            entry.Resource = resource;
+            entry.Process = Trim(StripControl(entry.Process), 64);
+            entry.Explanation = Trim(StripControl(entry.Explanation), 300);
+
+            if (entry.Process.Length == 0)
+            {
+                warnings.Add($"丢弃未指明进程的高负载归因（{resource}）");
+                continue;
+            }
+
+            kept.Add(entry);
+            if (kept.Count >= 12)
+            {
+                break;
+            }
+        }
+
+        report.HighLoadAttribution = kept;
+        if (facts.HighLoads.Count == 0)
+        {
+            return;
+        }
+
+        HashSet<string> known = KnownProcessNames(facts);
+        foreach (FactsHighLoad load in facts.HighLoads)
+        {
+            AiHighLoadAttribution? match = kept.FirstOrDefault(
+                entry => string.Equals(entry.Resource, load.Resource, StringComparison.Ordinal));
+            if (match is null)
+            {
+                errors.Add($"高负载事件（{load.Resource}）没有返回造成高负载的进程");
+                continue;
+            }
+
+            if (known.Count > 0 && !known.Contains(match.Process))
+            {
+                warnings.Add($"高负载归因进程不在事实层列表中：{match.Process}");
+            }
+        }
+    }
+
+    private static HashSet<string> KnownProcessNames(FactsDocument facts)
+    {
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (FactsProcess process in facts.Processes)
+        {
+            if (!string.IsNullOrWhiteSpace(process.Name))
+            {
+                names.Add(process.Name);
+            }
+        }
+
+        foreach (FactsDrop drop in facts.Drops)
+        {
+            if (!string.IsNullOrWhiteSpace(drop.SuspectProcess))
+            {
+                names.Add(drop.SuspectProcess);
+            }
+        }
+
+        return names;
     }
 
     private static void ValidateRecommendations(AiReport report, List<string> warnings)

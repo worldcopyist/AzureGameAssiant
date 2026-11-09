@@ -44,6 +44,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         ChartFrames = settings.Charts.Frames;
         LongRunRecord = settings.Diagnostics.LongRunRecord;
         LongRunIntervalSeconds = settings.Diagnostics.IntervalSeconds;
+        LogRecording = settings.Logs.Enabled;
+        LogRetentionDays = settings.Logs.RetentionDays;
 
         OverlayEnabled = settings.Overlay.Enabled;
         OverlayCorner = settings.Overlay.Corner;
@@ -208,7 +210,15 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private bool _aiModelsBusy;
 
+    [ObservableProperty]
+    private string _aiTestStatus = string.Empty;
+
+    [ObservableProperty]
+    private bool _aiTesting;
+
     public bool AiKeyInputEnabled => AiRequiresKey;
+
+    public bool CanTestAiConnection => !AiTesting;
 
     public bool CanFetchAiModels => !AiModelsBusy;
 
@@ -242,6 +252,14 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private int _longRunIntervalSeconds = 5;
+
+    public IReadOnlyList<int> LogRetentionOptions { get; } = [1, 2, 3, 5, 7, 14, 30];
+
+    [ObservableProperty]
+    private bool _logRecording = true;
+
+    [ObservableProperty]
+    private int _logRetentionDays = 3;
 
     [ObservableProperty]
     private bool _overlayEnabled;
@@ -307,6 +325,8 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     partial void OnAiModelsBusyChanged(bool value) => OnPropertyChanged(nameof(CanFetchAiModels));
 
+    partial void OnAiTestingChanged(bool value) => OnPropertyChanged(nameof(CanTestAiConnection));
+
     partial void OnAiModelOptionsChanged(IReadOnlyList<string> value) =>
         OnPropertyChanged(nameof(HasAiModelOptions));
 
@@ -329,6 +349,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         AiProviderPreset preset = AiProviderPresets.Resolve(key);
         AiModelOptions = Array.Empty<string>();
         AiModelsStatus = string.Empty;
+        AiTestStatus = string.Empty;
 
         if (_aiDrafts.TryGetValue(key, out AiProviderDraft draft))
         {
@@ -400,6 +421,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         settings.Charts.Frames = ChartFrames;
         settings.Diagnostics.LongRunRecord = LongRunRecord;
         settings.Diagnostics.IntervalSeconds = LongRunIntervalSeconds;
+        settings.Logs.Enabled = LogRecording;
+        settings.Logs.RetentionDays = LogRetentionDays;
 
         settings.Overlay.Enabled = OverlayEnabled;
         settings.Overlay.Corner = OverlayCorner;

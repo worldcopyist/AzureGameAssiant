@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 using AzureGameAssistant.Ai;
 using AzureGameAssistant.Core.Diagnostics;
 using AzureGameAssistant.Core.Frames;
+using AzureGameAssistant.Core.Hardware;
 using AzureGameAssistant.Core.Models;
 using AzureGameAssistant.Core.Settings;
 using AzureGameAssistant.UI.Controls;
@@ -33,6 +34,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly FrameRecord[] _frameBuffer = new FrameRecord[1024];
     private readonly FrameStats _frameStats = new();
     private readonly FrameTimeline _frameTimeline = new(FrameTimelineCapacity);
+    private readonly FrameDropTracker _dropTracker = new();
+    private readonly HighLoadTracker _highLoadTracker = new();
+
+    private const int DropMarkerCapacity = 64;
+    private const int HighLoadMarkerCapacity = 16;
     private readonly FrameTimePoint[] _frameTimelineBuffer = new FrameTimePoint[FrameTimelineCapacity];
     private int _refreshing;
     private int _statusTicks;
@@ -51,9 +57,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private string _frameState = "stopped";
     private int? _frameTargetPid;
     private string? _frameError;
+    private long _lastLoadSampleTicks;
     private DateTime _lastAutoCaptureAttempt = DateTime.MinValue;
     private DateTime _autoCaptureBlockedUntil = DateTime.MinValue;
     private int? _autoCaptureSuppressedPid;
+    private int? _autoCaptureCandidatePid;
+    private DateTime _autoCaptureCandidateSince = DateTime.MinValue;
 
     private static readonly HashSet<string> AutoCaptureExcluded = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -69,7 +78,61 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         "Idle",
         "System",
         "Registry",
+        "dwm",
+        "RuntimeBroker",
+        "GameBar",
+        "GameBarFTServer",
+        "PhoneExperienceHost",
     };
+
+    // Launchers, recorders, browsers and desktop tools can own a fullscreen
+    // window or show GPU usage; capturing them would steal the target from a
+    // real game. Substring match keeps related builds (obs64, obs32) covered.
+    private static readonly string[] AutoCaptureExcludedMarkers =
+    [
+        "obs",
+        "streamlabs",
+        "xsplit",
+        "discord",
+        "chrome",
+        "msedge",
+        "firefox",
+        "opera",
+        "brave",
+        "vivaldi",
+        "browser",
+        "steam",
+        "epicgames",
+        "battle.net",
+        "galaxyclient",
+        "ubisoftconnect",
+        "riotclient",
+        "nvidia",
+        "radeon",
+        "afterburner",
+        "rtss",
+        "hwinfo",
+        "wallpaper",
+        "terminal",
+        "powershell",
+        "notepad",
+        "devenv",
+        "vlc",
+        "potplayer",
+        "wmplayer",
+        "spotify",
+        "teams",
+        "slack",
+        "telegram",
+        "wechat",
+        "weixin",
+        "obsidian",
+    ];
+
+    private static readonly TimeSpan FrameFreshWindow = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan FrameHoldWindow = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan OverlayFrameHoldWindow = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan AutoCaptureDwell = TimeSpan.FromSeconds(2);
 
     public MainViewModel(
         TelemetryService telemetry,
@@ -135,13 +198,95 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             }
         }
 
+        var dropBuffer = new FrameDropMarker[DropMarkerCapacity];
+        int dropCount = _dropTracker.CopyTo(dropBuffer);
+        var loadBuffer = new HighLoadMarker[HighLoadMarkerCapacity];
+        int loadCount = _highLoadTracker.CopyTo(loadBuffer);
+
+        for (int i = 0; i < dropCount; i++)
+        {
+            uint pid = dropBuffer[i].SuspectPid;
+            if (pid != 0 && !names.ContainsKey(pid))
+            {
+                names[pid] = _names.GetName(pid);
+            }
+        }
+
+        for (int i = 0; i < loadCount; i++)
+        {
+            AddMarkerName(loadBuffer[i].TopPid);
+            AddMarkerName(loadBuffer[i].SecondPid);
+
+            void AddMarkerName(uint pid)
+            {
+                if (pid != 0 && !names.ContainsKey(pid))
+                {
+                    names[pid] = _names.GetName(pid);
+                }
+            }
+        }
+
         string mode = _frameState == "capturing" || _settings.Sensors.Enabled ? "deep" : "shallow";
-        return new FactsInput(samples, frameBuffer.AsSpan(0, frameCount).ToArray(), names, mode, locale);
+        return new FactsInput(
+            samples,
+            frameBuffer.AsSpan(0, frameCount).ToArray(),
+            names,
+            mode,
+            locale,
+            null,
+            dropCount > 0 ? dropBuffer.AsSpan(0, dropCount).ToArray() : null,
+            loadCount > 0 ? loadBuffer.AsSpan(0, loadCount).ToArray() : null);
     }
 
     public SampleRecord Latest => _telemetry.Latest;
 
+    /// <summary>Read-only, non-identifying hardware labels for the CPU/GPU cards.</summary>
+    public string CpuName { get; } = CleanCpuName(Inventory.Cpu);
+
+    public string GpuName { get; } = PickGpuName(Inventory.Gpu);
+
+    private static readonly SystemInventorySnapshot Inventory = SystemInventory.Capture();
+
+    private static string CleanCpuName(string name)
+    {
+        string text = name
+            .Replace("(R)", string.Empty, StringComparison.Ordinal)
+            .Replace("(TM)", string.Empty, StringComparison.Ordinal)
+            .Replace("CPU ", string.Empty, StringComparison.Ordinal);
+        while (text.Contains("  ", StringComparison.Ordinal))
+        {
+            text = text.Replace("  ", " ", StringComparison.Ordinal);
+        }
+
+        return text.Trim();
+    }
+
+    private static string PickGpuName(IReadOnlyList<string> adapters)
+    {
+        foreach (string adapter in adapters)
+        {
+            if (!adapter.Contains("Basic Display", StringComparison.OrdinalIgnoreCase) &&
+                !adapter.Contains("Basic Render", StringComparison.OrdinalIgnoreCase))
+            {
+                return adapter;
+            }
+        }
+
+        return adapters.Count > 0 ? adapters[0] : string.Empty;
+    }
+
     public bool IsConnectedToCollector => _connected;
+
+    public string FrameStateName => _frameState;
+
+    public int? FrameTargetPid => _frameTargetPid;
+
+    public bool IsFrameCaptureRunning => _frameState is "capturing" or "starting";
+
+    public bool IsFrameDataFresh =>
+        _frameSnapshot.FrameCount > 0 &&
+        _lastFrameAt != DateTime.MinValue &&
+        DateTime.UtcNow - _lastFrameAt < FrameFreshWindow;
 
     public bool ShowCombinedChart => !_settings.Charts.Separate;
 
@@ -301,7 +446,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 UpdateMetrics();
                 UpdateProcesses();
                 TimelineCount = _telemetry.CopyTo(_timeline);
+                TrackHighLoad();
                 UpdateFrames();
+            }
+            else
+            {
+                _highLoadTracker.Suspend();
             }
 
             _statusTicks++;
@@ -499,6 +649,21 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         if (!IsAutoCaptureCandidate(pid))
         {
+            _autoCaptureCandidatePid = null;
+            return;
+        }
+
+        // Require the candidate to stay in the foreground for a moment so a
+        // transient window switch does not restart capture on the wrong app.
+        if (_autoCaptureCandidatePid != pid)
+        {
+            _autoCaptureCandidatePid = pid;
+            _autoCaptureCandidateSince = now;
+            return;
+        }
+
+        if (now - _autoCaptureCandidateSince < AutoCaptureDwell)
+        {
             return;
         }
 
@@ -530,9 +695,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private bool IsGameLikeProcess(int pid)
     {
         string name = _names.GetName((uint)pid);
-        if (string.IsNullOrEmpty(name) ||
-            name.StartsWith("AzureGameAssistant", StringComparison.OrdinalIgnoreCase) ||
-            AutoCaptureExcluded.Contains(name))
+        if (string.IsNullOrEmpty(name) || IsExcludedCaptureProcess(name))
         {
             return false;
         }
@@ -557,6 +720,39 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             return false;
         }
+    }
+
+    private bool IsExcludedCaptureProcess(string name)
+    {
+        if (name.StartsWith("AzureGameAssistant", StringComparison.OrdinalIgnoreCase) ||
+            AutoCaptureExcluded.Contains(name))
+        {
+            return true;
+        }
+
+        foreach (string marker in AutoCaptureExcludedMarkers)
+        {
+            if (name.Contains(marker, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        foreach (string excluded in _settings.GameDetection.Exclude)
+        {
+            string value = excluded.Trim();
+            if (value.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            {
+                value = value[..^4];
+            }
+
+            if (value.Length > 0 && value.Equals(name, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool IsFullscreen(IntPtr window)
@@ -665,9 +861,21 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _uptimeSeconds = status.UptimeSeconds;
         _samplingIntervalMs = status.SamplingIntervalMs > 0 ? status.SamplingIntervalMs : _settings.Sampling.NormalMs;
         _collectorError = status.LastError;
+        if (status.FrameTargetPid != _frameTargetPid)
+        {
+            _frameSnapshot = default;
+            _lastFrameAt = DateTime.MinValue;
+            _dropTracker.Clear();
+            _highLoadTracker.Clear();
+        }
+
         _frameState = status.FrameState;
         _frameTargetPid = status.FrameTargetPid;
         _frameError = status.FrameError;
+        if (_frameState == "stopped")
+        {
+            _lastFrameAt = DateTime.MinValue;
+        }
 
         if (!_helloDone || _appVersion.Length == 0)
         {
@@ -744,6 +952,24 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
     }
 
+    private void TrackHighLoad()
+    {
+        if (_telemetry.Count == 0)
+        {
+            return;
+        }
+
+        SampleRecord sample = _telemetry.Latest;
+        if (sample.UtcTicks != 0 && sample.UtcTicks == _lastLoadSampleTicks)
+        {
+            return;
+        }
+
+        _lastLoadSampleTicks = sample.UtcTicks;
+        long utcTicks = sample.UtcTicks > 0 ? sample.UtcTicks : DateTime.UtcNow.Ticks;
+        _highLoadTracker.Observe(sample, utcTicks);
+    }
+
     private void UpdateFrames()
     {
         long writeIndex = _telemetry.FrameWriteIndex;
@@ -751,6 +977,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             _frameStats.Clear();
             _frameTimeline.Clear();
+            _dropTracker.Clear();
             _frameSnapshot = default;
             _lastFrameIndex = -1;
         }
@@ -762,6 +989,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         SampleRecord anchor = _telemetry.Latest;
         double qpcTicksPerSecond = EstimateQpcTicksPerSecond();
+        double baselineFps = _frameSnapshot.AverageFps;
         bool added = false;
         while (_lastFrameIndex < writeIndex)
         {
@@ -785,6 +1013,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                     ? FrameTimeline.ToUtcTicks(frame.QpcTicks, anchor.QpcTicks, anchor.UtcTicks, qpcTicksPerSecond)
                     : 0;
                 _frameTimeline.Add(utcTicks, frame.FrameTimeMs, spike);
+                _dropTracker.Observe(
+                    utcTicks > 0 ? utcTicks : DateTime.UtcNow.Ticks,
+                    frame,
+                    spike,
+                    baselineFps,
+                    anchor);
             }
 
             _lastFrameIndex += read;
@@ -797,6 +1031,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             _frameSnapshot = _frameStats.Snapshot();
         }
 
+        _dropTracker.Tick(DateTime.UtcNow.Ticks);
         UpdateFrameMetrics();
     }
 
@@ -819,11 +1054,25 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     private void UpdateFrameMetrics()
     {
-        bool fresh = _frameSnapshot.FrameCount > 0 && DateTime.UtcNow - _lastFrameAt < TimeSpan.FromSeconds(2);
-        FrameValue = fresh ? _frameSnapshot.InstantFps.ToString("F1") + " FPS" : "—";
-        FrameSub = fresh
-            ? _loc.Format("FrameStatsSub", _frameSnapshot.AverageFps, _frameSnapshot.OnePercentLowFps)
-            : string.Empty;
+        TimeSpan age = DateTime.UtcNow - _lastFrameAt;
+        bool hasFrames = _frameSnapshot.FrameCount > 0 && _lastFrameAt != DateTime.MinValue;
+        bool fresh = IsFrameDataFresh;
+        bool holding = hasFrames && age < FrameHoldWindow;
+
+        FrameValue = holding ? _frameSnapshot.InstantFps.ToString("F1") + " FPS" : "—";
+        if (!holding)
+        {
+            FrameSub = string.Empty;
+        }
+        else if (fresh)
+        {
+            FrameSub = _loc.Format("FrameStatsSub", _frameSnapshot.AverageFps, _frameSnapshot.OnePercentLowFps);
+        }
+        else
+        {
+            FrameSub = _loc.Format("FrameStatsSub", _frameSnapshot.AverageFps, _frameSnapshot.OnePercentLowFps)
+                + " · " + _loc["FrameRecovering"];
+        }
     }
 
     private void UpdateCollectorTexts()
@@ -938,7 +1187,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
 
         bool framesFresh = _frameSnapshot.FrameCount > 0 &&
-            (DateTime.UtcNow - _lastFrameAt).TotalSeconds < 2.0;
+            _lastFrameAt != DateTime.MinValue &&
+            (DateTime.UtcNow - _lastFrameAt) < FrameFreshWindow;
+        double frameAge = _lastFrameAt == DateTime.MinValue
+            ? 0
+            : Math.Max(0, (DateTime.UtcNow - _lastFrameAt).TotalSeconds);
 
         return new DiagnosticsSnapshot(
             DateTime.UtcNow,
@@ -955,6 +1208,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             _frameTargetPid,
             _frameError,
             framesFresh,
+            frameAge,
+            _telemetry.FrameWriteIndex,
             _frameSnapshot,
             _framesSeen,
             _spikesSeen,
@@ -986,7 +1241,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
 
         bool hasFrames = _frameSnapshot.FrameCount > 0 &&
-            (DateTime.UtcNow - _lastFrameAt).TotalSeconds < 2.0;
+            _lastFrameAt != DateTime.MinValue &&
+            (DateTime.UtcNow - _lastFrameAt) < OverlayFrameHoldWindow;
 
         return new OverlayData(
             HasSample: hasSample,

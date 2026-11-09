@@ -46,6 +46,10 @@ public partial class App : Application
     private int _appliedSensorIntervalMs = 1_000;
     private string _appliedCpuMode = "acpi";
     private bool _appliedSensorsEnabled = true;
+    private DateTime _lastHeartbeatLogUtc = DateTime.MinValue;
+    private DateTime _lastLogPruneUtc = DateTime.MinValue;
+    private string _lastLoggedFrameState = string.Empty;
+    private bool? _lastFrameFresh;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -92,6 +96,7 @@ public partial class App : Application
         _settingsService = new SettingsService();
         SettingsLoadResult result = _settingsService.Load();
         _settings = result.Settings;
+        _logger.Enabled = _settings.Logs.Enabled;
         if (result.Warning is not null)
         {
             _logger.Warn(result.Warning);
@@ -101,6 +106,13 @@ public partial class App : Application
         _appliedSensorIntervalMs = _settings.Sensors.IntervalMs;
         _appliedCpuMode = _settings.Sensors.CpuMode;
         _appliedSensorsEnabled = _settings.Sensors.Enabled;
+
+        int pruned = LogMaintenance.Prune(AppPaths.LogsDirectory, _settings.Logs.RetentionDays);
+        _lastLogPruneUtc = DateTime.UtcNow;
+        if (pruned > 0)
+        {
+            _logger.Info($"已清理 {pruned} 个超过 {_settings.Logs.RetentionDays} 天的日志文件");
+        }
 
         bool skipElevation = e.Args.Any(arg =>
             string.Equals(arg, "--no-elevate", StringComparison.OrdinalIgnoreCase));
@@ -174,9 +186,71 @@ public partial class App : Application
         await _viewModel.RefreshAsync();
 
         _window?.RefreshChart();
-        _overlay?.Update(_viewModel.GetOverlayData());
+        if (_overlay?.IsVisible == true)
+        {
+            _overlay.Update(_viewModel.GetOverlayData());
+        }
+
         RecordLongRunSample();
+        RecordRuntimeLog();
         UpdateTimerState();
+    }
+
+    /// <summary>
+    /// Session-long log: one compact status line per minute from launch to exit,
+    /// plus explicit frame-data interruptions. Can be turned off in settings.
+    /// </summary>
+    private void RecordRuntimeLog()
+    {
+        DateTime now = DateTime.UtcNow;
+        if (now - _lastLogPruneUtc >= TimeSpan.FromDays(1))
+        {
+            _lastLogPruneUtc = now;
+            LogMaintenance.Prune(AppPaths.LogsDirectory, _settings.Logs.RetentionDays);
+        }
+
+        if (_viewModel is null || _telemetry is null)
+        {
+            return;
+        }
+
+        bool fresh = _viewModel.IsFrameDataFresh;
+        if (_lastFrameFresh is bool wasFresh &&
+            wasFresh != fresh &&
+            _viewModel.IsFrameCaptureRunning)
+        {
+            _logger?.Info(fresh ? "帧率数据恢复" : "帧率数据中断：超过 2 秒没有新帧");
+        }
+
+        _lastFrameFresh = fresh;
+
+        string frameState = _viewModel.FrameStateName;
+        bool stateChanged = !string.Equals(frameState, _lastLoggedFrameState, StringComparison.Ordinal);
+        if (stateChanged)
+        {
+            _lastLoggedFrameState = frameState;
+        }
+
+        if (!_settings.Logs.Enabled ||
+            (!stateChanged && now - _lastHeartbeatLogUtc < TimeSpan.FromSeconds(60)))
+        {
+            return;
+        }
+
+        _lastHeartbeatLogUtc = now;
+
+        if (_telemetry.Count == 0)
+        {
+            _logger?.Info($"运行状态：等待采集数据，帧采集 {frameState}");
+            return;
+        }
+
+        SampleRecord sample = _telemetry.Latest;
+        string target = _viewModel.FrameTargetPid is int pid ? $"(PID {pid})" : string.Empty;
+        _logger?.Info(
+            $"运行状态：采样 {_telemetry.Count}，CPU {sample.CpuUtilityPct:F1}%，GPU {sample.GpuUtilPct:F1}%，" +
+            $"内存 {TelemetryMath.MemoryUsagePct(sample):F1}%，帧率 {_viewModel.FrameValue}，" +
+            $"帧采集 {frameState}{target}");
     }
 
     private void RecordLongRunSample()
@@ -320,16 +394,19 @@ public partial class App : Application
         bool overlayVisible = _overlay?.IsVisible == true;
         bool chartsVisible = _window?.HasVisibleCharts == true;
 
-        if (mainVisible || overlayVisible || chartsVisible)
+        // Recording must continue from launch to exit, so the timer never
+        // stops; hidden windows just refresh at a slower cadence.
+        TimeSpan interval = mainVisible || overlayVisible || chartsVisible
+            ? TimeSpan.FromMilliseconds(500)
+            : TimeSpan.FromSeconds(2);
+        if (_timer.Interval != interval)
         {
-            if (!_timer.IsEnabled)
-            {
-                _timer.Start();
-            }
+            _timer.Interval = interval;
         }
-        else if (_timer.IsEnabled)
+
+        if (!_timer.IsEnabled)
         {
-            _timer.Stop();
+            _timer.Start();
         }
     }
 
@@ -495,6 +572,12 @@ public partial class App : Application
             AutoStartService.SetEnabled(settings.AutoStart);
         }
 
+        if (_logger is not null)
+        {
+            _logger.Enabled = settings.Logs.Enabled;
+        }
+
+        LogMaintenance.Prune(AppPaths.LogsDirectory, settings.Logs.RetentionDays);
         SyncLongRunRecorder();
 
         if (restart)

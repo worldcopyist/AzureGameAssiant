@@ -13,6 +13,9 @@ public static class PromptBuilder
 输出必须是单个 JSON 对象，符合给定 schema，不要输出 Markdown 代码围栏或额外解释。
 建议必须具体、可执行、风险可控；禁止建议关闭安全软件、修改系统关键设置、
 执行未知脚本、超频或绕过反作弊。若证据不足，降低 confidence 并在 limitations 中说明。
+facts.drops 是自动标记的掉帧事件：必须为每一项在 dropAnalysis 中给出原因，
+secondsAgo 必须与事实中的数值一致（允许 ±2 秒误差）。facts.highLoads 是高负载事件：
+必须为每种资源在 highLoadAttribution 中指明造成高负载的进程，进程名必须来自事实层。
 """;
 
     private const string SystemPromptEn = """
@@ -25,6 +28,11 @@ extra prose. Recommendations must be concrete, executable and low risk. Never
 suggest disabling security software, editing critical system settings, running
 unknown scripts, overclocking or bypassing anti-cheat. If evidence is thin,
 lower confidence and explain in limitations.
+facts.drops lists automatically marked frame drops: explain every entry in
+dropAnalysis, reusing the same secondsAgo value (a 2 second tolerance is
+allowed). facts.highLoads lists sustained high-load episodes: name the process
+responsible for each resource in highLoadAttribution, using a process name
+that appears in the facts layer.
 """;
 
     private const string Schema = """
@@ -35,6 +43,8 @@ lower confidence and explain in limitations.
   "evidence": [{"metric": "metric name from facts", "value": "string", "interpretation": "string"}],
   "suspects": [{"name": "string", "role": "foreground | background", "reason": "string"}],
   "frameAnalysis": {"summary": "string", "cpuBound": false, "gpuBound": false, "pacingIssue": false},
+  "dropAnalysis": [{"secondsAgo": 0, "cause": "long-stall | gpu-wait | cpu-wait | mixed | shader-compilation | asset-streaming | thermal-throttle | vram-pressure | memory-pressure | disk-stall | unknown", "explanation": "string", "suspectProcess": "string or null"}],
+  "highLoadAttribution": [{"resource": "cpu | gpu | vram | memory | disk", "process": "process name from facts", "explanation": "string"}],
   "recommendations": [{"action": "string", "risk": "low | medium | high", "expectedEffect": "string", "howTo": "string", "rollback": "string or null"}],
   "limitations": ["string"],
   "disclaimer": "string"

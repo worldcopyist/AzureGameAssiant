@@ -207,6 +207,21 @@
   <data name="DiagnosticsSection" xml:space="preserve">
     <value>诊断记录</value>
   </data>
+  <data name="LogsSection" xml:space="preserve">
+    <value>日志</value>
+  </data>
+  <data name="LogRecordingLabel" xml:space="preserve">
+    <value>运行期间持续写入日志</value>
+  </data>
+  <data name="LogRecordingHint" xml:space="preserve">
+    <value>从启动到退出约每分钟写入一条运行状态，包含帧率读取中断等信息。警告和错误始终保留。</value>
+  </data>
+  <data name="LogRetentionLabel" xml:space="preserve">
+    <value>自动删除超过</value>
+  </data>
+  <data name="LogRetentionUnit" xml:space="preserve">
+    <value>天的日志</value>
+  </data>
   <data name="LongRunRecordLabel" xml:space="preserve">
     <value>记录长时运行诊断数据</value>
   </data>
@@ -456,6 +471,9 @@
   <data name="FrameStatsSub" xml:space="preserve">
     <value>平均 {0:F0} · 1% Low {1:F0}</value>
   </data>
+  <data name="FrameRecovering" xml:space="preserve">
+    <value>恢复中…</value>
+  </data>
   <data name="PermissionCheckButton" xml:space="preserve">
     <value>权限自检</value>
   </data>
@@ -651,6 +669,24 @@
   <data name="AiModelsFailed" xml:space="preserve">
     <value>获取模型列表失败，请检查 Base URL 与 API Key。</value>
   </data>
+  <data name="AiTestConnection" xml:space="preserve">
+    <value>连通测试</value>
+  </data>
+  <data name="AiTestHint" xml:space="preserve">
+    <value>发送一次最小请求，同时验证 Base URL、API Key 与模型名是否可用，不会发送其他内容。</value>
+  </data>
+  <data name="AiTestBusy" xml:space="preserve">
+    <value>正在测试连通性…</value>
+  </data>
+  <data name="AiTestOk" xml:space="preserve">
+    <value>连通正常 · {0} ms · 模型 {1}</value>
+  </data>
+  <data name="AiTestNeedKey" xml:space="preserve">
+    <value>请先填写并保存 API Key，再测试连通性。</value>
+  </data>
+  <data name="AiTestNoModel" xml:space="preserve">
+    <value>请先填写模型名称。</value>
+  </data>
   <data name="AiApiKeyLabel" xml:space="preserve">
     <value>API Key</value>
   </data>
@@ -767,6 +803,69 @@
   </data>
   <data name="AiFrames" xml:space="preserve">
     <value>帧分析</value>
+  </data>
+  <data name="AiDropsSection" xml:space="preserve">
+    <value>掉帧分析</value>
+  </data>
+  <data name="AiHighLoadSection" xml:space="preserve">
+    <value>高负载归因</value>
+  </data>
+  <data name="AiDropWhen" xml:space="preserve">
+    <value>约 {0} 秒前</value>
+  </data>
+  <data name="AiDropSuspect" xml:space="preserve">
+    <value>可疑进程：{0}</value>
+  </data>
+  <data name="AiHighLoadProcess" xml:space="preserve">
+    <value>造成进程：{0}</value>
+  </data>
+  <data name="AiDropCauseLongStall" xml:space="preserve">
+    <value>长帧停顿</value>
+  </data>
+  <data name="AiDropCauseGpuWait" xml:space="preserve">
+    <value>GPU 等待</value>
+  </data>
+  <data name="AiDropCauseCpuWait" xml:space="preserve">
+    <value>CPU 等待</value>
+  </data>
+  <data name="AiDropCauseMixed" xml:space="preserve">
+    <value>CPU/GPU 混合</value>
+  </data>
+  <data name="AiDropCauseShader" xml:space="preserve">
+    <value>着色器编译</value>
+  </data>
+  <data name="AiDropCauseStreaming" xml:space="preserve">
+    <value>资源流式加载</value>
+  </data>
+  <data name="AiDropCauseThermal" xml:space="preserve">
+    <value>温度降频</value>
+  </data>
+  <data name="AiDropCauseVram" xml:space="preserve">
+    <value>显存压力</value>
+  </data>
+  <data name="AiDropCauseMemory" xml:space="preserve">
+    <value>内存压力</value>
+  </data>
+  <data name="AiDropCauseDisk" xml:space="preserve">
+    <value>磁盘停顿</value>
+  </data>
+  <data name="AiDropCauseUnknown" xml:space="preserve">
+    <value>原因不明</value>
+  </data>
+  <data name="AiResourceCpu" xml:space="preserve">
+    <value>CPU 高负载</value>
+  </data>
+  <data name="AiResourceGpu" xml:space="preserve">
+    <value>GPU 高负载</value>
+  </data>
+  <data name="AiResourceVram" xml:space="preserve">
+    <value>显存占用过高</value>
+  </data>
+  <data name="AiResourceMemory" xml:space="preserve">
+    <value>内存压力</value>
+  </data>
+  <data name="AiResourceDisk" xml:space="preserve">
+    <value>磁盘响应过高</value>
   </data>
   <data name="AiRecommendations" xml:space="preserve">
     <value>优化建议</value>

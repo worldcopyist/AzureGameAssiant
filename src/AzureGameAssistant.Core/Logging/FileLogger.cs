@@ -21,6 +21,7 @@ public sealed class FileLogger : IDisposable
     private StreamWriter? _writer;
     private long _written;
     private bool _disposed;
+    private volatile bool _enabled = true;
 
     public FileLogger(string component, string? directory = null, long maxBytes = 2 * 1024 * 1024, int maxFiles = 5)
     {
@@ -33,6 +34,31 @@ public sealed class FileLogger : IDisposable
 
     public string DirectoryPath => _directory;
 
+    /// <summary>
+    /// When false, every write is dropped and the file handle is released.
+    /// The user switch in settings controls this at runtime.
+    /// </summary>
+    public bool Enabled
+    {
+        get => _enabled;
+        set
+        {
+            if (_enabled == value)
+            {
+                return;
+            }
+
+            _enabled = value;
+            if (!value)
+            {
+                lock (_gate)
+                {
+                    CloseWriter();
+                }
+            }
+        }
+    }
+
     public void Debug(string message) => Write(LogLevel.Debug, message, null);
 
     public void Info(string message) => Write(LogLevel.Info, message, null);
@@ -43,7 +69,7 @@ public sealed class FileLogger : IDisposable
 
     public void Write(LogLevel level, string message, Exception? exception = null)
     {
-        if (Volatile.Read(ref _disposed))
+        if (Volatile.Read(ref _disposed) || !_enabled)
         {
             return;
         }

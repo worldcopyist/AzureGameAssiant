@@ -117,6 +117,76 @@ public sealed class AiReportValidatorTests
         Assert.Equal(dangerous, AiReportValidator.IsDangerous(text));
     }
 
+    [Fact]
+    public void RequiresDropCoverageAndHighLoadProcess()
+    {
+        FactsDocument facts = Facts();
+        facts.Processes.Add(new FactsProcess { Name = "Browser" });
+        facts.Drops.Add(new FactsDrop
+        {
+            SecondsAgo = 12.5,
+            FrameTimeMs = 120,
+            Kind = "gpu-wait",
+            SuspectProcess = "Browser",
+        });
+        facts.HighLoads.Add(new FactsHighLoad
+        {
+            Resource = "cpu",
+            PeakPct = 95,
+            Seconds = 4,
+            TopProcess = "Browser",
+        });
+
+        AiValidationResult missing = AiReportValidator.Validate(ValidReport, facts);
+
+        Assert.False(missing.IsValid);
+        Assert.Contains(missing.Errors, error => error.Contains("掉帧事件", StringComparison.Ordinal));
+        Assert.Contains(missing.Errors, error => error.Contains("高负载", StringComparison.Ordinal));
+
+        const string complete = """
+        {
+          "summary": "CPU 占用过高导致帧率波动",
+          "primaryCause": "CpuContention",
+          "confidence": "medium",
+          "evidence": [
+            { "metric": "cpuPeakPct", "value": "95%", "interpretation": "峰值接近满载" }
+          ],
+          "suspects": [
+            { "name": "Browser", "role": "background", "reason": "占用最高" }
+          ],
+          "frameAnalysis": {
+            "summary": "CPU 等待偏高",
+            "cpuBound": true,
+            "gpuBound": false,
+            "pacingIssue": false
+          },
+          "dropAnalysis": [
+            { "secondsAgo": 12.5, "cause": "gpu-wait", "explanation": "GPU 等待导致帧时间上升", "suspectProcess": "Browser" }
+          ],
+          "highLoadAttribution": [
+            { "resource": "cpu", "process": "Browser", "explanation": "该进程 CPU 占用最高" }
+          ],
+          "recommendations": [
+            {
+              "action": "关闭后台录制",
+              "risk": "low",
+              "expectedEffect": "释放 CPU",
+              "howTo": "在录制软件中停止录制",
+              "rollback": null
+            }
+          ],
+          "limitations": ["仅覆盖当前采集窗口"],
+          "disclaimer": "仅供参考"
+        }
+        """;
+
+        AiValidationResult ok = AiReportValidator.Validate(complete, facts);
+
+        Assert.True(ok.IsValid, string.Join("; ", ok.Errors));
+        Assert.Single(ok.Report!.DropAnalysis);
+        Assert.Single(ok.Report.HighLoadAttribution);
+    }
+
     private static FactsDocument Facts() => new()
     {
         Environment = new FactsEnvironment { LogicalProcessors = 12 },

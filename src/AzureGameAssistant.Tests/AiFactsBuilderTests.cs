@@ -90,6 +90,65 @@ public sealed class AiFactsBuilderTests
         Assert.Contains(facts.Gaps, gap => gap.Contains("GPU 温度", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void MapsDropAndHighLoadMarkersToWhitelistedNames()
+    {
+        long start = 10_000_000;
+        FrameDropMarker[] drops =
+        [
+            new(start + TimeSpan.TicksPerSecond, 60, 120, 58, 20, 3, 70, 55, 1_500, 8, 200, "cpu-wait"),
+        ];
+        HighLoadMarker[] loads =
+        [
+            new("cpu", 92, 4, 200, 88, 100, 20),
+        ];
+
+        FactsDocument facts = FactsBuilder.Build(
+            new FactsInput(Samples(), Frames(), Names(), "deep", "zh-CN", null, drops, loads),
+            hideProcessNames: false,
+            Inventory);
+
+        FactsDrop drop = Assert.Single(facts.Drops);
+        Assert.Equal(1, drop.SecondsAgo, 1);
+        Assert.Equal(120, drop.FrameTimeMs, 1);
+        Assert.Equal(8.3, drop.FpsDuring, 1);
+        Assert.Equal("cpu-wait", drop.Kind);
+        Assert.Equal("Browser", drop.SuspectProcess);
+
+        FactsHighLoad load = Assert.Single(facts.HighLoads);
+        Assert.Equal("cpu", load.Resource);
+        Assert.Equal("Browser", load.TopProcess);
+        Assert.Equal("Game", load.SecondProcess);
+
+        AiReport local = LocalReportBuilder.Build(facts);
+        Assert.Single(local.DropAnalysis);
+        Assert.Equal("Browser", local.DropAnalysis[0].SuspectProcess);
+        Assert.Single(local.HighLoadAttribution);
+        Assert.Equal("Browser", local.HighLoadAttribution[0].Process);
+    }
+
+    [Fact]
+    public void AnonymizesMarkerProcessNames()
+    {
+        long start = 10_000_000;
+        FrameDropMarker[] drops =
+        [
+            new(start, 60, 120, 58, 1, 1, 50, 50, 0, 0, 200, "mixed"),
+        ];
+        HighLoadMarker[] loads =
+        [
+            new("gpu", 95, 3, 200, 90, 0, 0),
+        ];
+
+        FactsDocument facts = FactsBuilder.Build(
+            new FactsInput(Samples(), Frames(), Names(), "deep", "zh-CN", null, drops, loads),
+            hideProcessNames: true,
+            Inventory);
+
+        Assert.Equal("process_2", facts.Drops[0].SuspectProcess);
+        Assert.Equal("process_2", facts.HighLoads[0].TopProcess);
+    }
+
     private static List<SampleRecord> Samples()
     {
         var samples = new List<SampleRecord>();

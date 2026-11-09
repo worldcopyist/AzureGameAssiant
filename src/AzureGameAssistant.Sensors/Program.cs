@@ -33,6 +33,7 @@ internal static class Program
 
         AppPaths.EnsureDirectories();
         using var logger = new FileLogger("sensors");
+        logger.Enabled = LogMaintenance.IsLoggingEnabled();
 
         IntPtr mutex = Kernel32.CreateMutexW(IntPtr.Zero, initialOwner: true, MutexName);
         if (mutex == IntPtr.Zero)

@@ -20,6 +20,7 @@ internal static class Program
 
         AppPaths.EnsureDirectories();
         using var logger = new FileLogger("collector");
+        logger.Enabled = LogMaintenance.IsLoggingEnabled();
 
         CollectorOptions options = CollectorOptions.Parse(args);
         if (options.ShowHelp)

@@ -260,6 +260,59 @@
                         </Border>
                     </StackPanel>
 
+                    <StackPanel Visibility="{Binding HasDropAnalysis, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,6"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiDropsSection]}" />
+                        <ItemsControl ItemsSource="{Binding DropRows}" Margin="0,0,0,12">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource Card}" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock FontSize="12" FontWeight="SemiBold" Text="{Binding TimeText}" />
+                                                <Border Background="{DynamicResource AccentSoftBrush}" CornerRadius="3"
+                                                        Padding="4,1" Margin="6,0,0,0" VerticalAlignment="Center">
+                                                    <TextBlock FontSize="9" Foreground="{DynamicResource AccentBrush}"
+                                                               Text="{Binding CauseText}" />
+                                                </Border>
+                                            </StackPanel>
+                                            <TextBlock Style="{StaticResource Detail}" Margin="0,4,0,0"
+                                                       Text="{Binding DetailText}" />
+                                            <TextBlock Style="{StaticResource Detail}" Margin="0,2,0,0"
+                                                       Text="{Binding SuspectText}"
+                                                       Visibility="{Binding HasSuspect, Converter={StaticResource BoolToVisibility}}" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <StackPanel Visibility="{Binding HasHighLoadAttribution, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,6"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiHighLoadSection]}" />
+                        <ItemsControl ItemsSource="{Binding HighLoadRows}" Margin="0,0,0,12">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource Card}" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock FontSize="12" FontWeight="SemiBold" Text="{Binding ResourceText}" />
+                                                <Border Background="{DynamicResource AccentSoftBrush}" CornerRadius="3"
+                                                        Padding="4,1" Margin="6,0,0,0" VerticalAlignment="Center">
+                                                    <TextBlock FontSize="9" Foreground="{DynamicResource AccentBrush}"
+                                                               Text="{Binding ProcessText}" />
+                                                </Border>
+                                            </StackPanel>
+                                            <TextBlock Style="{StaticResource Detail}" Margin="0,4,0,0"
+                                                       Text="{Binding DetailText}" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
                     <StackPanel>
                         <StackPanel.Style>
                             <Style TargetType="StackPanel">

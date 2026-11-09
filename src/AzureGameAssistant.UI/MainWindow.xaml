@@ -89,6 +89,9 @@
                                Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Cpu]}" />
                     <TextBlock Style="{StaticResource CardValue}" Text="{Binding CpuValue}" />
                     <TextBlock Style="{StaticResource CardSub}" Text="{Binding CpuSub}" />
+                    <TextBlock Margin="0,3,0,0" FontSize="10" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               Text="{Binding CpuName}" ToolTip="{Binding CpuName}" />
                 </StackPanel>
             </Border>
 
@@ -98,6 +101,9 @@
                                Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Gpu]}" />
                     <TextBlock Style="{StaticResource CardValue}" Text="{Binding GpuValue}" />
                     <TextBlock Style="{StaticResource CardSub}" Text="{Binding GpuSub}" />
+                    <TextBlock Margin="0,3,0,0" FontSize="10" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               Text="{Binding GpuName}" ToolTip="{Binding GpuName}" />
                 </StackPanel>
             </Border>
 

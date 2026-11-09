@@ -10,7 +10,9 @@ public sealed record FactsInput(
     IReadOnlyDictionary<uint, string> ProcessNames,
     string Mode,
     string Locale,
-    string? Note = null);
+    string? Note = null,
+    IReadOnlyList<FrameDropMarker>? Drops = null,
+    IReadOnlyList<HighLoadMarker>? HighLoads = null);
 
 /// <summary>
 /// Builds the fixed whitelist fact layer. No window titles, command lines,
@@ -19,6 +21,7 @@ public sealed record FactsInput(
 public static class FactsBuilder
 {
     private const int MaxProcesses = 8;
+    private const int MaxMarkers = 6;
     private const int MaxNameLength = 64;
     private const double DisplayGapFrameMs = 100.0;
 
@@ -49,7 +52,14 @@ public static class FactsBuilder
             Sensors = BuildSensors(input.Samples),
         };
 
-        document.Processes = BuildProcesses(input.Samples, input.ProcessNames, hideProcessNames);
+        var processNames = new Dictionary<uint, string>();
+        document.Processes = BuildProcesses(input.Samples, input.ProcessNames, hideProcessNames, processNames);
+
+        long windowEndTicks = input.Samples.Count > 0
+            ? input.Samples[^1].UtcTicks
+            : DateTime.UtcNow.Ticks;
+        document.Drops = BuildDrops(input.Drops, windowEndTicks, input.ProcessNames, processNames, hideProcessNames);
+        document.HighLoads = BuildHighLoads(input.HighLoads, input.ProcessNames, processNames, hideProcessNames);
         document.Gaps = BuildGaps(input.Samples, input.Frames, document);
 
         return document;
@@ -194,7 +204,8 @@ public static class FactsBuilder
     private static List<FactsProcess> BuildProcesses(
         IReadOnlyList<SampleRecord> samples,
         IReadOnlyDictionary<uint, string> names,
-        bool hideNames)
+        bool hideNames,
+        Dictionary<uint, string> mapped)
     {
         var aggregated = new Dictionary<uint, ProcessAggregate>();
 
@@ -215,25 +226,117 @@ public static class FactsBuilder
             .ToList();
 
         var result = new List<FactsProcess>(top.Count);
-        int index = 1;
         foreach (ProcessAggregate process in top)
         {
-            string name = hideNames
-                ? "process_" + index
-                : SanitizeProcessName(names.TryGetValue(process.Pid, out string? known) ? known : "unknown");
-
             result.Add(new FactsProcess
             {
-                Name = name,
+                Name = ResolveName(process.Pid, mapped, names, hideNames),
                 Role = process.Foreground ? "foreground" : "background",
                 CpuPeakPct = Round(process.CpuPeakPct),
                 GpuPeakPct = Round(process.GpuPeakPct),
                 PrivateMb = process.PrivateMb > 0 ? process.PrivateMb : null,
             });
-            index++;
         }
 
         return result;
+    }
+
+    private static List<FactsDrop> BuildDrops(
+        IReadOnlyList<FrameDropMarker>? drops,
+        long windowEndTicks,
+        IReadOnlyDictionary<uint, string> names,
+        Dictionary<uint, string> mapped,
+        bool hideNames)
+    {
+        var result = new List<FactsDrop>();
+        if (drops is null || drops.Count == 0)
+        {
+            return result;
+        }
+
+        int start = Math.Max(0, drops.Count - MaxMarkers);
+        for (int i = start; i < drops.Count; i++)
+        {
+            FrameDropMarker marker = drops[i];
+            double secondsAgo = marker.UtcTicks > 0 && windowEndTicks > marker.UtcTicks
+                ? Math.Round((windowEndTicks - marker.UtcTicks) / (double)TimeSpan.TicksPerSecond, 1)
+                : 0;
+
+            result.Add(new FactsDrop
+            {
+                SecondsAgo = secondsAgo,
+                FrameTimeMs = Round(marker.MaxFrameTimeMs) ?? 0,
+                FpsBefore = marker.BaselineFps > 0 ? Round(marker.BaselineFps) : null,
+                FpsDuring = marker.MaxFrameTimeMs > 0
+                    ? Math.Round(1000.0 / marker.MaxFrameTimeMs, 1)
+                    : 0,
+                CpuWaitMs = marker.AvgCpuWaitMs > 0 ? Round(marker.AvgCpuWaitMs) : null,
+                GpuWaitMs = marker.AvgGpuWaitMs > 0 ? Round(marker.AvgGpuWaitMs) : null,
+                Kind = marker.Kind,
+                SuspectProcess = marker.SuspectPid != 0
+                    ? ResolveName(marker.SuspectPid, mapped, names, hideNames)
+                    : null,
+                CpuPct = Round(marker.CpuPct),
+                GpuPct = Round(marker.GpuPct),
+                MemAvailableMb = marker.MemAvailableMb > 0 ? Round(marker.MemAvailableMb) : null,
+                DiskLatencyMs = marker.DiskLatencyMs > 0 ? Round(marker.DiskLatencyMs) : null,
+            });
+        }
+
+        return result;
+    }
+
+    private static List<FactsHighLoad> BuildHighLoads(
+        IReadOnlyList<HighLoadMarker>? highLoads,
+        IReadOnlyDictionary<uint, string> names,
+        Dictionary<uint, string> mapped,
+        bool hideNames)
+    {
+        var result = new List<FactsHighLoad>();
+        if (highLoads is null || highLoads.Count == 0)
+        {
+            return result;
+        }
+
+        int start = Math.Max(0, highLoads.Count - MaxMarkers);
+        for (int i = start; i < highLoads.Count; i++)
+        {
+            HighLoadMarker marker = highLoads[i];
+            result.Add(new FactsHighLoad
+            {
+                Resource = marker.Resource,
+                PeakPct = Math.Round(marker.Peak, 1),
+                Seconds = Math.Round(marker.Seconds, 1),
+                TopProcess = marker.TopPid != 0
+                    ? ResolveName(marker.TopPid, mapped, names, hideNames)
+                    : null,
+                TopProcessPct = marker.TopPid != 0 ? Math.Round(marker.TopValue, 1) : null,
+                SecondProcess = marker.SecondPid != 0
+                    ? ResolveName(marker.SecondPid, mapped, names, hideNames)
+                    : null,
+                SecondProcessPct = marker.SecondPid != 0 ? Math.Round(marker.SecondValue, 1) : null,
+            });
+        }
+
+        return result;
+    }
+
+    private static string ResolveName(
+        uint pid,
+        Dictionary<uint, string> mapped,
+        IReadOnlyDictionary<uint, string> names,
+        bool hideNames)
+    {
+        if (mapped.TryGetValue(pid, out string? existing))
+        {
+            return existing;
+        }
+
+        string name = hideNames
+            ? "process_" + (mapped.Count + 1)
+            : SanitizeProcessName(names.TryGetValue(pid, out string? known) ? known : "unknown");
+        mapped[pid] = name;
+        return name;
     }
 
     private static void AddSlot(SampleRecord sample, in ProcessSlot slot, Dictionary<uint, ProcessAggregate> aggregated)

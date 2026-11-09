@@ -177,6 +177,53 @@ public sealed class OpenAiCompatibleClientTests
         Assert.Equal(["text-embedding-3-small"], result.Models);
     }
 
+    [Fact]
+    public async Task TestConnectionAcceptsOpenAiStyleResponse()
+    {
+        HttpRequestMessage? seen = null;
+        using var handler = new StubHandler((request, _) =>
+        {
+            seen = request;
+            return Json(HttpStatusCode.OK, """{"id":"cmpl-1","choices":[]}""");
+        });
+
+        using var client = new OpenAiCompatibleClient(handler, TimeSpan.Zero);
+        AiConnectionTest result = await client.TestConnectionAsync(Endpoint, "deepseek-chat", "sk-test", CancellationToken.None);
+
+        Assert.True(result.Success);
+        Assert.Equal(AiFailureKind.None, result.Failure);
+        Assert.Equal("deepseek-chat", result.Model);
+        Assert.Equal(HttpMethod.Post, seen!.Method);
+        Assert.Equal("Bearer", seen.Headers.Authorization!.Scheme);
+        Assert.Equal("sk-test", seen.Headers.Authorization!.Parameter);
+    }
+
+    [Fact]
+    public async Task TestConnectionReportsUnauthorized()
+    {
+        using var handler = new StubHandler((_, _) =>
+            Json(HttpStatusCode.Unauthorized, """{"error":{"message":"bad key"}}"""));
+
+        using var client = new OpenAiCompatibleClient(handler, TimeSpan.Zero);
+        AiConnectionTest result = await client.TestConnectionAsync(Endpoint, "model", "sk-test", CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal(AiFailureKind.Unauthorized, result.Failure);
+        Assert.Contains("API Key", result.Error);
+    }
+
+    [Fact]
+    public async Task TestConnectionRejectsNonJsonBody()
+    {
+        using var handler = new StubHandler((_, _) => Json(HttpStatusCode.OK, "<html>ok</html>"));
+
+        using var client = new OpenAiCompatibleClient(handler, TimeSpan.Zero);
+        AiConnectionTest result = await client.TestConnectionAsync(Endpoint, "model", null, CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal(AiFailureKind.InvalidResponse, result.Failure);
+    }
+
     private static Uri Models() => new("https://example.com/v1/models");
 
     private static AiRequest Request() => new(Endpoint, "test-model", "sk-test", 512);

@@ -14,6 +14,7 @@ public partial class SettingsWindow : Window
     private readonly SettingsViewModel _viewModel;
     private readonly AppSettings _settings;
     private CancellationTokenSource? _modelFetch;
+    private CancellationTokenSource? _connectionTest;
 
     public SettingsWindow(SettingsViewModel viewModel, AppSettings settings)
     {
@@ -132,8 +133,71 @@ public partial class SettingsWindow : Window
         }
     }
 
-    private void OnAiModelPicked(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    private async void OnTestAiConnection(object sender, RoutedEventArgs e)
     {
+        LocalizationService loc = LocalizationService.Instance;
+        string provider = _viewModel.AiActiveProvider;
+        string model = (_viewModel.AiModel ?? string.Empty).Trim();
+        if (model.Length == 0)
+        {
+            _viewModel.AiTestStatus = loc["AiTestNoModel"];
+            return;
+        }
+
+        string key = AiKeyBox.Password.Trim();
+        if (key.Length == 0)
+        {
+            CredentialStore.Shared.TryRead(provider, out key);
+        }
+
+        if (_viewModel.AiRequiresKey && string.IsNullOrWhiteSpace(key))
+        {
+            _viewModel.AiTestStatus = loc["AiTestNeedKey"];
+            return;
+        }
+
+        if (!AiEndpoint.TryNormalize(_viewModel.AiBaseUrl, out Uri endpoint, out string? error))
+        {
+            _viewModel.AiTestStatus = error ?? loc["AiTestNoModel"];
+            return;
+        }
+
+        _connectionTest?.Cancel();
+        _connectionTest?.Dispose();
+        _connectionTest = new CancellationTokenSource();
+        CancellationToken token = _connectionTest.Token;
+
+        _viewModel.AiTesting = true;
+        _viewModel.AiTestStatus = loc["AiTestBusy"];
+
+        try
+        {
+            using var client = new OpenAiCompatibleClient();
+            AiConnectionTest result = await client.TestConnectionAsync(endpoint, model, key, token);
+
+            if (!string.Equals(provider, _viewModel.AiActiveProvider, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            _viewModel.AiTestStatus = result.Success
+                ? loc.Format("AiTestOk", result.LatencyMs, model)
+                : result.Error ?? loc["AiModelsFailed"];
+        }
+        catch (Exception) when (_connectionTest?.IsCancellationRequested == true)
+        {
+        }
+        catch (Exception)
+        {
+            _viewModel.AiTestStatus = loc["AiModelsFailed"];
+        }
+        finally
+        {
+            _viewModel.AiTesting = false;
+        }
+    }
+
+    private void OnAiModelPicked(object sender, System.Windows.Controls.SelectionChangedEventArgs e)    {
         if (sender is System.Windows.Controls.ComboBox { SelectedItem: string model } && model.Length > 0)
         {
             _viewModel.AiModel = model;
@@ -145,6 +209,9 @@ public partial class SettingsWindow : Window
         _modelFetch?.Cancel();
         _modelFetch?.Dispose();
         _modelFetch = null;
+        _connectionTest?.Cancel();
+        _connectionTest?.Dispose();
+        _connectionTest = null;
         base.OnClosed(e);
     }
 

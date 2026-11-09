@@ -11,6 +11,10 @@ public sealed record AiEvidenceRow(string Metric, string Value, string Interpret
 
 public sealed record AiSuspectRow(string Name, string Role, string Reason);
 
+public sealed record AiDropRow(string TimeText, string CauseText, string DetailText, string SuspectText, bool HasSuspect);
+
+public sealed record AiHighLoadRow(string ResourceText, string ProcessText, string DetailText);
+
 public sealed record AiRecommendationRow(
     string Action,
     string Risk,
@@ -104,6 +108,10 @@ public sealed partial class AiAnalysisViewModel : ObservableObject
 
     public ObservableCollection<AiSuspectRow> Suspects { get; } = [];
 
+    public ObservableCollection<AiDropRow> DropRows { get; } = [];
+
+    public ObservableCollection<AiHighLoadRow> HighLoadRows { get; } = [];
+
     public ObservableCollection<AiRecommendationRow> Recommendations { get; } = [];
 
     [ObservableProperty]
@@ -144,6 +152,12 @@ public sealed partial class AiAnalysisViewModel : ObservableObject
 
     [ObservableProperty]
     private string _frameText = string.Empty;
+
+    [ObservableProperty]
+    private bool _hasDropAnalysis;
+
+    [ObservableProperty]
+    private bool _hasHighLoadAttribution;
 
     [ObservableProperty]
     private bool _hasWarnings;
@@ -232,6 +246,31 @@ public sealed partial class AiAnalysisViewModel : ObservableObject
         HasFrameAnalysis = frame is not null && !string.IsNullOrWhiteSpace(frame.Summary);
         FrameText = frame is null ? string.Empty : BuildFrameText(frame);
 
+        DropRows.Clear();
+        foreach (AiDropAnalysis drop in report.DropAnalysis)
+        {
+            bool hasSuspect = !string.IsNullOrWhiteSpace(drop.SuspectProcess);
+            DropRows.Add(new AiDropRow(
+                _loc.Format("AiDropWhen", drop.SecondsAgo.ToString("0.#", CultureInfo.InvariantCulture)),
+                _loc["AiDropCause" + CauseKey(drop.Cause)],
+                drop.Explanation,
+                hasSuspect ? _loc.Format("AiDropSuspect", drop.SuspectProcess) : string.Empty,
+                hasSuspect));
+        }
+
+        HasDropAnalysis = DropRows.Count > 0;
+
+        HighLoadRows.Clear();
+        foreach (AiHighLoadAttribution load in report.HighLoadAttribution)
+        {
+            HighLoadRows.Add(new AiHighLoadRow(
+                _loc["AiResource" + ResourceKey(load.Resource)],
+                _loc.Format("AiHighLoadProcess", load.Process),
+                load.Explanation));
+        }
+
+        HasHighLoadAttribution = HighLoadRows.Count > 0;
+
         Recommendations.Clear();
         foreach (AiRecommendation recommendation in report.Recommendations)
         {
@@ -290,6 +329,30 @@ public sealed partial class AiAnalysisViewModel : ObservableObject
 
         return string.Join(Environment.NewLine, parts);
     }
+
+    private static string CauseKey(string cause) => cause switch
+    {
+        "long-stall" => "LongStall",
+        "gpu-wait" => "GpuWait",
+        "cpu-wait" => "CpuWait",
+        "mixed" => "Mixed",
+        "shader-compilation" => "Shader",
+        "asset-streaming" => "Streaming",
+        "thermal-throttle" => "Thermal",
+        "vram-pressure" => "Vram",
+        "memory-pressure" => "Memory",
+        "disk-stall" => "Disk",
+        _ => "Unknown",
+    };
+
+    private static string ResourceKey(string resource) => resource switch
+    {
+        "gpu" => "Gpu",
+        "vram" => "Vram",
+        "memory" => "Memory",
+        "disk" => "Disk",
+        _ => "Cpu",
+    };
 
     private string LocalizeCause(string cause)
     {

@@ -20,6 +20,8 @@ public static class LocalReportBuilder
         report.Evidence = BuildEvidence(facts, chinese);
         report.Suspects = BuildSuspects(facts, chinese);
         report.FrameAnalysis = BuildFrameAnalysis(facts, chinese);
+        report.DropAnalysis = BuildDropAnalysis(facts, chinese);
+        report.HighLoadAttribution = BuildHighLoadAttribution(facts, chinese);
         report.Recommendations = BuildRecommendations(facts, chinese);
         report.Limitations =
         [
@@ -188,6 +190,84 @@ public static class LocalReportBuilder
             PacingIssue = pacing,
         };
     }
+
+    private static List<AiDropAnalysis> BuildDropAnalysis(FactsDocument facts, bool chinese)
+    {
+        var result = new List<AiDropAnalysis>(facts.Drops.Count);
+        foreach (FactsDrop drop in facts.Drops)
+        {
+            result.Add(new AiDropAnalysis
+            {
+                SecondsAgo = drop.SecondsAgo,
+                Cause = drop.Kind,
+                SuspectProcess = drop.SuspectProcess,
+                Explanation = BuildDropExplanation(drop, chinese),
+            });
+        }
+
+        return result;
+    }
+
+    private static string BuildDropExplanation(FactsDrop drop, bool chinese)
+    {
+        string frameTime = Format(drop.FrameTimeMs, " ms");
+        string text = drop.Kind switch
+        {
+            "gpu-wait" => chinese
+                ? $"GPU 等待偏高（{Format(drop.GpuWaitMs, " ms")}），帧时间升至 {frameTime}"
+                : $"GPU wait was high ({Format(drop.GpuWaitMs, " ms")}) and frame time rose to {frameTime}",
+            "cpu-wait" => chinese
+                ? $"CPU 等待偏高（{Format(drop.CpuWaitMs, " ms")}），帧时间升至 {frameTime}"
+                : $"CPU wait was high ({Format(drop.CpuWaitMs, " ms")}) and frame time rose to {frameTime}",
+            "long-stall" => chinese
+                ? $"出现超过 500 ms 的长帧（{frameTime}），可能与加载或调度停顿有关"
+                : $"A frame longer than 500 ms occurred ({frameTime}), likely a load or scheduling stall",
+            _ => chinese
+                ? $"帧时间升至 {frameTime}，CPU/GPU 等待没有明显单侧瓶颈"
+                : $"Frame time rose to {frameTime} without a clear single-sided CPU/GPU wait",
+        };
+
+        if (!string.IsNullOrWhiteSpace(drop.SuspectProcess))
+        {
+            text += chinese
+                ? $"；同期占用最高的进程：{drop.SuspectProcess}"
+                : $"; top process at the time: {drop.SuspectProcess}";
+        }
+
+        return text;
+    }
+
+    private static List<AiHighLoadAttribution> BuildHighLoadAttribution(FactsDocument facts, bool chinese)
+    {
+        var result = new List<AiHighLoadAttribution>(facts.HighLoads.Count);
+        foreach (FactsHighLoad load in facts.HighLoads)
+        {
+            if (string.IsNullOrWhiteSpace(load.TopProcess))
+            {
+                continue;
+            }
+
+            result.Add(new AiHighLoadAttribution
+            {
+                Resource = load.Resource,
+                Process = load.TopProcess,
+                Explanation = chinese
+                    ? $"{ResourceLabel(load.Resource, true)}持续 {load.Seconds:0.#} 秒处于高负载（峰值 {load.PeakPct:0.#}%），同期该进程占用最高"
+                    : $"{ResourceLabel(load.Resource, false)} stayed under high load for {load.Seconds:0.#} s (peak {load.PeakPct:0.#}%); this process consumed the most",
+            });
+        }
+
+        return result;
+    }
+
+    private static string ResourceLabel(string resource, bool chinese) => resource switch
+    {
+        "gpu" => chinese ? "GPU 占用" : "GPU usage",
+        "vram" => chinese ? "显存占用" : "VRAM usage",
+        "memory" => chinese ? "内存占用" : "memory usage",
+        "disk" => chinese ? "磁盘响应" : "disk latency",
+        _ => chinese ? "CPU 占用" : "CPU usage",
+    };
 
     private static List<AiRecommendation> BuildRecommendations(FactsDocument facts, bool chinese)
     {

@@ -5,15 +5,44 @@ namespace AzureGameAssistant.Ai;
 
 public sealed class FactsDocument
 {
-    public int SchemaVersion { get; set; } = 1;
+    public int SchemaVersion { get; set; } = 2;
     public string Locale { get; set; } = "zh-CN";
     public FactsEnvironment Environment { get; set; } = new();
     public FactsMetrics Metrics { get; set; } = new();
     public FactsFrames? Frames { get; set; }
     public List<FactsProcess> Processes { get; set; } = [];
+    public List<FactsDrop> Drops { get; set; } = [];
+    public List<FactsHighLoad> HighLoads { get; set; } = [];
     public FactsSensors? Sensors { get; set; }
     public List<string> Gaps { get; set; } = [];
     public string? Note { get; set; }
+}
+
+public sealed class FactsDrop
+{
+    public double SecondsAgo { get; set; }
+    public double FrameTimeMs { get; set; }
+    public double? FpsBefore { get; set; }
+    public double FpsDuring { get; set; }
+    public double? CpuWaitMs { get; set; }
+    public double? GpuWaitMs { get; set; }
+    public string Kind { get; set; } = "mixed";
+    public string? SuspectProcess { get; set; }
+    public double? CpuPct { get; set; }
+    public double? GpuPct { get; set; }
+    public double? MemAvailableMb { get; set; }
+    public double? DiskLatencyMs { get; set; }
+}
+
+public sealed class FactsHighLoad
+{
+    public string Resource { get; set; } = "cpu";
+    public double PeakPct { get; set; }
+    public double Seconds { get; set; }
+    public string? TopProcess { get; set; }
+    public double? TopProcessPct { get; set; }
+    public string? SecondProcess { get; set; }
+    public double? SecondProcessPct { get; set; }
 }
 
 public sealed class FactsEnvironment

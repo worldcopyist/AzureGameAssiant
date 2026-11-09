@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
@@ -42,6 +43,17 @@ public sealed record AiModelList(
     IReadOnlyList<string> Models,
     AiFailureKind Failure,
     string? Error);
+
+/// <summary>
+/// Result of the explicit "test connection" button: does the endpoint accept
+/// the base URL, key and model together.
+/// </summary>
+public sealed record AiConnectionTest(
+    bool Success,
+    AiFailureKind Failure,
+    string? Error,
+    int LatencyMs,
+    string Model);
 
 /// <summary>
 /// Minimal OpenAI-compatible client: chat/completions only, SSE streaming with
@@ -226,8 +238,119 @@ public sealed class OpenAiCompatibleClient : IDisposable
         }
     }
 
-    private static readonly string[] NonChatModelMarkers =
-    [
+    /// <summary>
+    /// One minimal non-streaming completion used by the settings "test
+    /// connection" button. Success means the endpoint answered with a valid
+    /// OpenAI-compatible JSON body; content itself is irrelevant.
+    /// </summary>
+    public async Task<AiConnectionTest> TestConnectionAsync(
+        Uri endpoint,
+        string model,
+        string? apiKey,
+        CancellationToken cancellationToken)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(25));
+        long started = Stopwatch.GetTimestamp();
+        int Elapsed() => (int)((Stopwatch.GetTimestamp() - started) * 1000 / Stopwatch.Frequency);
+
+        try
+        {
+            using var message = BuildProbeMessage(endpoint, model, apiKey);
+            using HttpResponseMessage response = await _http
+                .SendAsync(message, HttpCompletionOption.ResponseHeadersRead, timeout.Token)
+                .ConfigureAwait(false);
+            string body = await ReadLimitedAsync(response.Content, timeout.Token).ConfigureAwait(false);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                (AiFailureKind kind, string error) = Classify(response.StatusCode, body);
+                return new AiConnectionTest(false, kind, error, Elapsed(), model);
+            }
+
+            try
+            {
+                using JsonDocument document = JsonDocument.Parse(body);
+                JsonElement root = document.RootElement;
+                if (root.ValueKind != JsonValueKind.Object ||
+                    (root.TryGetProperty("error", out JsonElement error) &&
+                     error.ValueKind == JsonValueKind.Object))
+                {
+                    string summary = root.TryGetProperty("error", out JsonElement detail) &&
+                                     detail.ValueKind == JsonValueKind.Object &&
+                                     detail.TryGetProperty("message", out JsonElement text)
+                        ? text.GetString() ?? "模型服务返回错误"
+                        : "响应格式不符合 OpenAI 兼容规范";
+                    return new AiConnectionTest(false, AiFailureKind.InvalidResponse,
+                        Redactor.SanitizeError(summary), Elapsed(), model);
+                }
+            }
+            catch (JsonException)
+            {
+                return new AiConnectionTest(false, AiFailureKind.InvalidResponse,
+                    "响应不是有效 JSON", Elapsed(), model);
+            }
+
+            return new AiConnectionTest(true, AiFailureKind.None, null, Elapsed(), model);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return new AiConnectionTest(false, AiFailureKind.Cancelled, "已取消", Elapsed(), model);
+        }
+        catch (OperationCanceledException)
+        {
+            return new AiConnectionTest(false, AiFailureKind.Timeout, "连通测试超时（25 秒）", Elapsed(), model);
+        }
+        catch (HttpRequestException ex)
+        {
+            return new AiConnectionTest(false, AiFailureKind.Offline,
+                "无法连接模型服务：" + Redactor.SanitizeError(ex.Message), Elapsed(), model);
+        }
+        catch (IOException ex)
+        {
+            return new AiConnectionTest(false, AiFailureKind.InvalidResponse,
+                "读取响应失败：" + Redactor.SanitizeError(ex.Message), Elapsed(), model);
+        }
+    }
+
+    private static HttpRequestMessage BuildProbeMessage(Uri endpoint, string model, string? apiKey)
+    {
+        var buffer = new ArrayBufferWriter<byte>(256);
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            writer.WriteStartObject();
+            writer.WriteString("model", model);
+            writer.WriteStartArray("messages");
+            writer.WriteStartObject();
+            writer.WriteString("role", "user");
+            writer.WriteString("content", "Reply with the single word: ok");
+            writer.WriteEndObject();
+            writer.WriteEndArray();
+            writer.WriteNumber("temperature", 0);
+            writer.WriteNumber("max_tokens", 64);
+            writer.WriteBoolean("stream", false);
+            writer.WriteEndObject();
+        }
+
+        var message = new HttpRequestMessage(HttpMethod.Post, endpoint)
+        {
+            Content = new ByteArrayContent(buffer.WrittenSpan.ToArray()),
+        };
+        message.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json")
+        {
+            CharSet = "utf-8",
+        };
+        message.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+        if (!string.IsNullOrWhiteSpace(apiKey))
+        {
+            message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey.Trim());
+        }
+
+        return message;
+    }
+
+    private static readonly string[] NonChatModelMarkers =    [
         "embedding", "embed-", "whisper", "tts", "dall-e", "moderation", "rerank", "transcribe",
     ];
 

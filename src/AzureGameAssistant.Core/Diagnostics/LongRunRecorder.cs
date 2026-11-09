@@ -19,7 +19,8 @@ public sealed class LongRunRecorder : IDisposable
         "disk_busy_pct,disk_latency_ms,jitter_ms,fps_inst,fps_avg,fps_1low,fps_01low,frame_time_last_ms," +
         "frames_delta,spikes_delta,frames_fresh,gpu_temp_c,gpu_hotspot_c,cpu_temp_c,vram_used_mb,vram_total_mb," +
         "collector_connected,heartbeat_ms,write_index,collector_pid,collector_error,frame_state,target_pid,frame_error," +
-        "ui_ws_mb,ui_private_mb,ui_cpu_pct,ui_handles,top1_name,top1_pid,top1_cpu_pct,top1_gpu_pct,top1_ws_mb";
+        "ui_ws_mb,ui_private_mb,ui_cpu_pct,ui_handles,top1_name,top1_pid,top1_cpu_pct,top1_gpu_pct,top1_ws_mb," +
+        "frame_age_s,frame_write_index";
 
     private const string ProcessHeader = "time_utc,rank,pid,name,cpu_pct,gpu_pct,working_set_mb";
 
@@ -65,6 +66,19 @@ public sealed class LongRunRecorder : IDisposable
     private int _frameInterruptions;
     private DateTime? _frameDownSince;
     private double _frameDownSeconds;
+
+    private bool _sawFreshFrames;
+    private DateTime? _frameStallSince;
+    private int _frameStallCount;
+    private double _frameStallSecondsTotal;
+    private double _frameStallSecondsMax;
+
+    private readonly HighLoadTracker _highLoads = new();
+    private readonly HighLoadMarker[] _highLoadBuffer = new HighLoadMarker[8];
+    private long _lastLoadSampleTicks;
+    private int _highLoadEvents;
+    private DateTime _lastDropEventUtc = DateTime.MinValue;
+    private int _dropEvents;
 
     private bool _writeFailed;
     private bool _stopped;
@@ -173,8 +187,52 @@ public sealed class LongRunRecorder : IDisposable
             _lastFrameState = snapshot.FrameState;
         }
 
-        bool gpuTemperature = snapshot.HasSample && snapshot.HasGpuTemperature;
-        if (snapshot.HasSample && (_lastGpuTemperature is null || _lastGpuTemperature != gpuTemperature))
+        if (snapshot.FramesFresh)
+        {
+            _sawFreshFrames = true;
+            double frameMs = snapshot.FrameStats.LastFrameTimeMs;
+            double averageFps = snapshot.FrameStats.AverageFps;
+            double spikeThreshold = averageFps > 0 ? Math.Max(2_000.0 / averageFps, 50) : 50;
+            if (frameMs >= spikeThreshold &&
+                (snapshot.TimestampUtc - _lastDropEventUtc).TotalSeconds >= 1.5)
+            {
+                _lastDropEventUtc = snapshot.TimestampUtc;
+                _dropEvents++;
+                Event("frame_drop", new Dictionary<string, object?>
+                {
+                    ["frameTimeMs"] = Math.Round(frameMs, 1),
+                    ["averageFps"] = Math.Round(averageFps, 1),
+                    ["topProcess"] = snapshot.Processes.Count > 0 ? snapshot.Processes[0].Name : null,
+                    ["topPid"] = snapshot.Processes.Count > 0 ? (int)snapshot.Processes[0].Pid : 0,
+                });
+            }
+
+            if (_frameStallSince is { } stallSince)
+            {
+                double seconds = Math.Max(0, (snapshot.TimestampUtc - stallSince).TotalSeconds);
+                _frameStallSecondsTotal += seconds;
+                _frameStallSecondsMax = Math.Max(_frameStallSecondsMax, seconds);
+                Event("frame_stall_end", new Dictionary<string, object?>
+                {
+                    ["seconds"] = Math.Round(seconds, 1),
+                });
+                _frameStallSince = null;
+            }
+        }
+        else if (_sawFreshFrames &&
+                 snapshot.FrameState == "capturing" &&
+                 _frameStallSince is null)
+        {
+            _frameStallSince = snapshot.TimestampUtc;
+            _frameStallCount++;
+            Event("frame_stall_start", new Dictionary<string, object?>
+            {
+                ["frameAgeSeconds"] = Math.Round(snapshot.FrameAgeSeconds, 1),
+                ["targetPid"] = snapshot.FrameTargetPid,
+            });
+        }
+
+        bool gpuTemperature = snapshot.HasSample && snapshot.HasGpuTemperature;        if (snapshot.HasSample && (_lastGpuTemperature is null || _lastGpuTemperature != gpuTemperature))
         {
             Event(gpuTemperature ? "gpu_temp_available" : "gpu_temp_missing", null);
             _lastGpuTemperature = gpuTemperature;
@@ -190,6 +248,30 @@ public sealed class LongRunRecorder : IDisposable
         if (!snapshot.HasSample)
         {
             return;
+        }
+
+        if (snapshot.Sample.UtcTicks != 0 && snapshot.Sample.UtcTicks != _lastLoadSampleTicks)
+        {
+            _lastLoadSampleTicks = snapshot.Sample.UtcTicks;
+            _highLoads.Observe(snapshot.Sample, snapshot.Sample.UtcTicks);
+        }
+
+        int completedLoads = _highLoads.DrainCompleted(_highLoadBuffer);
+        for (int i = 0; i < completedLoads; i++)
+        {
+            HighLoadMarker marker = _highLoadBuffer[i];
+            _highLoadEvents++;
+            Event("high_load", new Dictionary<string, object?>
+            {
+                ["resource"] = marker.Resource,
+                ["peakPct"] = marker.Peak,
+                ["seconds"] = marker.Seconds,
+                ["topProcess"] = FindProcessName(snapshot, marker.TopPid),
+                ["topPid"] = (int)marker.TopPid,
+                ["topValue"] = marker.TopValue,
+                ["secondProcess"] = FindProcessName(snapshot, marker.SecondPid),
+                ["secondPid"] = (int)marker.SecondPid,
+            });
         }
 
         double sampleAge = Math.Max(0, (snapshot.TimestampUtc - new DateTime(snapshot.Sample.UtcTicks, DateTimeKind.Utc)).TotalSeconds);
@@ -215,6 +297,19 @@ public sealed class LongRunRecorder : IDisposable
                 ["seconds"] = Math.Round(seconds, 2),
             });
         }
+    }
+
+    private static string? FindProcessName(in DiagnosticsSnapshot snapshot, uint pid)
+    {
+        foreach (ProcessDiagnostic process in snapshot.Processes)
+        {
+            if (process.Pid == pid)
+            {
+                return process.Name;
+            }
+        }
+
+        return null;
     }
 
     private bool WriteSampleRow(in DiagnosticsSnapshot snapshot)
@@ -331,6 +426,8 @@ public sealed class LongRunRecorder : IDisposable
             Inv(topCpu, "F1"),
             Inv(topGpu, "F1"),
             topWs.ToString(CultureInfo.InvariantCulture),
+            Inv(snapshot.FrameAgeSeconds, "F2"),
+            Inv(snapshot.FrameWriteIndex, "F0"),
         ];
 
         _samples.WriteLine(string.Join(',', fields));
@@ -386,6 +483,13 @@ public sealed class LongRunRecorder : IDisposable
             _frameDownSeconds += (endedUtc - downSince).TotalSeconds;
         }
 
+        if (_frameStallSince is { } stallSince)
+        {
+            double seconds = Math.Max(0, (endedUtc - stallSince).TotalSeconds);
+            _frameStallSecondsTotal += seconds;
+            _frameStallSecondsMax = Math.Max(_frameStallSecondsMax, seconds);
+        }
+
         Event("session_stop", new Dictionary<string, object?>
         {
             ["reason"] = reason,
@@ -427,7 +531,12 @@ public sealed class LongRunRecorder : IDisposable
         text.AppendLine("采集进程重启次数: " + _collectorRestarts);
         text.AppendLine("帧采集中断次数: " + _frameInterruptions);
         text.AppendLine("帧采集不可用累计秒数: " + Inv(_frameDownSeconds, "F1"));
+        text.AppendLine("帧率中断次数: " + _frameStallCount);
+        text.AppendLine("帧率中断累计秒数: " + Inv(_frameStallSecondsTotal, "F1"));
+        text.AppendLine("最长帧率中断秒数: " + Inv(_frameStallSecondsMax, "F1"));
         text.AppendLine("帧尖峰累计(滚动中位数口径): " + _spikeTotal);
+        text.AppendLine("掉帧标记数: " + _dropEvents);
+        text.AppendLine("硬件高负载事件数: " + _highLoadEvents);
         text.AppendLine("GPU 温度行覆盖: " + Percent(_gpuTempRows, _rows));
         text.AppendLine("CPU 温度行覆盖: " + Percent(_cpuTempRows, _rows));
         text.AppendLine();

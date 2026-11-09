@@ -207,6 +207,21 @@
   <data name="DiagnosticsSection" xml:space="preserve">
     <value>Diagnostics</value>
   </data>
+  <data name="LogsSection" xml:space="preserve">
+    <value>Logs</value>
+  </data>
+  <data name="LogRecordingLabel" xml:space="preserve">
+    <value>Keep writing logs while the app runs</value>
+  </data>
+  <data name="LogRecordingHint" xml:space="preserve">
+    <value>A status line is written about once a minute from launch until exit, including frame-capture interruptions. Warnings and errors are always kept.</value>
+  </data>
+  <data name="LogRetentionLabel" xml:space="preserve">
+    <value>Delete logs older than</value>
+  </data>
+  <data name="LogRetentionUnit" xml:space="preserve">
+    <value>days</value>
+  </data>
   <data name="LongRunRecordLabel" xml:space="preserve">
     <value>Record long-run diagnostics</value>
   </data>
@@ -456,6 +471,9 @@
   <data name="FrameStatsSub" xml:space="preserve">
     <value>Avg {0:F0} · 1% Low {1:F0}</value>
   </data>
+  <data name="FrameRecovering" xml:space="preserve">
+    <value>Recovering…</value>
+  </data>
   <data name="PermissionCheckButton" xml:space="preserve">
     <value>Permission check</value>
   </data>
@@ -651,6 +669,24 @@
   <data name="AiModelsFailed" xml:space="preserve">
     <value>Could not fetch the model list. Check Base URL and API key.</value>
   </data>
+  <data name="AiTestConnection" xml:space="preserve">
+    <value>Test</value>
+  </data>
+  <data name="AiTestHint" xml:space="preserve">
+    <value>Sends one minimal request to check the Base URL, key and model together. Nothing else is sent.</value>
+  </data>
+  <data name="AiTestBusy" xml:space="preserve">
+    <value>Testing connection…</value>
+  </data>
+  <data name="AiTestOk" xml:space="preserve">
+    <value>Connected · {0} ms · model {1}</value>
+  </data>
+  <data name="AiTestNeedKey" xml:space="preserve">
+    <value>Fill in and save the API key first, then test the connection.</value>
+  </data>
+  <data name="AiTestNoModel" xml:space="preserve">
+    <value>Fill in the model name first.</value>
+  </data>
   <data name="AiApiKeyLabel" xml:space="preserve">
     <value>API key</value>
   </data>
@@ -767,6 +803,69 @@
   </data>
   <data name="AiFrames" xml:space="preserve">
     <value>Frame analysis</value>
+  </data>
+  <data name="AiDropsSection" xml:space="preserve">
+    <value>Frame drop analysis</value>
+  </data>
+  <data name="AiHighLoadSection" xml:space="preserve">
+    <value>High-load attribution</value>
+  </data>
+  <data name="AiDropWhen" xml:space="preserve">
+    <value>About {0}s ago</value>
+  </data>
+  <data name="AiDropSuspect" xml:space="preserve">
+    <value>Suspect: {0}</value>
+  </data>
+  <data name="AiHighLoadProcess" xml:space="preserve">
+    <value>Causing process: {0}</value>
+  </data>
+  <data name="AiDropCauseLongStall" xml:space="preserve">
+    <value>long stall</value>
+  </data>
+  <data name="AiDropCauseGpuWait" xml:space="preserve">
+    <value>GPU wait</value>
+  </data>
+  <data name="AiDropCauseCpuWait" xml:space="preserve">
+    <value>CPU wait</value>
+  </data>
+  <data name="AiDropCauseMixed" xml:space="preserve">
+    <value>mixed CPU/GPU</value>
+  </data>
+  <data name="AiDropCauseShader" xml:space="preserve">
+    <value>shader compilation</value>
+  </data>
+  <data name="AiDropCauseStreaming" xml:space="preserve">
+    <value>asset streaming</value>
+  </data>
+  <data name="AiDropCauseThermal" xml:space="preserve">
+    <value>thermal throttling</value>
+  </data>
+  <data name="AiDropCauseVram" xml:space="preserve">
+    <value>VRAM pressure</value>
+  </data>
+  <data name="AiDropCauseMemory" xml:space="preserve">
+    <value>memory pressure</value>
+  </data>
+  <data name="AiDropCauseDisk" xml:space="preserve">
+    <value>disk stall</value>
+  </data>
+  <data name="AiDropCauseUnknown" xml:space="preserve">
+    <value>unknown cause</value>
+  </data>
+  <data name="AiResourceCpu" xml:space="preserve">
+    <value>high CPU load</value>
+  </data>
+  <data name="AiResourceGpu" xml:space="preserve">
+    <value>high GPU load</value>
+  </data>
+  <data name="AiResourceVram" xml:space="preserve">
+    <value>high VRAM usage</value>
+  </data>
+  <data name="AiResourceMemory" xml:space="preserve">
+    <value>memory pressure</value>
+  </data>
+  <data name="AiResourceDisk" xml:space="preserve">
+    <value>high disk latency</value>
   </data>
   <data name="AiRecommendations" xml:space="preserve">
     <value>Recommendations</value>

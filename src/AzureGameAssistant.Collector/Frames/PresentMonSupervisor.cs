@@ -33,13 +33,13 @@ internal sealed class PresentMonSupervisor : IDisposable
     private const int PollIntervalMs = 500;
     private static readonly TimeSpan FlushInterval = TimeSpan.FromMilliseconds(100);
     private static readonly TimeSpan FirstFrameTimeout = TimeSpan.FromSeconds(20);
-    private static readonly TimeSpan StallTimeout = TimeSpan.FromSeconds(10);
-    private static readonly TimeSpan SessionCleanupTimeout = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan StallTimeout = TimeSpan.FromSeconds(6);
+    private static readonly TimeSpan SessionCleanupTimeout = TimeSpan.FromMilliseconds(1500);
     private static readonly TimeSpan[] RetryDelays =
     [
-        TimeSpan.FromSeconds(1),
+        TimeSpan.FromMilliseconds(500),
+        TimeSpan.FromSeconds(2),
         TimeSpan.FromSeconds(5),
-        TimeSpan.FromSeconds(15),
     ];
 
     private readonly FileLogger _logger;
@@ -206,7 +206,7 @@ internal sealed class PresentMonSupervisor : IDisposable
                 _state = FrameCaptureState.Starting;
                 string detail = string.IsNullOrEmpty(result.Error) ? string.Empty : "：" + result.Error;
                 _logger.Warn(
-                    $"PresentMon 退出（代码 {result.ExitCode} / 0x{unchecked((uint)result.ExitCode):X8}）{detail}，{delay.TotalSeconds:0}s 后重启");
+                    $"PresentMon 退出（代码 {result.ExitCode} / 0x{unchecked((uint)result.ExitCode):X8}）{detail}，{delay.TotalSeconds:0.#}s 后重启");
                 await Task.Delay(delay, token).ConfigureAwait(false);
             }
         }
@@ -363,7 +363,8 @@ internal sealed class PresentMonSupervisor : IDisposable
                     }
                     else if (idleMs >= StallTimeout.TotalMilliseconds && _isTargetActive())
                     {
-                        error = $"帧采集停顿 {StallTimeout.TotalSeconds:0} 秒";
+                        error = $"帧采集停顿 {StallTimeout.TotalSeconds:0} 秒（最后一帧后 {idleMs / 1000.0:0.0} 秒无数据）";
+                        _logger.Warn($"帧采集停顿：最后一帧后 {idleMs / 1000.0:0.0} 秒无数据，重启 PresentMon");
                         break;
                     }
 
@@ -400,6 +401,15 @@ internal sealed class PresentMonSupervisor : IDisposable
 
                 if (parser.TryParse(line, out PresentMonFrame frame))
                 {
+                    if (gotFrame)
+                    {
+                        double gapMs = ElapsedMs(lastProgressTicks);
+                        if (gapMs >= 2000)
+                        {
+                            _logger.Info($"帧数据中断 {gapMs / 1000.0:0.0} 秒后自行恢复");
+                        }
+                    }
+
                     gotFrame = true;
                     invalidRun = 0;
                     lastProgressTicks = Stopwatch.GetTimestamp();

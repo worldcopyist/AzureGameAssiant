@@ -82,6 +82,34 @@ public sealed class LongRunRecorderTests : IDisposable
         Assert.Contains("\"a,b \"\"c\"\"\"", lines[1]);
     }
 
+    [Fact]
+    public void RecordsHighLoadAndFrameDropEvents()
+    {
+        var recorder = new LongRunRecorder(_directory, 60, "{}");
+        DateTime start = new(2026, 11, 9, 12, 0, 0, DateTimeKind.Utc);
+
+        for (int i = 0; i < 3; i++)
+        {
+            SampleRecord sample = Sample(start.AddSeconds(i));
+            sample.CpuUtilityPct = 95;
+            sample.P0 = new ProcessSlot { Pid = 4242, CpuPct = 80 };
+            recorder.Record(Snapshot(start.AddSeconds(i), sample, framesFresh: true, fps: 60, lastFrameTimeMs: 120));
+        }
+
+        recorder.Record(Snapshot(start.AddSeconds(3), Sample(start.AddSeconds(3)), framesFresh: true, fps: 60));
+        recorder.Stop("test");
+
+        string events = File.ReadAllText(Path.Combine(_directory, "events.jsonl"));
+        Assert.Contains("\"type\":\"frame_drop\"", events);
+        Assert.Contains("\"type\":\"high_load\"", events);
+        Assert.Contains("\"resource\":\"cpu\"", events);
+        Assert.Contains("\"topPid\":4242", events);
+
+        string summary = File.ReadAllText(Path.Combine(_directory, "summary.txt"));
+        Assert.Contains("掉帧标记数: 2", summary);
+        Assert.Contains("硬件高负载事件数: 1", summary);
+    }
+
     private static SampleRecord Sample(DateTime start) => new()
     {
         UtcTicks = start.Ticks,
@@ -103,10 +131,11 @@ public sealed class LongRunRecorderTests : IDisposable
         bool framesFresh,
         double fps,
         int pid = 1,
-        string processName = "game")
+        string processName = "game",
+        double lastFrameTimeMs = 16.7)
     {
         var frameStats = framesFresh
-            ? new FrameStatsSnapshot(fps, fps, 50, 45, 16.7, 120)
+            ? new FrameStatsSnapshot(fps, fps, 50, 45, lastFrameTimeMs, 120)
             : default;
 
         return new DiagnosticsSnapshot(
@@ -124,6 +153,8 @@ public sealed class LongRunRecorderTests : IDisposable
             framesFresh ? 1234 : null,
             null,
             framesFresh,
+            framesFresh ? 0.5 : 12.0,
+            42,
             frameStats,
             9_000,
             5,

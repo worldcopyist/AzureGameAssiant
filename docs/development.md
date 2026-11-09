@@ -58,6 +58,8 @@
 | ADR-022 | CPU 温度来源 | 默认 ACPI WMI 热区（用户态）；可选 `driver` 模式由用户自行安装 PawnIO 后读取；缺失显示“—” | 默认满足“无注入、无反作弊风险”约束；把驱动风险留给用户显式选择，程序绝不自动安装 | 默认加载 WinRing0/SMN 等内核驱动（有反作弊风险） |
 | ADR-023 | 权限自检 | 内置只读诊断窗口：管理员/性能日志用户/文件哈希/ETW 探针/心跳/帧状态/传感器/CPU 温度 | 缺失权限可自查、可复制报告；ETW 探针只创建并立即停止随机会话，不接触游戏进程 | 只写日志让用户猜、打开第三方工具检查 |
 | ADR-024 | Agent 数据接入 | 独立 MCP stdio 进程，只读共享内存，固定 6 个有界工具 | 复用既有遥测，不向采集进程引入网络或协议依赖；只读边界清晰，反作弊风险与主程序一致 | 把 MCP 嵌进采集进程、开放写操作、HTTP/SSE 监听端口 |
+| ADR-025 | 日志常开与轮换 | 日志默认常开（1 MB/2 MB 分卷 + 5 卷），按天保留（1–30 天，默认 3 天）；关闭开关同时停写界面与所有子进程 | 用户要求常态记录且可关闭；时间轮换避免长期运行无限增长；子进程各自读设置，避免跨进程开关同步 | 只在异常时写日志、仅在界面进程停写、按启动次数轮换 |
+| ADR-026 | 掉帧/高负载标记 | UI 进程内固定容量环形追踪器（掉帧 64 条、高负载 16 条），以标记形式进入事实层并由校验器强制模型作答 | 检测逻辑与 UI 解耦、可单测；容量固定保证内存极小；校验器确保“必须返回进程”的要求可验证；匿名化映射在同一请求内一致 | 把检测放进采集进程（需扩展共享内存协议）、无界事件列表、只记录不校验 |
 
 ## 3. 总体架构
 
@@ -964,7 +966,7 @@ internal sealed record AiProviderProfile(
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "locale": "zh-CN",
   "environment": {
     "os": "Windows 11 23H2",
@@ -1015,11 +1017,21 @@ internal sealed record AiProviderProfile(
     "coreClockMhz": 1950.0,
     "fanPct": 55.0
   },
-  "gaps": ["帧数据在事件后 12 秒有 1.2 秒缺口"]
+  "gaps": ["帧数据在事件后 12 秒有 1.2 秒缺口"],
+  "drops": [
+    {"secondsAgo": 4, "frameTimeMs": 180.0, "fpsBefore": 118.0, "fpsDuring": 5.6,
+     "cpuWaitMs": 161.0, "gpuWaitMs": 6.0, "kind": "cpu-wait", "suspectProcess": "render.exe",
+     "cpuPct": 92.0, "gpuPct": 41.0, "memAvailableMb": 900.0, "diskLatencyMs": 1.4}
+  ],
+  "highLoads": [
+    {"resource": "cpu", "peakPct": 96.0, "seconds": 4.5, "topProcess": "render.exe",
+     "topProcessPct": 74.0, "secondProcess": "game.exe", "secondProcessPct": 12.0}
+  ]
 }
 ```
 
-- 进程最多 8 个；名称默认保留，用户可开启“隐藏进程名”（替换为 `process_1`、`process_2`）。
+- 进程最多 8 个；名称默认保留，用户可开启“隐藏进程名”（替换为 `process_1`、`process_2`）；`drops` / `highLoads` 中的进程名走同一映射字典，保证同一请求内 `process_N` 指向固定 PID。
+- `drops` / `highLoads` 各最多 6 条（`MaxMarkers`），按发生时间取最近；字段缺失写 `null`。
 - 不包含：窗口标题、命令行、完整路径、用户名、机器名、IP、MAC、文件内容。
 - 环境字段来源：`EnumDisplayDevices` 与显示适配器注册表键读取 GPU 名称、驱动版本；不读取序列号、EDID 或用户标识。
 - 数值统一保留 1 位小数；缺失字段用 `null`，不写 0。
@@ -1087,6 +1099,13 @@ internal sealed record AiProviderProfile(
     "gpuBound": "boolean",
     "pacingIssue": "boolean"
   },
+  "dropAnalysis": [
+    {"secondsAgo": 4, "cause": "long-stall | gpu-wait | cpu-wait | mixed | shader-compilation | asset-streaming | thermal-throttle | vram-pressure | memory-pressure | disk-stall | unknown",
+     "explanation": "string", "suspectProcess": "string | null"}
+  ],
+  "highLoadAttribution": [
+    {"resource": "cpu | gpu | vram | memory | disk", "process": "facts 中的进程名", "explanation": "string"}
+  ],
   "recommendations": [
     {
       "action": "string",
@@ -1105,6 +1124,8 @@ internal sealed record AiProviderProfile(
 - 禁止出现的建议模式：关闭 Defender/杀毒、禁用驱动、修改注册表关键项、`bcdedit`、超频/加电压、下载并运行脚本、绕过反作弊。
 - `evidence` 至少 1 条，且必须引用事实层中存在的指标名；校验器做字段存在性检查。
 - `primaryCause` 与本地规则不一致时允许保留，但必须至少一条帧/资源证据支持；报告中同时展示两者。
+- `dropAnalysis` 必须覆盖事实层 `drops` 的每一项：按 `secondsAgo` ±2 秒匹配，缺失即报错“掉帧事件没有给出原因分析”；`cause` 必须在允许枚举内。
+- `highLoadAttribution` 必须覆盖事实层 `highLoads` 的每个资源，并给出非空进程名；缺失即报错“没有返回造成高负载的进程”；进程名不在事实层中时追加警告（不判失败）。
 
 ### 10.8 校验与修复
 
@@ -1154,17 +1175,32 @@ internal sealed record AiProviderProfile(
 | --- | --- | --- |
 | 供应商预设与地址校验 | `AiProviders.cs` | 完成：9 个预设；强制 HTTPS，回环允许 HTTP |
 | Key 存储 | `CredentialStore.cs` + 设置页 | 完成：Credential Manager，目标 `AzureGameAssistant/Ai/<id>` |
-| 事实层 | `FactsBuilder.cs` / `FactsDocument.cs` | 完成：固定白名单；环境、指标、帧、传感器、进程、数据缺口 |
+| 事实层 | `FactsBuilder.cs` / `FactsDocument.cs` | 完成：固定白名单；环境、指标、帧、传感器、进程、数据缺口；schemaVersion 2 增加 `drops` / `highLoads` |
 | 脱敏 | `Redactor.cs` | 完成：路径、用户名、机器名、IP/MAC、邮箱；对序列化后的 JSON 做最后一步 |
-| 提示词与严格 JSON | `PromptBuilder.cs`、`AiReportValidator` | 完成：数据区隔离、未知枚举归一、危险建议过滤 |
-| HTTP 客户端 | `OpenAiCompatibleClient.cs` | 完成：SSE 流式 + JSON 回落；60s 超时；429/5xx/超时重试 1 次；401/403 不重试；`ListModelsAsync` 读取 `/models`（20s 超时、Bearer、错误分类与脱敏） |
+| 提示词与严格 JSON | `PromptBuilder.cs`、`AiReportValidator` | 完成：数据区隔离、未知枚举归一、危险建议过滤、掉帧覆盖与高负载进程强制校验 |
+| HTTP 客户端 | `OpenAiCompatibleClient.cs` | 完成：SSE 流式 + JSON 回落；60s 超时；429/5xx/超时重试 1 次；401/403 不重试；`ListModelsAsync` 读取 `/models`（20s 超时、Bearer、错误分类与脱敏）；`TestConnectionAsync` 发送一次最小探测请求 |
 | 预算与用量 | `AiBudget.cs` | 完成：UTF8/3 估算 token，日/月滚动，原子落盘 |
-| 本地兜底 | `LocalReportBuilder.cs` | 完成 |
-| UI | `AiAnalysisWindow`、设置页 AI 分组、主界面“AI 分析” | 完成，单元测试通过；因当前运行实例已提权并占用 Release 产物，本机未做点击级验证 |
+| 本地兜底 | `LocalReportBuilder.cs` | 完成：同时生成掉帧原因与高负载进程归因 |
+| UI | `AiAnalysisWindow`、设置页 AI 分组、主界面“AI 分析” | 完成：分析窗新增“掉帧分析”“高负载归因”卡片；设置页新增“测试连接”；单元测试通过，点击级验证待重启后执行 |
 | 严重事件自动分析 | — | 未实现：当前没有写入评分事件的判定源；不提供开关，避免出现无效控件或后台请求 |
 
 - 报告目录：`%LOCALAPPDATA%\AzureGameAssistant\ai\reports\`；解析失败原文：`%LOCALAPPDATA%\AzureGameAssistant\logs\ai-parse-*.log`（不含 Key）。
 - 当前 UI 用“主窗口已有采样环 + 最近 4096 帧”构造 `FactsInput`，尚未绑定会话文件或具体卡顿事件；按事件分析需事件源落地后接入 FR-020。
+
+### 10.13 掉帧与高负载标记
+
+| 项 | 实现 |
+| --- | --- |
+| 标记模型 | `Core/Models/RuntimeMarkers.cs`：`FrameDropMarker`、`HighLoadMarker`（只含数值与 PID，不含名称/标题/路径） |
+| 掉帧检测 | `FrameDropTracker`（容量 64）：尖峰帧按 1 秒间隔合并为一个事件，`Kind` 取 `long-stall`（最大帧 ≥ 500ms）/ `cpu-wait` / `gpu-wait` / `mixed`，嫌疑进程取同期进程排行第一（优先非前台）；只对出帧中的样本生效 |
+| 高负载检测 | `HighLoadTracker`（容量 16）：CPU 85 / GPU 90 / 显存 92% / 提交 90% 或可用 < 1024MB / 磁盘 50ms，连续 3 个采样成立；记录峰值、秒数与第一、第二名进程；`Suspend()` 在无采样时暂停，`DrainCompleted()` 只取一次已完成事件 |
+| UI 接入 | `MainViewModel.UpdateFrames` 逐帧 `Observe` 并 `Tick`；`TrackHighLoad` 以 `sample.UtcTicks` 去重；切换帧目标 PID 时清空两个追踪器 |
+| 事实映射 | `FactsBuilder` 以 `windowEnd` 计算 `secondsAgo`，`fpsDuring = 1000 / maxFrameTimeMs`；进程名经 `ResolveName` 统一匿名化 |
+| 报告校验 | `AiReportValidator` 强制掉帧覆盖与高负载进程；缺失时报告判为不完整并回退本地报告 |
+| 本地面板 | `AiAnalysisWindow` 新增“掉帧分析”（时间、原因徽标、说明、嫌疑进程）与“高负载归因”（资源、进程徽标、说明） |
+| 诊断记录 | `LongRunRecorder` 写 `frame_drop` / `high_load` 事件，摘要统计“掉帧标记数”“硬件高负载事件数” |
+
+- 全部结构为固定容量数组 / 环形缓冲，无 LINQ、无每帧分配；AI 请求时才把标记复制为数组，未分析时只占用 KB 级内存。
 
 ## 11. 界面层
 
@@ -1627,7 +1663,9 @@ AzureGameAssistant-<version>-win-x64/
 
 - 目录：`%LOCALAPPDATA%\AzureGameAssistant\logs\`
 - 文件：`collector-YYYYMMDD.log`、`ui-YYYYMMDD.log`、`sensors-YYYYMMDD.log`、`crash-*.log`、`ai-parse-*.log`
+- 常开：`settings.logs.enabled` 默认 `true`；界面进程把该值同步给 `FileLogger.Enabled`，采集 / 传感器 / MCP 在启动时通过 `LogMaintenance.IsLoggingEnabled()` 读取同一设置，关闭后立即停写。
 - 滚动：单文件 2MB，保留 5 个；启动时清理超限文件。
+- 保留：`LogMaintenance.Prune(dir, retentionDays)` 删除 `*.log` 中最后写入时间早于 `now − 保留天数` 的文件；保留天数限制 1–30、默认 3；启动时与设置保存后各执行一次，不删除非日志文件。
 - 级别：默认 Info；Debug 需在设置中开启，且 10 分钟后自动恢复 Info。
 - 内容：时间、进程、线程、级别、事件 ID、消息；不记录窗口标题、命令行、用户名、IP、API Key、AI 请求体。
 - 日志写入失败不影响采集；连续失败 3 次后停止尝试并置标志。
@@ -1790,8 +1828,8 @@ Agent 配置示例（stdio）：
 ├─ context.json      # 应用/OS/CPU/GPU/内存、采样、传感器、帧、图表、悬浮窗与 AI 开关快照
 ├─ samples.csv       # 每个记录间隔一行指标、帧统计与 UI 自身开销
 ├─ processes.csv     # 每 30 秒 Top-5 进程（CPU/GPU/工作集）
-├─ events.jsonl      # 会话起止、采集连接/PID、帧状态、数据缺口、温度可用性变化
-└─ summary.txt       # 退出时生成：覆盖率、缺口、帧采集中断、帧率分位、温度覆盖、UI 进程统计
+├─ events.jsonl      # 会话起止、采集连接/PID、帧状态、数据缺口、温度可用性变化、掉帧帧尖峰、硬件高负载
+└─ summary.txt       # 退出时生成：覆盖率、缺口、帧采集中断、帧率分位、温度覆盖、掉帧/高负载计数、UI 进程统计
 ```
 
 ### 22.3 关键列
@@ -1809,4 +1847,5 @@ Agent 配置示例（stdio）：
 - `DiagnosticsSnapshot`（Core.Diagnostics）由 `MainViewModel.CreateDiagnosticsSnapshot` 每个 500ms 刷新节拍组装；`LongRunRecorder` 负责节流写盘、状态变化事件与摘要。
 - `UiProcessProbe` 用差分 `TotalProcessorTime` 计算 UI 进程 CPU；不额外启动线程或计时器。
 - 设置页“诊断记录”提供开关、间隔与“打开记录目录”；`App` 在启动、设置保存与退出时管理记录器生命周期。
-- 测试：`LongRunRecorderTests` 覆盖行数/表头、CSV 转义、缺口事件、采集 PID 重启事件、摘要内容；`SettingsServiceTests` 覆盖默认值与持久化。
+- 掉帧/高负载事件：帧时间超过 `max(2000 / 平均FPS, 50)ms` 记 `frame_drop`（1.5 秒防抖，含帧时间、平均 FPS、Top-1 进程与 PID）；`HighLoadTracker` 的已完成事件写 `high_load`（资源、峰值、秒数、第一/第二进程及占用）。
+- 测试：`LongRunRecorderTests` 覆盖行数/表头、CSV 转义、缺口事件、采集 PID 重启事件、掉帧/高负载事件与摘要统计；`RuntimeTrackerTests` 覆盖合并、阈值、去重与一次性取用；`SettingsServiceTests` 覆盖默认值与持久化。

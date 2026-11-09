@@ -35,6 +35,8 @@ public sealed record DiagnosticsSnapshot(
     int? FrameTargetPid,
     string? FrameError,
     bool FramesFresh,
+    double FrameAgeSeconds,
+    long FrameWriteIndex,
     FrameStatsSnapshot FrameStats,
     long FramesSeen,
     long SpikesSeen,
