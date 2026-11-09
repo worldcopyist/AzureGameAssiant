@@ -22,7 +22,7 @@
 | 最新里程碑 | FR-006/009/011 完成：`DetectionEngine` 融合帧与资源信号，主界面显示最近 50 条卡顿事件；全局热键（默认 `Ctrl+Alt+M`，可改键，冲突气泡提示）与托盘手动标记；托盘悬停显示 CPU / GPU / 内存，事件气泡点击回到主界面。实机验证：3 次热键 = 3 个独立事件；本机 `Ctrl+Alt+M` 被其他程序占用（Win32 1409），需在设置中改键。 |
 | 可运行产物 | `build/run-dev.ps1` 可启动；`build/package.ps1` 默认 AOT 流程可生成便携 ZIP（含 PresentMon）；`build/publish-mcp.ps1` 生成 `artifacts/mcp/AzureGameAssistant.Mcp.exe`；二号屏桌面快捷方式指向 Release |
 | 代码分支 | `main`（`feat/m1-foundation` 已 squash 合入，分支保留） |
-| 当前提交 | `c9b68f6` |
+| 当前提交 | `c838e09` |
 | 未提交变更 | 无 |
 | 阻塞事项 | 帧率准确性需在用户真实游戏（原神 60 帧、三角洲行动）长测确认；AI 窗口与“测试连接”按钮待点击验证；掉帧/高负载标记需在真实游戏复现后核对事件与报告；3 款游戏 PresentMon 实测与反作弊评估待用户游戏环境（已测明日方舟、三角洲行动）；深模式内存/CPU 与 60 分钟连续性待专项测量；本机默认热键 `Ctrl+Alt+M` 被其他程序占用，需用户在设置页改键（实测 `Ctrl+Alt+F9` 可用）；卡顿判定召回率与误报需真实游戏长测 |
 
