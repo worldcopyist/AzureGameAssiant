@@ -135,9 +135,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private static readonly TimeSpan AutoCaptureDwell = TimeSpan.FromSeconds(2);
 
     // After a pause PresentMon reports the whole idle gap as one frame time,
-    // often tens of seconds. Such a frame is a capture interruption, not a
-    // rendered frame, and must not enter the FPS window.
-    private const double DiscontinuityFrameMs = 2000.0;
+    // often seconds long (observed 1529 ms and 19278 ms). Such a frame is a
+    // capture interruption, not a rendered frame, and must not enter the FPS
+    // window; a real 60 fps game never has a legitimate one-second frame.
+    private const double DiscontinuityFrameMs = 1000.0;
 
     public MainViewModel(
         TelemetryService telemetry,
