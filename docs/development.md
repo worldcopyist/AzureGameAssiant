@@ -61,6 +61,7 @@
 | ADR-025 | 日志常开与轮换 | 日志默认常开（1 MB/2 MB 分卷 + 5 卷），按天保留（1–30 天，默认 3 天）；关闭开关同时停写界面与所有子进程 | 用户要求常态记录且可关闭；时间轮换避免长期运行无限增长；子进程各自读设置，避免跨进程开关同步 | 只在异常时写日志、仅在界面进程停写、按启动次数轮换 |
 | ADR-026 | 掉帧/高负载标记 | UI 进程内固定容量环形追踪器（掉帧 64 条、高负载 16 条），以标记形式进入事实层并由校验器强制模型作答 | 检测逻辑与 UI 解耦、可单测；容量固定保证内存极小；校验器确保“必须返回进程”的要求可验证；匿名化映射在同一请求内一致 | 把检测放进采集进程（需扩展共享内存协议）、无界事件列表、只记录不校验 |
 | ADR-027 | FPS 统计与断帧 | 瞬时 FPS 取最近约 1 秒帧时间窗口的速率，平均与低帧取最近约 10 秒；≥ 1000ms 的单帧视为采集断点，只画不断；同目标失败会话可重启，无帧按 2–15 秒慢速重试且不计失败 | 单帧倒数会把一次漏帧读成 30 FPS、把卡顿放大成数千 FPS；整环平均混入菜单与加载；PresentMon 停顿会把整段空闲报成一帧；`Unavailable` 锁死会让采集永久失效 | 单帧倒数、整环平均、把长空洞当真实帧、失败后不再重试 |
+| ADR-028 | 软件问题按月归档 | 独立 `IssueLog` 写 `logs\issues\issues-YYYY-MM.log`，只收 Warn/Error/崩溃；文件名按写入时刻算月份，每条追加后关闭文件；按天保留只扫顶层 `*.log` | 用户要“只看软件自身问题”的日志，混在 Info 流里翻不动；月文件既是轮换单位又是排障单元，跨月不重启也正确；追加后立即关闭避免四进程长期持有句柄与占用内存（符合“内存极小”）；独立子目录让按天清理与月归档互不破坏 | 把所有级别都写进归档、按启动次数切文件、长时间持有写入句柄、把归档放进按天清理范围 |
 
 ## 3. 总体架构
 
@@ -1568,6 +1569,8 @@ AzureGameAssistant-<version>-win-x64/
 | `OpenAiCompatibleClient` | JSON/SSE 解析、401 不重试、429 重试、非 JSON 不重试、取消 |
 | `AiAnalysisService` | 未启用、缺少 Key、预算停止、成功落盘与用量、连续无效输出兜底与解析日志 |
 | `McpServer` / `ToolCatalog` | 版本协商、工具清单、通知无响应、错误码、参数与 schema 边界 |
+| `LogMaintenance` | 只删过期 `*.log`、保留新文件与非日志文件、目录缺失不抛异常 |
+| `IssueLog` | 只有 Warn/Error 入档、按月分文件、头部每文件一次、异常堆栈入档、`FileLogger` 转发且 Info 不入档 |
 | `CredentialStore` | 写入/读取/删除（集成测试，需真实凭据管理器） |
 
 ### 15.2 集成测试
@@ -1674,10 +1677,11 @@ AzureGameAssistant-<version>-win-x64/
 ## 18. 日志与运维
 
 - 目录：`%LOCALAPPDATA%\AzureGameAssistant\logs\`
-- 文件：`collector-YYYYMMDD.log`、`ui-YYYYMMDD.log`、`sensors-YYYYMMDD.log`、`crash-*.log`、`ai-parse-*.log`
+- 文件：`{组件}-yyyyMMdd-HHmmss-fff-{pid}.log`（组件为 `ui` / `collector` / `sensors` / `mcp` / `ai-parse`），随进程重启生成新文件。
 - 常开：`settings.logs.enabled` 默认 `true`；界面进程把该值同步给 `FileLogger.Enabled`，采集 / 传感器 / MCP 在启动时通过 `LogMaintenance.IsLoggingEnabled()` 读取同一设置，关闭后立即停写。
 - 滚动：单文件 2MB，保留 5 个；启动时清理超限文件。
-- 保留：`LogMaintenance.Prune(dir, retentionDays)` 删除 `*.log` 中最后写入时间早于 `now − 保留天数` 的文件；保留天数限制 1–30、默认 3；启动时与设置保存后各执行一次，不删除非日志文件。
+- 保留：`LogMaintenance.Prune(dir, retentionDays)` 删除 `*.log` 中最后写入时间早于 `now − 保留天数` 的文件；保留天数限制 1–30、默认 3；启动时与设置保存后各执行一次，不删除非日志文件，`SearchOption.TopDirectoryOnly` 使其不会触及 `issues` 子目录。
+- 问题归档（FR-026）：`IssueLog` 把 Warn / Error / 未处理异常追加到 `logs\issues\issues-YYYY-MM.log`，文件名按写入时刻的本地月份计算，跨月无需重启；每个文件首次写入补一行 `# AzureGameAssistant issue log · 年月 · v版本 · 系统版本` 头；写 256 字符缓冲、写完即关文件、`FileShare.ReadWrite | FileShare.Delete` 允许四进程并发；写入异常全部吞掉。转发放在 `FileLogger.Write` 内部，因此 `Enabled=false` 时归档一并停写。
 - 级别：默认 Info；Debug 需在设置中开启，且 10 分钟后自动恢复 Info。
 - 内容：时间、进程、线程、级别、事件 ID、消息；不记录窗口标题、命令行、用户名、IP、API Key、AI 请求体。
 - 日志写入失败不影响采集；连续失败 3 次后停止尝试并置标志。
