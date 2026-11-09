@@ -1,6 +1,12 @@
 namespace AzureGameAssistant.Core.Frames;
 
-public readonly record struct FrameTimePoint(long UtcTicks, float FrameTimeMs, bool Spike);
+public readonly record struct FrameTimePoint(
+    long UtcTicks,
+    float FrameTimeMs,
+    bool Spike,
+    float CpuWaitMs = 0,
+    float GpuWaitMs = 0,
+    float DisplayLatencyMs = 0);
 
 /// <summary>
 /// Fixed-capacity ring of frame times aligned to the wall clock, used by the
@@ -29,9 +35,15 @@ public sealed class FrameTimeline
         _count = 0;
     }
 
-    public void Add(long utcTicks, float frameTimeMs, bool spike)
+    public void Add(
+        long utcTicks,
+        float frameTimeMs,
+        bool spike,
+        float cpuWaitMs = 0,
+        float gpuWaitMs = 0,
+        float displayLatencyMs = 0)
     {
-        var point = new FrameTimePoint(utcTicks, frameTimeMs, spike);
+        var point = new FrameTimePoint(utcTicks, frameTimeMs, spike, cpuWaitMs, gpuWaitMs, displayLatencyMs);
         if (_count < _points.Length)
         {
             _points[(_start + _count) % _points.Length] = point;

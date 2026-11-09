@@ -63,6 +63,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         LongRunIntervalSeconds = settings.Diagnostics.IntervalSeconds;
         LogRecording = settings.Logs.Enabled;
         LogRetentionDays = settings.Logs.RetentionDays;
+        SessionMaxCount = settings.Sessions.MaxCount;
+        SessionMaxTotalMb = settings.Sessions.MaxTotalMb;
 
         OverlayEnabled = settings.Overlay.Enabled;
         OverlayCorner = settings.Overlay.Corner;
@@ -324,6 +326,12 @@ public sealed partial class SettingsViewModel : ObservableObject
     private int _logRetentionDays = 3;
 
     [ObservableProperty]
+    private int _sessionMaxCount = 20;
+
+    [ObservableProperty]
+    private int _sessionMaxTotalMb = 500;
+
+    [ObservableProperty]
     private bool _overlayEnabled;
 
     [ObservableProperty]
@@ -502,6 +510,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         settings.Diagnostics.IntervalSeconds = LongRunIntervalSeconds;
         settings.Logs.Enabled = LogRecording;
         settings.Logs.RetentionDays = LogRetentionDays;
+        settings.Sessions.MaxCount = (int)Math.Round(Clamp(SessionMaxCount, 1, 500, 20));
+        settings.Sessions.MaxTotalMb = (int)Math.Round(Clamp(SessionMaxTotalMb, 10, 10_000, 500));
 
         settings.Overlay.Enabled = OverlayEnabled;
         settings.Overlay.Corner = OverlayCorner;

@@ -64,6 +64,7 @@
 | ADR-028 | 软件问题按月归档 | 独立 `IssueLog` 写 `logs\issues\issues-YYYY-MM.log`，只收 Warn/Error/崩溃；文件名按写入时刻算月份，每条追加后关闭文件；按天保留只扫顶层 `*.log` | 用户要“只看软件自身问题”的日志，混在 Info 流里翻不动；月文件既是轮换单位又是排障单元，跨月不重启也正确；追加后立即关闭避免四进程长期持有句柄与占用内存（符合“内存极小”）；独立子目录让按天清理与月归档互不破坏 | 把所有级别都写进归档、按启动次数切文件、长时间持有写入句柄、把归档放进按天清理范围 |
 | ADR-029 | 卡顿判定引擎 | 独立 `DetectionEngine`（Core/Detection）：固定容量环形队列（64 事件）、120 帧中位数、30 采样基线、连续评分、2 秒静默合并、5 秒冷却、深/浅模式；阈值全部来自 `DetectionSettings` | 判定可单测、与 UI 解耦；固定容量满足“内存极小”；连续评分避免固定权重把单次轻微尖峰误判为确认；深模式有帧才让帧分数生效，浅模式退回资源信号 | 把判定写进采集进程（要扩展共享内存协议）、无界事件列表、单信号直接按权重相加 |
 | ADR-030 | 热键与托盘通知 | `RegisterHotKey` + `HwndSource` 钩子（`MOD_NOREPEAT`）；托盘 `Shell_NotifyIcon` 气泡；手动标记统一入引擎队列后由 UI 一次出队 | 主窗口隐藏到托盘时热键仍有效；不做键盘钩子，避免反作弊与全局注入风险；`MOD_NOREPEAT` 防止长按产生大量手动事件；统一出队路径消除重复事件 | 低级键盘钩子、轮询 `GetAsyncKeyState`、在 UI 直接添加事件再让队列重复取用 |
+| ADR-031 | 会话记录与原子落盘 | 事件确认立即写 `state=recording` 的完整可读 gzip JSONL；事件结束 30 秒后原位原子重写 `state=complete` 并补上尾部 SHA256；所有写入走 `.tmp` + `Flush(true)` + `File.Move(overwrite)`；启动清理未完成会话与 `.tmp`；帧按 64 帧/批；源生成序列化 | 满足“3 秒内可被列表发现”又不提前丢弃后续 30 秒数据；原子重命名保证任何时刻都只有完整文件暴露在最终文件名下；`.tmp` 让崩溃残留不被误认；固定批大小与短字段名控制写入开销；源生成满足 Core 的裁剪/AOT 分析器 | 只在 30 秒后写一次（违反 3 秒验收）、每帧一行、先删旧文件再改名、反射序列化 |
 
 
 ## 3. 总体架构
@@ -700,29 +701,27 @@ internal sealed record StutterEvent(
 
 ### 7.2 会话文件（schemaVersion = 2）
 
-文件名：`20261107-214503-<eventId>.agsession.jsonl.gz`
+文件名：`20261107-214503-<eventId>.agsession.jsonl.gz`（本地时间起段，便于人工浏览；时间字段本身全为 UTC ticks）
 
-每行一个 JSON 对象：
+每行一个 JSON 对象，字段名为 camelCase，null 字段省略。写入顺序固定为：`header` → `event` → `sample`×N → `frames`×N → `report` → `footer`。
 
 ```json
-{"type":"header","schemaVersion":2,"appVersion":"0.5.0","os":"10.0.22631","cpu":"...","gpu":["NVIDIA ..."],"samplingMs":200,"startUtc":"2026-11-07T13:45:03Z","windowMs":60000,"mode":"deep","presentMon":"2.6.0","sensors":"nvidia","capabilities":["frames","cpu","gpu","vram"]}
-{"type":"sample","qpc":123456789,"utc":"2026-11-07T13:45:03.120Z","cpu":42.1,"freq":88.0,"memAvailMb":1200,"commitMb":15000,"commitLimitMb":16384,"pageFilePct":35.2,"diskBusy":12.0,"diskMs":3.1,"gpu":61.0,"gpuDedicatedMb":5200,"gpuSharedMb":300,"jitterMs":16.0,"fgPid":1234,"procs":[[1234,"game.exe","2026-11-07T13:00:00Z",35.2,61.0,4200,3800,1200000]],"vendor":{"tempC":68.0,"powerW":220.0,"coreMhz":1950,"memMhz":7000,"fanPct":55,"vramUsedMb":7800,"vramTotalMb":8192}}
-{"type":"frames","n":2,"pid":1234,"q":[123400000,123408333],"ft":[8.3,8.4],"cb":[3.1,3.2],"cw":[1.2,1.1],"gl":[10.2,10.0],"gb":[7.9,8.0],"gw":[0.4,0.3],"dl":[12.0,11.9],"ae":[0.2,0.2],"pm":[3,3]}
-{"type":"event","id":17,"startQpc":123400000,"endQpc":123900000,"score":82.0,"signals":["FrameSpike","CpuSpike"],"cause":"CpuContention","primaryPid":4321,"frameStats":{"count":180,"avgFps":118.2,"onePercentLowFps":42.0,"pointOnePercentLowFps":28.0,"maxFrameTimeMs":120.0,"p99FrameTimeMs":52.0,"spikeCount":6,"displayGapCount":1},"note":null}
-{"type":"report","cause":"CpuContention","confidence":"High","summary":"疑似后台进程抢占 CPU 导致帧尖峰","suspects":[{"pid":4321,"name":"render.exe","cpuPeak":92.0,"gpuPeak":0.0,"wsDeltaMb":120}],"frameEvidence":{"avgCpuWaitMs":18.2,"avgGpuWaitMs":2.1,"maxFrameTimeMs":120.0},"suggestions":["..."]}
-{"type":"ai","provider":"deepseek","model":"deepseek-chat","createdUtc":"2026-11-07T13:47:00Z","report":{"summary":"...","primaryCause":"CpuContention","confidence":"high","evidence":[],"suspects":[],"frameAnalysis":{},"recommendations":[],"limitations":[],"disclaimer":"..."}}
-{"type":"footer","endUtc":"2026-11-07T13:46:03Z","samples":300,"frames":18000,"dropped":0,"frameDropped":12}
+{"type":"header","schemaVersion":2,"state":"complete","appVersion":"0.5.0","os":"10.0.22631","cpu":"...","gpu":"NVIDIA ...","samplingMs":1000,"windowStartUtc":638000000000000000,"windowEndUtc":638000060000000000,"plannedEndUtc":638000060000000000,"mode":"deep","presentMon":"2.6.0","sensors":"nvidia","elevated":true,"cpuTempSource":"driver","capabilities":["samples","processes","frames","gpu","vram","elevated"],"locale":"zh-CN","event":{"id":17,"startUtc":638000000000000000,"endUtc":638000000300000000,"durationMs":3000,"score":82,"signals":["FrameSpike","CpuSpike"],"cause":"Cpu","peakFrameTimeMs":120,"foregroundPid":4321,"processName":"game.exe","manual":false}}
+{"type":"event","id":17,"startUtc":...,"endUtc":...,"durationMs":3000,"score":82,"signals":["FrameSpike","CpuSpike"],"cause":"Cpu","peakFrameTimeMs":120,"foregroundPid":4321,"processName":"game.exe","manual":false}
+{"type":"sample","qpc":123456789,"utc":638000000000000000,"flags":7,"cpu":42.1,"freq":88,"memAvailMb":1200,"commitMb":15000,"commitLimitMb":16384,"pageFilePct":35.2,"diskBusy":12,"diskMs":3.1,"gpu":61,"gpuDedicatedMb":5200,"gpuSharedMb":300,"jitterMs":16,"fgPid":1234,"queueLength":2.0,"procs":[{"pid":1234,"name":"game.exe","startTimeLow":1200000,"cpu":35.2,"gpu":61,"workingSetMb":4200,"privateMb":3800,"foreground":true}],"vendor":{"tempC":68,"hotspotC":80,"powerW":220,"coreMhz":1950,"memMhz":7000,"fanPct":55,"vramUsedMb":7800,"vramTotalMb":8192},"cpuSensor":{"tempC":65,"powerW":95}}
+{"type":"frames","n":64,"pid":0,"q":[...],"u":[...],"ft":[...],"cb":[...],"cw":[...],"gl":[...],"gb":[...],"gw":[...],"dl":[...],"ae":[...],"pm":[...],"sp":[...]}
+{"type":"report","cause":"Cpu","confidence":"High","summary":"疑似后台进程抢占 CPU 导致帧尖峰","suspects":[{"pid":4321,"name":"render.exe","cpuPeak":92,"gpuPeak":0,"wsDeltaMb":120,"weight":93.9}],"frameEvidence":{"frameCount":180,"maxFrameTimeMs":120,"spikeCount":6,"avgCpuWaitMs":18.2,"avgGpuWaitMs":2.1,"avgDisplayLatencyMs":12,"consistent":true},"evidence":["..."],"suggestions":["..."]}
+{"type":"footer","complete":true,"endUtc":638000060000000000,"samples":61,"frames":300,"dropped":0,"frameDropped":0,"sha256":"<前 6 类行的 SHA256>"}
 ```
 
 规则：
 
-- `procs` 仅在 1 秒进程采样点出现；其余采样点省略以减小体积。
-- `frames` 为批次行，`n` 表示本批帧数；`q` 为绝对 QPC，其余字段与帧数组等长。
-- `vendor` 仅在边车可用时出现。
-- `ai` 行可选；默认 AI 报告另存为 `*.ai.json`，会话内仅在用户选择“写入会话”时嵌入。
-- 字段名短、单位写进字段名或文档；新增字段只能追加，不得改变既有含义。
-- 头部必须包含 `schemaVersion`；读取方遇到更高版本时拒绝并提示升级。
-- 尾部记录系统采样数、帧数、丢点与丢帧，用于完整性校验。
+- `state` 为 `recording` 或 `complete`；`plannedEndUtc` 是计划补齐的后滚结束时刻。列表只读第一行，因此头部额外携带完整 `event` 摘要。
+- `procs` 最多 5 个（采集侧高负载槽位）；`vendor` / `cpuSensor` 仅在对应数据有效时出现。
+- `frames` 为 64 帧/批：`q` 为按采样锚点推算的绝对 QPC，`u` 为 UTF ticks，`ft` 帧时间，`cw`/`gw`/`dl` 为 CPU 等待 / GPU 等待 / 显示延迟，`sp` 为尖峰标记；`cb`/`gl`/`gb`/`ae`/`pm` 为预留字段，当前写 0。
+- 新增字段只能追加，不得改变既有含义；读取方遇到更高 `schemaVersion` 拒绝并提示升级。
+- `footer.sha256` 覆盖 footer 之前的全部行（含换行），`complete:false` 的半成品同样带校验值，便于列表判定完整性。
+- AI 报告默认另存为 `sessions/<sessionFileName>.ai.json`，会话内暂不嵌入 `ai` 行；接入 AI 分析时再按需合并。
 
 ### 7.3 AI 报告文件
 
@@ -743,19 +742,22 @@ internal sealed record StutterEvent(
 
 ### 8.2 会话写入
 
-1. 会话线程取快照，写临时文件 `*.tmp`。
-2. 逐行写入 header → samples → frames → event → report → footer，使用 `Utf8JsonWriter` + `GZipStream`，缓冲区 64KB。
-3. 帧批次与系统采样按时间交错写入，便于流式回放。
-4. `FlushFileBuffers` 后 `MoveFileEx` 原子重命名。
-5. 失败时保留 `.tmp` 并记 Error 日志，不阻塞后续事件。
-6. 会话写入完成后，UI 可按需生成 AI 报告；AI 失败不影响会话有效性。
+`SessionRecorder` 只持有待补齐事件（按事件号去重）与已写集合，不复制环形缓冲以外的数据；`MainViewModel` 在事件确认与每次刷新时把预分配缓冲交给它。
+
+1. 事件确认：立即取 `[start - 30s, now]` 的快照，写 `state=recording` 的会话并原子重命名，列表 3 秒内可见。
+2. 后滚到期（`end + 30s`）：用当前环形缓冲重写同一文件名，`state=complete`，窗口截断到实际最新时间。
+3. 每次写入都走 `FileStream`（64KB 缓冲）→ `GZipStream(Fastest)` → 逐行源生成序列化；同时更新 SHA256（footer 行不计入）。
+4. `Flush(true)`（`FlushFileBuffers`）后 `File.Move(temp, final, overwrite: true)` 原子替换；先写 `*.tmp`，失败时删除临时文件并记 `LastError`，不阻塞后续事件。
+5. 正常退出时 `FlushPending` 把仍待补齐的会话以 `complete` 收尾；异常退出留下的 `recording` 文件由下次启动清理。
+6. 帧批次按 64 帧打包，`q` 由采样锚点（首尾采样的 QPC/UTC 差）推算，避免每帧存多列。
 
 ### 8.3 留存
 
 - 目录：`%LOCALAPPDATA%\AzureGameAssistant\sessions\`
-- 上限：20 个会话文件或 500MB（以先到者为准）；`.ai.json` 计入总量。
-- 清理：按文件修改时间从旧到新删除；跳过正在写入的临时文件；删除会话时同步删除同名 AI 报告。
-- 启动时与每次成功写入后各执行一次。
+- 上限：默认 20 个会话文件 / 500MB（以先到者为准），设置页“会话存储”可调（1–500 个 / 10–10000MB）；`.ai.json` 计入总量。
+- 清理：按文件修改时间从旧到新删除，直到两个上限都满足；不会删除正在生成最终版本的目标文件（先写临时文件再替换）。
+- 启动时清理 `*.tmp` 与头部 `state != complete` 的会话，再执行一次留存；每个事件完成写入后再执行一次留存。
+- 删除单个会话时同步删除同名 AI 报告。
 
 ## 9. 卡顿检测与归因
 
@@ -1403,10 +1405,11 @@ internal sealed record AiProviderProfile(
 
 ### 11.8 会话回放与导出
 
-- `SessionRepository` 负责枚举、读取、删除会话；读取使用流式 `JsonSerializer` 逐行反序列化，避免整文件载入。
-- 回放复用主窗口时间轴，切换到“历史会话”模式，事件详情从文件读取。
-- 导出 Markdown：环境摘要、事件、指标峰值表、帧统计、可疑进程表、建议、数据缺口。
-- 导出 PNG：离屏渲染时间轴（`RenderTargetBitmap`），包含事件标记、帧轨与时间范围；不依赖屏幕尺寸。
+- `SessionStore` 负责枚举、读取、删除会话；枚举只读首行（头部自带事件摘要），回放读取使用 `GZipStream` + 逐行源生成反序列化，避免整文件载入；读取上限 10 万采样 / 50 万帧。
+- `SessionsWindow`（非模态，主窗口“会话”按钮与托盘菜单均可打开）：左侧列表显示时间、进程、评分、原因与是否仍在录制；右侧复用 `TimelineChart`（Combined 指标）绘制系统采样与帧时间轴，下方显示头部元信息、事件、权限模式、数据缺口、本地报告（主因、置信度、可疑进程、帧证据、建议、证据）与尾部统计。
+- 删除会话带确认框，并同步删除同名 `.ai.json`；文件被占用或损坏时在窗口内提示，不崩溃。
+- 导出 Markdown：环境摘要、事件、指标峰值表、帧统计、可疑进程表、建议、数据缺口（待 FR-015）。
+- 导出 PNG：离屏渲染时间轴（`RenderTargetBitmap`），包含事件标记、帧轨与时间范围；不依赖屏幕尺寸（待 FR-015）。
 - 若存在 AI 报告，导出时可勾选“包含 AI 分析”；导出内容不含 API Key、请求体与原始响应。
 
 ### 11.9 帧数据消费（M2）

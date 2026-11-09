@@ -34,6 +34,8 @@ public partial class MainWindow : Window
 
     public event EventHandler? AiAnalysisRequested;
 
+    public event EventHandler? SessionsRequested;
+
     public bool HasVisibleCharts
     {
         get
@@ -258,6 +260,9 @@ public partial class MainWindow : Window
 
     private void OnAiAnalyzeClick(object sender, RoutedEventArgs e) =>
         AiAnalysisRequested?.Invoke(this, EventArgs.Empty);
+
+    private void OnSessionsClick(object sender, RoutedEventArgs e) =>
+        SessionsRequested?.Invoke(this, EventArgs.Empty);
 
     private void OnFrameTargetDropDownOpened(object? sender, EventArgs e) =>
         _viewModel.RefreshFrameTargetsCommand.Execute(null);

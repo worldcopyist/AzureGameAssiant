@@ -522,6 +522,33 @@
                 </Border>
 
                 <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,8"
+                           Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[SessionSettingsTitle]}" />
+                <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock VerticalAlignment="Center"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[SessionMaxCount]}" />
+                        <TextBox Grid.Column="1" Width="80" HorizontalAlignment="Left"
+                                 Text="{Binding SessionMaxCount, Mode=TwoWay}" />
+                        <TextBlock Grid.Row="1" Margin="0,10,0,0" VerticalAlignment="Center"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[SessionMaxTotalMb]}" />
+                        <TextBox Grid.Row="1" Grid.Column="1" Width="80" Margin="0,10,0,0" HorizontalAlignment="Left"
+                                 Text="{Binding SessionMaxTotalMb, Mode=TwoWay}" />
+                        <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Margin="0,8,0,0" FontSize="11" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[SessionRetentionHint]}" />
+                    </Grid>
+                </Border>
+
+                <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,8"
                            Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AboutSection]}" />
                 <Border Style="{StaticResource Card}">
                     <StackPanel>

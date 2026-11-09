@@ -40,6 +40,7 @@ public partial class App : Application
     private HotkeyService? _hotkey;
     private AiAnalysisService? _ai;
     private AiAnalysisWindow? _aiWindow;
+    private SessionsWindow? _sessionsWindow;
     private DispatcherTimer? _timer;
     private LongRunRecorder? _recorder;
     private UiProcessProbe? _uiProbe;
@@ -140,6 +141,7 @@ public partial class App : Application
         _window = new MainWindow(_viewModel);
         _window.SettingsRequested += OnSettingsRequested;
         _window.AiAnalysisRequested += OnAiAnalysisRequested;
+        _window.SessionsRequested += OnSessionsRequested;
         _window.IsVisibleChanged += (_, _) => UpdateTimerState();
         _window.StateChanged += (_, _) => UpdateTimerState();
         _window.Show();
@@ -486,6 +488,29 @@ public partial class App : Application
         window.ShowDialog();
     }
 
+    private void OnSessionsRequested(object? sender, EventArgs e)
+    {
+        if (_viewModel is null || _window is null)
+        {
+            return;
+        }
+
+        if (_sessionsWindow is { IsVisible: true })
+        {
+            _sessionsWindow.Activate();
+            return;
+        }
+
+        var window = new SessionsWindow(_viewModel)
+        {
+            Owner = _window,
+        };
+
+        _sessionsWindow = window;
+        window.Closed += (_, _) => _sessionsWindow = null;
+        window.Show();
+    }
+
     private void OnAiAnalysisRequested(object? sender, EventArgs e)
     {
         if (_viewModel is null || _window is null || _settingsService is null)
@@ -573,6 +598,7 @@ public partial class App : Application
         _viewModel?.RefreshLocalization();
         _viewModel?.RefreshDisplaySettings();
         _window?.RefreshChart();
+        _viewModel?.Sessions.ApplyRetention(settings.Sessions.MaxCount, settings.Sessions.MaxTotalMb);
         SetOverlayEnabled(settings.Overlay.Enabled);
 
         if (settings.AutoStart != autoStart)
@@ -829,6 +855,15 @@ public partial class App : Application
         {
             Header = LocalizationService.Instance["MarkStutter"],
             Command = _viewModel.MarkStutterCommand,
+        });
+        menu.Items.Add(new MenuItem
+        {
+            Header = LocalizationService.Instance["SessionsTitle"],
+            Command = new RelayCommand(() =>
+            {
+                ShowMainWindow();
+                OnSessionsRequested(this, EventArgs.Empty);
+            }),
         });
         menu.Items.Add(new Separator());
 

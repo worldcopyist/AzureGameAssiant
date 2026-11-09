@@ -19,11 +19,11 @@ coverage/
 *.trx
 *.coverage
 
-# Local runtime data (sessions, logs, exported reports)
+# Local runtime data (logs, exported reports)
 logs/
-sessions/
 *.log
 *.agsession
+*.agsession.jsonl.gz
 
 # Package output
 *.nupkg

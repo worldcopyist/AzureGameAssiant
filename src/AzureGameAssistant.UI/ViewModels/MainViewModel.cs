@@ -4,12 +4,14 @@ using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AzureGameAssistant.Ai;
+using AzureGameAssistant.Core;
 using AzureGameAssistant.Core.Detection;
 using AzureGameAssistant.Core.Diagnostics;
 using AzureGameAssistant.Core.Frames;
 using AzureGameAssistant.Core.Hardware;
 using AzureGameAssistant.Core.Models;
 using AzureGameAssistant.Core.Settings;
+using AzureGameAssistant.Core.Sessions;
 using AzureGameAssistant.UI.Controls;
 using AzureGameAssistant.UI.Interop;
 using AzureGameAssistant.UI.Services;
@@ -38,8 +40,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly FrameDropTracker _dropTracker = new();
     private readonly HighLoadTracker _highLoadTracker = new();
     private readonly DetectionEngine _detector;
+    private readonly SessionRecorder _sessions;
 
     private const int StutterEventCapacity = 50;
+    private const string PresentMonVersion = "2.6.0";
     private long _lastStutterSampleTicks;
 
     private const int DropMarkerCapacity = 64;
@@ -160,6 +164,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _settings = settings;
         _settingsService = settingsService;
         _detector = new DetectionEngine(_settings.Detection);
+        _sessions = new SessionRecorder(
+            AppPaths.SessionsDirectory,
+            _settings.Sessions.MaxCount,
+            _settings.Sessions.MaxTotalMb,
+            pid => _names.GetName(pid),
+            () => _loc.CurrentLanguage);
+        _sessions.SessionWritten += (_, _) => SessionsChanged?.Invoke(this, EventArgs.Empty);
 
         for (int i = 0; i < 5; i++)
         {
@@ -187,6 +198,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         : _loc.Format("StutterCount", StutterEventCount);
 
     public event EventHandler<StutterEvent>? StutterDetected;
+
+    public event EventHandler? SessionsChanged;
+
+    public SessionRecorder Sessions => _sessions;
 
     partial void OnStutterEventCountChanged(int value) =>
         OnPropertyChanged(nameof(StutterSummaryText));
@@ -477,6 +492,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 UpdateFrames();
                 TrackStutter();
                 DrainStutterEvents();
+                int sessionFrames = CopyFrameTimeline();
+                _sessions.Observe(DateTime.UtcNow, _timeline, TimelineCount, _frameTimelineBuffer, sessionFrames);
             }
             else
             {
@@ -1052,6 +1069,55 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         StutterEventCount++;
         StutterDetected?.Invoke(this, stutterEvent);
+
+        int frameCount = CopyFrameTimeline();
+        _sessions.Begin(
+            stutterEvent,
+            BuildSessionContext(),
+            _timeline,
+            TimelineCount,
+            _frameTimelineBuffer,
+            frameCount);
+    }
+
+    private SessionContext BuildSessionContext()
+    {
+        bool deep = _frameState == "capturing" || IsFrameDataFresh || _settings.Sensors.Enabled;
+        var capabilities = new List<string>(6) { "samples", "processes" };
+        if (_frameState == "capturing" || IsFrameDataFresh)
+        {
+            capabilities.Add("frames");
+        }
+
+        if (_settings.Sensors.Enabled)
+        {
+            capabilities.Add("sensors");
+        }
+
+        if (_telemetry.Count > 0 && TelemetryMath.HasVendorData(_telemetry.Latest))
+        {
+            capabilities.Add("gpu");
+            capabilities.Add("vram");
+        }
+
+        if (PermissionDiagnostics.IsElevated())
+        {
+            capabilities.Add("elevated");
+        }
+
+        return new SessionContext(
+            _appVersion,
+            Environment.OSVersion.VersionString,
+            CpuName,
+            GpuName,
+            deep ? "deep" : "shallow",
+            _samplingIntervalMs > 0 ? _samplingIntervalMs : _settings.Sampling.NormalMs,
+            PresentMonVersion,
+            _settings.Sensors.Enabled ? _settings.Sensors.CpuMode : "off",
+            PermissionDiagnostics.IsElevated(),
+            _settings.Sensors.CpuMode,
+            capabilities.ToArray(),
+            _loc.CurrentLanguage);
     }
 
     private void UpdateFrames()
@@ -1105,7 +1171,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                     _spikesSeen++;
                 }
 
-                _frameTimeline.Add(utcTicks, frame.FrameTimeMs, spike);
+                _frameTimeline.Add(
+                    utcTicks,
+                    frame.FrameTimeMs,
+                    spike,
+                    frame.CpuWaitMs,
+                    frame.GpuWaitMs,
+                    frame.DisplayLatencyMs);
                 _detector.ObserveFrame(utcTicks, frame.FrameTimeMs, frame.DisplayLatencyMs);
                 _dropTracker.Observe(
                     utcTicks > 0 ? utcTicks : DateTime.UtcNow.Ticks,
@@ -1397,6 +1469,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         _cts.Cancel();
         _cts.Dispose();
+
+        int frameCount = CopyFrameTimeline();
+        _sessions.FlushPending(DateTime.UtcNow, _timeline, TimelineCount, _frameTimelineBuffer, frameCount);
     }
 }
 

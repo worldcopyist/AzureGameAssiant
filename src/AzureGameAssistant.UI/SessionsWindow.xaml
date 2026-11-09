@@ -1,0 +1,105 @@
+<Window x:Class="AzureGameAssistant.UI.SessionsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:svc="clr-namespace:AzureGameAssistant.UI.Services"
+        xmlns:controls="clr-namespace:AzureGameAssistant.UI.Controls"
+        Title="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[SessionsTitle]}"
+        Icon="pack://application:,,,/Assets/app-icon.ico"
+        Width="920" Height="620" MinWidth="760" MinHeight="460"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        Foreground="{DynamicResource TextPrimaryBrush}"
+        WindowStartupLocation="CenterOwner"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
+        ShowInTaskbar="False">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="300" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Style="{StaticResource Card}" Margin="0,0,12,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Style="{StaticResource SectionTitle}" VerticalAlignment="Center"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[SessionsTitle]}" />
+                        <Button Grid.Column="1" Style="{StaticResource FlatButton}" Padding="10,2" FontSize="11"
+                                Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[SessionRefresh]}"
+                                Click="OnRefreshClick" />
+                    </Grid>
+                    <ListBox x:Name="SessionList" Grid.Row="1" Margin="0,8,0,0"
+                             BorderThickness="0" Background="Transparent"
+                             HorizontalContentAlignment="Stretch"
+                             SelectionChanged="OnSessionSelected">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="0,4">
+                                    <TextBlock Text="{Binding TitleText}" FontSize="12" />
+                                    <TextBlock Text="{Binding MetaText}" FontSize="11" Margin="0,2,0,0"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="1" Style="{StaticResource Card}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock x:Name="DetailHeader" Style="{StaticResource SectionTitle}" TextTrimming="CharacterEllipsis"
+                               Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[SessionNoSelection]}" />
+
+                    <controls:TimelineChart x:Name="ReplayChart" Grid.Row="1" Metric="Combined"
+                                            Height="190" Margin="0,10,0,10" />
+
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <TextBlock x:Name="DetailText" TextWrapping="Wrap" FontSize="12"
+                                   LineHeight="20" Foreground="{DynamicResource TextPrimaryBrush}" />
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <Grid Grid.Row="1" Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="StatusText" VerticalAlignment="Center" FontSize="11"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       TextTrimming="CharacterEllipsis" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button Style="{StaticResource FlatButton}" Padding="12,4" Margin="0,0,8,0"
+                        Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[SessionOpenFolder]}"
+                        Click="OnOpenFolderClick" />
+                <Button Style="{StaticResource FlatButton}" Padding="12,4" Margin="0,0,8,0"
+                        Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[SessionDelete]}"
+                        Click="OnDeleteClick" />
+                <Button Style="{StaticResource FlatButton}" Padding="12,4"
+                        Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[SessionClose]}"
+                        Click="OnCloseClick" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

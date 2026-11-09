@@ -1146,4 +1146,115 @@
   <data name="AiCauseUnknown" xml:space="preserve">
     <value>undetermined</value>
   </data>
+  <data name="SessionsTitle" xml:space="preserve">
+    <value>Sessions</value>
+  </data>
+  <data name="SessionsButton" xml:space="preserve">
+    <value>Sessions</value>
+  </data>
+  <data name="SessionsHint" xml:space="preserve">
+    <value>Replay the 30 seconds before and after each stutter</value>
+  </data>
+  <data name="SessionRefresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="SessionOpenFolder" xml:space="preserve">
+    <value>Open folder</value>
+  </data>
+  <data name="SessionDelete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="SessionClose" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="SessionEmpty" xml:space="preserve">
+    <value>No sessions yet. Confirm a stutter or press the hotkey to create one.</value>
+  </data>
+  <data name="SessionStateRecording" xml:space="preserve">
+    <value>Recording</value>
+  </data>
+  <data name="SessionStateComplete" xml:space="preserve">
+    <value>Complete</value>
+  </data>
+  <data name="SessionNoSelection" xml:space="preserve">
+    <value>Select a session to replay it and read the attribution</value>
+  </data>
+  <data name="SessionLoadFailed" xml:space="preserve">
+    <value>Failed to read the session</value>
+  </data>
+  <data name="SessionDeleteConfirm" xml:space="preserve">
+    <value>Delete this session file?</value>
+  </data>
+  <data name="SessionDeleteFailed" xml:space="preserve">
+    <value>Failed to delete the session.</value>
+  </data>
+  <data name="SessionListStatus" xml:space="preserve">
+    <value>{0} session(s) · {1}</value>
+  </data>
+  <data name="SessionDetailTime" xml:space="preserve">
+    <value>Time: {0} – {1}</value>
+  </data>
+  <data name="SessionDetailEvent" xml:space="preserve">
+    <value>Event: score {0} · cause {1} · signals {2}</value>
+  </data>
+  <data name="SessionDetailMode" xml:space="preserve">
+    <value>Mode: {0} · sampling {1} ms</value>
+  </data>
+  <data name="SessionDetailData" xml:space="preserve">
+    <value>Data: {0} samples · {1} frames · {2} dropped · {3} frame gaps</value>
+  </data>
+  <data name="SessionDetailPermissions" xml:space="preserve">
+    <value>Access: {0} · CPU temp {1} · sensors {2} · PresentMon {3}</value>
+  </data>
+  <data name="SessionPrivilegeAdmin" xml:space="preserve">
+    <value>administrator</value>
+  </data>
+  <data name="SessionPrivilegeNormal" xml:space="preserve">
+    <value>standard</value>
+  </data>
+  <data name="SessionRecordingNote" xml:space="preserve">
+    <value>This session is still recording; it completes 30 seconds after the event.</value>
+  </data>
+  <data name="SessionGapNote" xml:space="preserve">
+    <value>Data gaps: {0} dropped samples, {1} frame gaps (capture started late or stalled).</value>
+  </data>
+  <data name="SessionReportTitle" xml:space="preserve">
+    <value>Local report (confidence {0})</value>
+  </data>
+  <data name="SessionNoReport" xml:space="preserve">
+    <value>Local report unavailable.</value>
+  </data>
+  <data name="SessionSuspectsTitle" xml:space="preserve">
+    <value>Suspects</value>
+  </data>
+  <data name="SessionSuspectLine" xml:space="preserve">
+    <value>• {0} (PID {1}) · CPU peak {2}% · GPU peak {3}% · memory change {4} MB</value>
+  </data>
+  <data name="SessionFrameEvidenceTitle" xml:space="preserve">
+    <value>Frame evidence</value>
+  </data>
+  <data name="SessionFrameEvidenceLine" xml:space="preserve">
+    <value>Max frame {0} ms · {1} spikes · CPU wait {2} ms · GPU wait {3} ms · display latency {4} ms</value>
+  </data>
+  <data name="SessionSuggestionsTitle" xml:space="preserve">
+    <value>Suggestions</value>
+  </data>
+  <data name="SessionEvidenceTitle" xml:space="preserve">
+    <value>Evidence</value>
+  </data>
+  <data name="CauseVram" xml:space="preserve">
+    <value>VRAM shortage</value>
+  </data>
+  <data name="SessionSettingsTitle" xml:space="preserve">
+    <value>Sessions</value>
+  </data>
+  <data name="SessionMaxCount" xml:space="preserve">
+    <value>Max files kept</value>
+  </data>
+  <data name="SessionMaxTotalMb" xml:space="preserve">
+    <value>Size limit (MB)</value>
+  </data>
+  <data name="SessionRetentionHint" xml:space="preserve">
+    <value>The oldest sessions are removed first when either limit is exceeded. In-progress captures are kept as long as they are the newest file.</value>
+  </data>
 </root>
