@@ -750,6 +750,7 @@ internal sealed record StutterEvent(
 4. `Flush(true)`（`FlushFileBuffers`）后 `File.Move(temp, final, overwrite: true)` 原子替换；先写 `*.tmp`，失败时删除临时文件并记 `LastError`，不阻塞后续事件。
 5. 正常退出时 `FlushPending` 把仍待补齐的会话以 `complete` 收尾；异常退出留下的 `recording` 文件由下次启动清理。
 6. 帧批次按 64 帧打包，`q` 由采样锚点（首尾采样的 QPC/UTC 差）推算，避免每帧存多列。
+7. 写入前把所有浮点字段过一遍有限值清洗（NaN/Infinity → 0）：采集首拍或缺失传感器可能短暂产生非有限值，JSON 不允许表示它们，否则会中断整次写入。
 
 ### 8.3 留存
 

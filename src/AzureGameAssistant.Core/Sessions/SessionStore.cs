@@ -32,8 +32,10 @@ public static class SessionStore
         IReadOnlyList<SessionSampleLine> samples,
         IReadOnlyList<SessionFrameBatchLine> frameBatches,
         SessionReportLine? report,
-        SessionFooterLine footer)
+        SessionFooterLine footer,
+        out string? error)
     {
+        error = null;
         string finalPath = Path.Combine(directory, fileName);
         string tempPath = finalPath + ".tmp";
 
@@ -98,8 +100,10 @@ public static class SessionStore
                 header.Mode,
                 info.Exists ? info.Length : 0);
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException
+            or JsonException or ArgumentException or InvalidOperationException)
         {
+            error = ex.GetType().Name;
             TryDeleteFile(tempPath);
             return null;
         }

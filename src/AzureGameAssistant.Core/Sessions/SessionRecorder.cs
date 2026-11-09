@@ -18,6 +18,12 @@ public sealed class SessionRecorder
     private const int FrameBatchSize = 64;
     private const double DefaultQpcTicksPerSecond = 10_000_000;
 
+    private static double R0(double value) => SessionNumbers.Round(value, 0);
+
+    private static double R1(double value) => SessionNumbers.Round(value, 1);
+
+    private static double R2(double value) => SessionNumbers.Round(value, 2);
+
     private readonly string _directory;
     private readonly Func<uint, string> _resolveName;
     private readonly Func<string> _locale;
@@ -253,11 +259,12 @@ public sealed class SessionRecorder
                 sampleLines,
                 batches,
                 report,
-                footer);
+                footer,
+                out string? writeError);
 
             if (info is null)
             {
-                LastError = $"写入会话失败：{fileName}";
+                LastError = $"写入会话失败：{writeError ?? "unknown"}";
                 return null;
             }
 
@@ -289,11 +296,11 @@ public sealed class SessionRecorder
             Id = capture.Event.Id,
             StartUtc = capture.Event.StartUtc.Ticks,
             EndUtc = capture.Event.EndUtc.Ticks,
-            DurationMs = Math.Round(capture.Event.DurationMs, 1),
+            DurationMs = R1(capture.Event.DurationMs),
             Score = capture.Event.Score,
             Signals = LocalReportBuilder.SignalNames(capture.Event.Signals),
             Cause = capture.Event.Cause.ToString(),
-            PeakFrameTimeMs = Math.Round(capture.Event.PeakFrameTimeMs, 1),
+            PeakFrameTimeMs = R1(capture.Event.PeakFrameTimeMs),
             ForegroundPid = capture.Event.ForegroundPid,
             ProcessName = ResolveProcessName(capture.Event.ForegroundPid, names),
             Manual = capture.Event.Manual,
@@ -326,11 +333,11 @@ public sealed class SessionRecorder
         Id = capture.Event.Id,
         StartUtc = capture.Event.StartUtc.Ticks,
         EndUtc = capture.Event.EndUtc.Ticks,
-        DurationMs = Math.Round(capture.Event.DurationMs, 1),
+        DurationMs = R1(capture.Event.DurationMs),
         Score = capture.Event.Score,
         Signals = LocalReportBuilder.SignalNames(capture.Event.Signals),
         Cause = capture.Event.Cause.ToString(),
-        PeakFrameTimeMs = Math.Round(capture.Event.PeakFrameTimeMs, 1),
+        PeakFrameTimeMs = R1(capture.Event.PeakFrameTimeMs),
         ForegroundPid = capture.Event.ForegroundPid,
         ProcessName = ResolveProcessName(capture.Event.ForegroundPid, names),
         Manual = capture.Event.Manual,
@@ -374,8 +381,8 @@ public sealed class SessionRecorder
                 Pid = slot.Pid,
                 Name = ResolveProcessName(slot.Pid, names) ?? string.Empty,
                 StartTimeLow = slot.StartTimeLow,
-                Cpu = Math.Round(slot.CpuPct, 1),
-                Gpu = Math.Round(slot.GpuPct, 1),
+                Cpu = R1(slot.CpuPct),
+                Gpu = R1(slot.GpuPct),
                 WorkingSetMb = slot.WorkingSetMb,
                 PrivateMb = slot.PrivateMb,
                 Foreground = (slot.Flags & ProcessSlotFlags.Foreground) != 0,
@@ -387,14 +394,14 @@ public sealed class SessionRecorder
         {
             vendor = new SessionVendorLine
             {
-                TempC = Math.Round(sample.V0.TemperatureC, 1),
-                HotspotC = Math.Round(sample.V0.HotSpotC, 1),
-                PowerW = Math.Round(sample.V0.PowerW, 1),
-                CoreMhz = Math.Round(sample.V0.CoreClockMhz, 0),
-                MemMhz = Math.Round(sample.V0.MemoryClockMhz, 0),
-                FanPct = Math.Round(sample.V0.FanPct, 0),
-                VramUsedMb = Math.Round(sample.V0.VramUsedMb, 0),
-                VramTotalMb = Math.Round(sample.V0.VramTotalMb, 0),
+                TempC = R1(sample.V0.TemperatureC),
+                HotspotC = R1(sample.V0.HotSpotC),
+                PowerW = R1(sample.V0.PowerW),
+                CoreMhz = R0(sample.V0.CoreClockMhz),
+                MemMhz = R0(sample.V0.MemoryClockMhz),
+                FanPct = R0(sample.V0.FanPct),
+                VramUsedMb = R0(sample.V0.VramUsedMb),
+                VramTotalMb = R0(sample.V0.VramTotalMb),
             };
         }
 
@@ -403,8 +410,8 @@ public sealed class SessionRecorder
         {
             cpuSensor = new SessionCpuSensorLine
             {
-                TempC = Math.Round(sample.C0.TemperatureC, 1),
-                PowerW = Math.Round(sample.C0.PackagePowerW, 1),
+                TempC = R1(sample.C0.TemperatureC),
+                PowerW = R1(sample.C0.PackagePowerW),
             };
         }
 
@@ -413,18 +420,18 @@ public sealed class SessionRecorder
             Qpc = sample.QpcTicks,
             Utc = sample.UtcTicks,
             Flags = sample.Flags,
-            Cpu = Math.Round(sample.CpuUtilityPct, 1),
-            Freq = Math.Round(sample.CpuFrequencyPct, 1),
+            Cpu = R1(sample.CpuUtilityPct),
+            Freq = R1(sample.CpuFrequencyPct),
             MemAvailMb = sample.MemAvailableMb,
             CommitMb = sample.MemCommitMb,
             CommitLimitMb = sample.MemCommitLimitMb,
-            PageFilePct = Math.Round(sample.PageFilePct, 1),
-            DiskBusy = Math.Round(sample.DiskBusyPct, 1),
-            DiskMs = Math.Round(sample.DiskLatencyMs, 1),
-            Gpu = Math.Round(sample.GpuUtilPct, 1),
+            PageFilePct = R1(sample.PageFilePct),
+            DiskBusy = R1(sample.DiskBusyPct),
+            DiskMs = R1(sample.DiskLatencyMs),
+            Gpu = R1(sample.GpuUtilPct),
             GpuDedicatedMb = sample.GpuDedicatedMb,
             GpuSharedMb = sample.GpuSharedMb,
-            JitterMs = Math.Round(sample.TimerJitterMs, 1),
+            JitterMs = R1(sample.TimerJitterMs),
             FgPid = sample.ForegroundPid,
             QueueLength = sample.ProcessorQueueLength,
             Procs = processes.Count > 0 ? processes.ToArray() : null,
@@ -493,10 +500,10 @@ public sealed class SessionRecorder
                     : frame.UtcTicks;
                 batch.Q[i] = qpc;
                 batch.U[i] = frame.UtcTicks;
-                batch.Ft[i] = Math.Round(frame.FrameTimeMs, 2);
-                batch.Cw[i] = Math.Round(frame.CpuWaitMs, 2);
-                batch.Gw[i] = Math.Round(frame.GpuWaitMs, 2);
-                batch.Dl[i] = Math.Round(frame.DisplayLatencyMs, 2);
+                batch.Ft[i] = R2(frame.FrameTimeMs);
+                batch.Cw[i] = R2(frame.CpuWaitMs);
+                batch.Gw[i] = R2(frame.GpuWaitMs);
+                batch.Dl[i] = R2(frame.DisplayLatencyMs);
                 batch.Sp[i] = frame.Spike ? (byte)1 : (byte)0;
             }
 

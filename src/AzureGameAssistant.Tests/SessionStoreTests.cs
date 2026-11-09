@@ -163,6 +163,53 @@ public sealed class SessionStoreTests : IDisposable
         Assert.Equal(12.0f, buffer[0].DisplayLatencyMs);
     }
 
+    [Fact]
+    public void NonFiniteNumbersAreSanitizedInsteadOfFailingTheWrite()
+    {
+        SampleRecord[] samples = BuildSamples(T0);
+        samples[32].CpuUtilityPct = float.NaN;
+        samples[31].DiskLatencyMs = float.PositiveInfinity;
+        samples[30].V0 = new VendorSlot
+        {
+            TemperatureC = float.NaN,
+            VramUsedMb = float.NaN,
+            VramTotalMb = 8192,
+        };
+        FrameTimePoint[] frames =
+        [
+            new(T0, float.NaN, true, float.NaN, float.PositiveInfinity, float.NaN),
+        ];
+        var recorder = new SessionRecorder(_directory, 20, 500, ResolveName, () => "zh-CN");
+        StutterEvent evt = new(
+            11,
+            new DateTime(T0, DateTimeKind.Utc),
+            new DateTime(T0, DateTimeKind.Utc),
+            0,
+            60,
+            StutterSignals.CpuSpike,
+            StutterCause.Cpu,
+            float.NaN,
+            42,
+            Manual: false);
+
+        Assert.NotNull(recorder.Begin(evt, Context(), samples, samples.Length, frames, frames.Length));
+        recorder.Observe(new DateTime(T0 + 31 * TimeSpan.TicksPerSecond, DateTimeKind.Utc), samples, samples.Length, frames, frames.Length);
+
+        SessionInfo info = Assert.Single(SessionStore.Enumerate(_directory));
+        SessionDocument document = SessionStore.Read(info.Path);
+
+        Assert.True(document.Footer?.Complete);
+        Assert.Equal(0, document.Samples.Single(sample => sample.UtcTicks == T0).CpuUtilityPct);
+        Assert.Equal(0, document.Samples.Single(sample => sample.UtcTicks == T0 - TimeSpan.TicksPerSecond).DiskLatencyMs);
+        Assert.Equal(0, document.Samples.Single(sample => sample.UtcTicks == T0 - 2 * TimeSpan.TicksPerSecond).V0.TemperatureC);
+        FrameTimePoint frame = document.Frames.Single(point => point.UtcTicks == T0);
+        Assert.Equal(0, frame.CpuWaitMs);
+        Assert.Equal(0, frame.GpuWaitMs);
+        Assert.All(
+            document.Samples,
+            sample => Assert.True(float.IsFinite(sample.CpuUtilityPct) && float.IsFinite(sample.DiskLatencyMs)));
+    }
+
     private static SampleRecord[] BuildSamples(long centerTicks)
     {
         var samples = new SampleRecord[65];

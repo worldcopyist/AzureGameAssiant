@@ -16,6 +16,19 @@ public static class SessionSchema
     public const string CompleteState = "complete";
 }
 
+/// <summary>
+/// JSON cannot represent NaN or infinity. Collector counters may briefly carry
+/// them (PDH first sample, missing sensors), so every number crosses this guard
+/// before it reaches the writer.
+/// </summary>
+public static class SessionNumbers
+{
+    public static double Finite(double value) => double.IsFinite(value) ? value : 0;
+
+    public static double Round(double value, int digits) =>
+        double.IsFinite(value) ? Math.Round(value, digits) : 0;
+}
+
 public sealed class SessionHeaderLine
 {
     public string Type { get; set; } = "header";

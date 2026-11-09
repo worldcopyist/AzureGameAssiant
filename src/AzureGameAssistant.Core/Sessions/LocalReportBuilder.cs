@@ -92,10 +92,10 @@ public static class LocalReportBuilder
             {
                 Pid = entry.Entry.Pid,
                 Name = Trim(resolveName(entry.Entry.Pid)),
-                CpuPeak = Math.Round(entry.Entry.CpuPeak, 1),
-                GpuPeak = Math.Round(entry.Entry.GpuPeak, 1),
-                WsDeltaMb = Math.Round(Math.Max(0, entry.Entry.WsMaxMb - entry.Entry.WsMinMb), 1),
-                Weight = Math.Round(entry.Weight, 1),
+                CpuPeak = SessionNumbers.Round(entry.Entry.CpuPeak, 1),
+                GpuPeak = SessionNumbers.Round(entry.Entry.GpuPeak, 1),
+                WsDeltaMb = SessionNumbers.Round(Math.Max(0, entry.Entry.WsMaxMb - entry.Entry.WsMinMb), 1),
+                Weight = SessionNumbers.Round(entry.Weight, 1),
             })
             .ToArray();
 
@@ -141,7 +141,7 @@ public static class LocalReportBuilder
 
         foreach (FrameTimePoint frame in frames)
         {
-            maxFrame = Math.Max(maxFrame, frame.FrameTimeMs);
+            maxFrame = Math.Max(maxFrame, SessionNumbers.Finite(frame.FrameTimeMs));
             if (frame.Spike)
             {
                 spikes++;
@@ -169,11 +169,11 @@ public static class LocalReportBuilder
         return new SessionFrameEvidence
         {
             FrameCount = frames.Count,
-            MaxFrameTimeMs = Math.Round(maxFrame, 1),
+            MaxFrameTimeMs = SessionNumbers.Round(maxFrame, 1),
             SpikeCount = spikes,
-            AvgCpuWaitMs = Math.Round(cpuCount > 0 ? cpuWait / cpuCount : 0, 1),
-            AvgGpuWaitMs = Math.Round(gpuCount > 0 ? gpuWait / gpuCount : 0, 1),
-            AvgDisplayLatencyMs = Math.Round(displayCount > 0 ? display / displayCount : 0, 1),
+            AvgCpuWaitMs = SessionNumbers.Round(cpuCount > 0 ? cpuWait / cpuCount : 0, 1),
+            AvgGpuWaitMs = SessionNumbers.Round(gpuCount > 0 ? gpuWait / gpuCount : 0, 1),
+            AvgDisplayLatencyMs = SessionNumbers.Round(displayCount > 0 ? display / displayCount : 0, 1),
             Consistent = true,
         };
     }
@@ -194,14 +194,14 @@ public static class LocalReportBuilder
         {
             if (sample.V0.VramTotalMb > 0)
             {
-                vramRatio = Math.Max(vramRatio, sample.V0.VramUsedMb / sample.V0.VramTotalMb);
+                vramRatio = Math.Max(vramRatio, SessionNumbers.Finite(sample.V0.VramUsedMb / sample.V0.VramTotalMb));
             }
 
-            memAvailable = Math.Min(memAvailable, sample.MemAvailableMb);
-            diskBusy = Math.Max(diskBusy, sample.DiskBusyPct);
-            diskLatency = Math.Max(diskLatency, sample.DiskLatencyMs);
-            cpuPeak = Math.Max(cpuPeak, sample.CpuUtilityPct);
-            gpuPeak = Math.Max(gpuPeak, sample.GpuUtilPct);
+            memAvailable = Math.Min(memAvailable, SessionNumbers.Finite(sample.MemAvailableMb));
+            diskBusy = Math.Max(diskBusy, SessionNumbers.Finite(sample.DiskBusyPct));
+            diskLatency = Math.Max(diskLatency, SessionNumbers.Finite(sample.DiskLatencyMs));
+            cpuPeak = Math.Max(cpuPeak, SessionNumbers.Finite(sample.CpuUtilityPct));
+            gpuPeak = Math.Max(gpuPeak, SessionNumbers.Finite(sample.GpuUtilPct));
         }
 
         StutterSignals signals = stutter.Signals;
@@ -325,10 +325,10 @@ public static class LocalReportBuilder
         var evidence = new List<string>(4);
         if (samples.Count > 0)
         {
-            double cpuPeak = samples.Max(sample => sample.CpuUtilityPct);
-            double gpuPeak = samples.Max(sample => sample.GpuUtilPct);
-            double memMin = samples.Min(sample => (double)sample.MemAvailableMb);
-            double diskPeak = samples.Max(sample => sample.DiskLatencyMs);
+            double cpuPeak = samples.Max(sample => SessionNumbers.Finite(sample.CpuUtilityPct));
+            double gpuPeak = samples.Max(sample => SessionNumbers.Finite(sample.GpuUtilPct));
+            double memMin = samples.Min(sample => SessionNumbers.Finite(sample.MemAvailableMb));
+            double diskPeak = samples.Max(sample => SessionNumbers.Finite(sample.DiskLatencyMs));
             evidence.Add(zh
                 ? string.Create(CultureInfo.InvariantCulture,
                     $"窗口峰值：CPU {cpuPeak:F0}% · GPU {gpuPeak:F0}% · 可用内存 {memMin:F0} MB · 磁盘 {diskPeak:F0} ms")
@@ -338,7 +338,7 @@ public static class LocalReportBuilder
 
         if (frames.Count > 0)
         {
-            double maxFrame = frames.Max(frame => (double)frame.FrameTimeMs);
+            double maxFrame = frames.Max(frame => SessionNumbers.Finite(frame.FrameTimeMs));
             int spikes = frames.Count(frame => frame.Spike);
             evidence.Add(zh
                 ? string.Create(CultureInfo.InvariantCulture,
