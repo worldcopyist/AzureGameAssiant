@@ -182,9 +182,11 @@ public partial class SessionsWindow : Window
                 "SessionFrameEvidenceLine",
                 frames.MaxFrameTimeMs,
                 frames.SpikeCount,
+                frames.GapCount,
                 frames.AvgCpuWaitMs,
                 frames.AvgGpuWaitMs,
                 frames.AvgDisplayLatencyMs));
+            builder.AppendLine(loc[frames.Consistent ? "SessionFrameConsistent" : "SessionFrameInconsistent"]);
             builder.AppendLine();
         }
 
@@ -219,6 +221,7 @@ public partial class SessionsWindow : Window
         "Disk" => loc["CauseDisk"],
         "Vram" => loc["CauseVram"],
         "FramePacing" => loc["CauseFramePacing"],
+        "Thermal" => loc["CauseThermal"],
         "Manual" => loc["CauseManual"],
         _ => loc["CauseUnknown"],
     };

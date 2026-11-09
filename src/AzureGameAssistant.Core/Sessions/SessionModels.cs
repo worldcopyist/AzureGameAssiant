@@ -187,6 +187,7 @@ public sealed class SessionReportSuspect
 public sealed class SessionFrameEvidence
 {
     public int FrameCount { get; set; }
+    public int GapCount { get; set; }
     public double MaxFrameTimeMs { get; set; }
     public int SpikeCount { get; set; }
     public double AvgCpuWaitMs { get; set; }

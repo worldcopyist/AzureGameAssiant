@@ -204,6 +204,9 @@
   <data name="CauseFramePacing" xml:space="preserve">
     <value>Frame pacing</value>
   </data>
+  <data name="CauseThermal" xml:space="preserve">
+    <value>Thermal throttling</value>
+  </data>
   <data name="CauseManual" xml:space="preserve">
     <value>Manual</value>
   </data>
@@ -391,7 +394,7 @@
     <value>Open issue log</value>
   </data>
   <data name="M1Notice" xml:space="preserve">
-    <value>Frame-level truth, stutter detection and AI analysis arrive in later milestones.</value>
+    <value>Frame capture, stutter detection and local attribution run on this PC; data is never uploaded automatically.</value>
   </data>
   <data name="Milliseconds" xml:space="preserve">
     <value>{0} ms</value>
@@ -1234,7 +1237,13 @@
     <value>Frame evidence</value>
   </data>
   <data name="SessionFrameEvidenceLine" xml:space="preserve">
-    <value>Max frame {0} ms · {1} spikes · CPU wait {2} ms · GPU wait {3} ms · display latency {4} ms</value>
+    <value>Max frame {0} ms · {1} spikes · {2} gaps · CPU wait {3} ms · GPU wait {4} ms · display latency {5} ms</value>
+  </data>
+  <data name="SessionFrameConsistent" xml:space="preserve">
+    <value>Cause vs frame evidence: consistent</value>
+  </data>
+  <data name="SessionFrameInconsistent" xml:space="preserve">
+    <value>Cause vs frame evidence: inconsistent or insufficient</value>
   </data>
   <data name="SessionSuggestionsTitle" xml:space="preserve">
     <value>Suggestions</value>

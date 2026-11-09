@@ -22,10 +22,23 @@ public static class LocalReportBuilder
     {
         bool zh = (locale ?? string.Empty).StartsWith("zh", StringComparison.OrdinalIgnoreCase);
         var suspects = BuildSuspects(samples, resolveName);
-        SessionFrameEvidence? frameEvidence = BuildFrameEvidence(frames);
-        string cause = Classify(stutter, samples, frames);
+        FrameStats stats = Summarize(frames);
+        string cause = Classify(stutter, samples, stats);
+        SessionFrameEvidence? frameEvidence = frames.Count > 0
+            ? new SessionFrameEvidence
+            {
+                FrameCount = frames.Count,
+                GapCount = stats.GapCount,
+                MaxFrameTimeMs = SessionNumbers.Round(stats.MaxFrameTimeMs, 1),
+                SpikeCount = stats.SpikeCount,
+                AvgCpuWaitMs = SessionNumbers.Round(stats.AvgCpuWaitMs, 1),
+                AvgGpuWaitMs = SessionNumbers.Round(stats.AvgGpuWaitMs, 1),
+                AvgDisplayLatencyMs = SessionNumbers.Round(stats.AvgDisplayLatencyMs, 1),
+                Consistent = IsConsistent(cause, stats),
+            }
+            : null;
         string confidence = ResolveConfidence(stutter, cause);
-        var evidence = BuildEvidence(samples, frames, suspects, zh);
+        var evidence = BuildEvidence(samples, stats, suspects, zh);
 
         return new SessionReportLine
         {
@@ -123,13 +136,16 @@ public static class LocalReportBuilder
         }
     }
 
-    private static SessionFrameEvidence? BuildFrameEvidence(IReadOnlyList<FrameTimePoint> frames)
-    {
-        if (frames.Count == 0)
-        {
-            return null;
-        }
+    /// <summary>
+    /// A frame time at or above one second is a capture hole, not a rendered
+    /// frame. Counting holes as spikes inflated the old report (for example
+    /// "7 spikes" out of 19 frames), so they are tracked separately and kept
+    /// out of the maximum and the wait averages.
+    /// </summary>
+    private const double GapThresholdMs = 1000;
 
+    private static FrameStats Summarize(IReadOnlyList<FrameTimePoint> frames)
+    {
         double cpuWait = 0;
         double gpuWait = 0;
         double display = 0;
@@ -138,50 +154,71 @@ public static class LocalReportBuilder
         int displayCount = 0;
         double maxFrame = 0;
         int spikes = 0;
+        int gaps = 0;
 
         foreach (FrameTimePoint frame in frames)
         {
-            maxFrame = Math.Max(maxFrame, SessionNumbers.Finite(frame.FrameTimeMs));
+            double frameTime = SessionNumbers.Finite(frame.FrameTimeMs);
+            if (frameTime >= GapThresholdMs)
+            {
+                gaps++;
+                continue;
+            }
+
+            maxFrame = Math.Max(maxFrame, frameTime);
             if (frame.Spike)
             {
                 spikes++;
             }
 
-            if (frame.CpuWaitMs > 0)
+            double cpu = SessionNumbers.Finite(frame.CpuWaitMs);
+            if (cpu > 0)
             {
-                cpuWait += frame.CpuWaitMs;
+                cpuWait += cpu;
                 cpuCount++;
             }
 
-            if (frame.GpuWaitMs > 0)
+            double gpu = SessionNumbers.Finite(frame.GpuWaitMs);
+            if (gpu > 0)
             {
-                gpuWait += frame.GpuWaitMs;
+                gpuWait += gpu;
                 gpuCount++;
             }
 
-            if (frame.DisplayLatencyMs > 0)
+            double latency = SessionNumbers.Finite(frame.DisplayLatencyMs);
+            if (latency > 0)
             {
-                display += frame.DisplayLatencyMs;
+                display += latency;
                 displayCount++;
             }
         }
 
-        return new SessionFrameEvidence
-        {
-            FrameCount = frames.Count,
-            MaxFrameTimeMs = SessionNumbers.Round(maxFrame, 1),
-            SpikeCount = spikes,
-            AvgCpuWaitMs = SessionNumbers.Round(cpuCount > 0 ? cpuWait / cpuCount : 0, 1),
-            AvgGpuWaitMs = SessionNumbers.Round(gpuCount > 0 ? gpuWait / gpuCount : 0, 1),
-            AvgDisplayLatencyMs = SessionNumbers.Round(displayCount > 0 ? display / displayCount : 0, 1),
-            Consistent = true,
-        };
+        return new FrameStats(
+            frames.Count,
+            gaps,
+            spikes,
+            maxFrame,
+            cpuCount > 0 ? cpuWait / cpuCount : 0,
+            gpuCount > 0 ? gpuWait / gpuCount : 0,
+            displayCount > 0 ? display / displayCount : 0);
+    }
+
+    private readonly record struct FrameStats(
+        int FrameCount,
+        int GapCount,
+        int SpikeCount,
+        double MaxFrameTimeMs,
+        double AvgCpuWaitMs,
+        double AvgGpuWaitMs,
+        double AvgDisplayLatencyMs)
+    {
+        public bool HasStalls => SpikeCount + GapCount > 0;
     }
 
     private static string Classify(
         in StutterEvent stutter,
         IReadOnlyList<SampleRecord> samples,
-        IReadOnlyList<FrameTimePoint> frames)
+        FrameStats stats)
     {
         double vramRatio = 0;
         double memAvailable = double.MaxValue;
@@ -189,6 +226,11 @@ public static class LocalReportBuilder
         double diskLatency = 0;
         double cpuPeak = 0;
         double gpuPeak = 0;
+        bool hasCpuTemp = false;
+        bool hasGpuTemp = false;
+        double cpuTemp = 0;
+        double gpuTemp = 0;
+        double gpuHotspot = 0;
 
         foreach (SampleRecord sample in samples)
         {
@@ -202,6 +244,19 @@ public static class LocalReportBuilder
             diskLatency = Math.Max(diskLatency, SessionNumbers.Finite(sample.DiskLatencyMs));
             cpuPeak = Math.Max(cpuPeak, SessionNumbers.Finite(sample.CpuUtilityPct));
             gpuPeak = Math.Max(gpuPeak, SessionNumbers.Finite(sample.GpuUtilPct));
+
+            if ((sample.Flags & SampleFlags.VendorValid) != 0)
+            {
+                hasGpuTemp = true;
+                gpuTemp = Math.Max(gpuTemp, SessionNumbers.Finite(sample.V0.TemperatureC));
+                gpuHotspot = Math.Max(gpuHotspot, SessionNumbers.Finite(sample.V0.HotSpotC));
+            }
+
+            if ((sample.Flags & SampleFlags.CpuSensorValid) != 0)
+            {
+                hasCpuTemp = true;
+                cpuTemp = Math.Max(cpuTemp, SessionNumbers.Finite(sample.C0.TemperatureC));
+            }
         }
 
         StutterSignals signals = stutter.Signals;
@@ -218,6 +273,15 @@ public static class LocalReportBuilder
         if (signals.HasFlag(StutterSignals.DiskPressure) || (diskLatency >= 50 && diskBusy >= 50))
         {
             return "Disk";
+        }
+
+        // High temperature only matters when the component is actually loaded;
+        // a single hot idle sample must not steal the attribution.
+        bool gpuThermal = hasGpuTemp && gpuPeak >= 40 && (gpuTemp >= 85 || gpuHotspot >= 95);
+        bool cpuThermal = hasCpuTemp && cpuPeak >= 40 && cpuTemp >= 90;
+        if (gpuThermal || cpuThermal)
+        {
+            return "Thermal";
         }
 
         bool cpu = signals.HasFlag(StutterSignals.CpuSpike);
@@ -242,7 +306,9 @@ public static class LocalReportBuilder
             return "FramePacing";
         }
 
-        if (frames.Count >= 2 && AverageWait(frames, gpu: true) > AverageWait(frames, gpu: false) * 2)
+        // Without a spike or gap the window has no frame-level stall to
+        // attribute; normal low-FPS waits alone must not overrule a manual mark.
+        if (stats.HasStalls && stats.FrameCount >= 2 && stats.AvgGpuWaitMs > stats.AvgCpuWaitMs * 2)
         {
             return "Gpu";
         }
@@ -255,21 +321,22 @@ public static class LocalReportBuilder
         return "Unknown";
     }
 
-    private static double AverageWait(IReadOnlyList<FrameTimePoint> frames, bool gpu)
+    private static bool IsConsistent(string cause, FrameStats stats)
     {
-        double total = 0;
-        int count = 0;
-        foreach (FrameTimePoint frame in frames)
+        if (stats.FrameCount == 0)
         {
-            double value = gpu ? frame.GpuWaitMs : frame.CpuWaitMs;
-            if (value > 0)
-            {
-                total += value;
-                count++;
-            }
+            return false;
         }
 
-        return count > 0 ? total / count : 0;
+        bool stalls = stats.HasStalls;
+        return cause switch
+        {
+            "Cpu" => (stats.AvgCpuWaitMs > 0 || stalls) && stats.AvgCpuWaitMs >= stats.AvgGpuWaitMs,
+            "Gpu" => (stats.AvgGpuWaitMs > 0 || stalls) && stats.AvgGpuWaitMs >= stats.AvgCpuWaitMs,
+            "Thermal" => stats.HasStalls,
+            "Vram" or "Memory" or "Disk" or "FramePacing" or "Manual" => stalls,
+            _ => false,
+        };
     }
 
     private static string ResolveConfidence(in StutterEvent stutter, string cause)
@@ -308,6 +375,9 @@ public static class LocalReportBuilder
         "FramePacing" => zh
             ? "资源占用未明显越界，疑似帧节奏或呈现环节异常。"
             : "Resource usage stayed in range; frame pacing or presentation looks abnormal.",
+        "Thermal" => zh
+            ? "疑似 CPU 或 GPU 温度接近上限触发降频，帧时间随之拉长。"
+            : "CPU or GPU temperature likely hit its limit and throttled, stretching frame times.",
         "Manual" => zh
             ? "这是手动标记的卡顿，本地规则未发现明确的资源越界信号。"
             : "This is a manual mark; local rules found no clear resource overrun.",
@@ -318,7 +388,7 @@ public static class LocalReportBuilder
 
     private static string[] BuildEvidence(
         IReadOnlyList<SampleRecord> samples,
-        IReadOnlyList<FrameTimePoint> frames,
+        FrameStats stats,
         SessionReportSuspect[] suspects,
         bool zh)
     {
@@ -329,22 +399,46 @@ public static class LocalReportBuilder
             double gpuPeak = samples.Max(sample => SessionNumbers.Finite(sample.GpuUtilPct));
             double memMin = samples.Min(sample => SessionNumbers.Finite(sample.MemAvailableMb));
             double diskPeak = samples.Max(sample => SessionNumbers.Finite(sample.DiskLatencyMs));
+            double gpuTemp = 0;
+            double cpuTemp = 0;
+            bool hasGpuTemp = false;
+            bool hasCpuTemp = false;
+            foreach (SampleRecord sample in samples)
+            {
+                if ((sample.Flags & SampleFlags.VendorValid) != 0)
+                {
+                    hasGpuTemp = true;
+                    gpuTemp = Math.Max(gpuTemp, SessionNumbers.Finite(sample.V0.TemperatureC));
+                }
+
+                if ((sample.Flags & SampleFlags.CpuSensorValid) != 0)
+                {
+                    hasCpuTemp = true;
+                    cpuTemp = Math.Max(cpuTemp, SessionNumbers.Finite(sample.C0.TemperatureC));
+                }
+            }
+
+            string temps = (hasGpuTemp, hasCpuTemp) switch
+            {
+                (true, true) => string.Create(CultureInfo.InvariantCulture, $" · GPU {gpuTemp:F0}°C · CPU {cpuTemp:F0}°C"),
+                (true, false) => string.Create(CultureInfo.InvariantCulture, $" · GPU {gpuTemp:F0}°C"),
+                (false, true) => string.Create(CultureInfo.InvariantCulture, $" · CPU {cpuTemp:F0}°C"),
+                _ => string.Empty,
+            };
             evidence.Add(zh
                 ? string.Create(CultureInfo.InvariantCulture,
-                    $"窗口峰值：CPU {cpuPeak:F0}% · GPU {gpuPeak:F0}% · 可用内存 {memMin:F0} MB · 磁盘 {diskPeak:F0} ms")
+                    $"窗口峰值：CPU {cpuPeak:F0}% · GPU {gpuPeak:F0}% · 可用内存 {memMin:F0} MB · 磁盘 {diskPeak:F0} ms{temps}")
                 : string.Create(CultureInfo.InvariantCulture,
-                    $"Window peaks: CPU {cpuPeak:F0}% · GPU {gpuPeak:F0}% · available memory {memMin:F0} MB · disk {diskPeak:F0} ms"));
+                    $"Window peaks: CPU {cpuPeak:F0}% · GPU {gpuPeak:F0}% · available memory {memMin:F0} MB · disk {diskPeak:F0} ms{temps}"));
         }
 
-        if (frames.Count > 0)
+        if (stats.FrameCount > 0)
         {
-            double maxFrame = frames.Max(frame => SessionNumbers.Finite(frame.FrameTimeMs));
-            int spikes = frames.Count(frame => frame.Spike);
             evidence.Add(zh
                 ? string.Create(CultureInfo.InvariantCulture,
-                    $"帧证据：最大帧 {maxFrame:F1} ms，尖峰 {spikes} 次，共 {frames.Count} 帧")
+                    $"帧证据：最大帧 {stats.MaxFrameTimeMs:F1} ms，尖峰 {stats.SpikeCount} 次，断帧 {stats.GapCount} 次，共 {stats.FrameCount} 帧")
                 : string.Create(CultureInfo.InvariantCulture,
-                    $"Frame evidence: max frame {maxFrame:F1} ms, {spikes} spikes across {frames.Count} frames"));
+                    $"Frame evidence: max frame {stats.MaxFrameTimeMs:F1} ms, {stats.SpikeCount} spikes, {stats.GapCount} gaps across {stats.FrameCount} frames"));
         }
         else
         {
@@ -384,6 +478,9 @@ public static class LocalReportBuilder
         "FramePacing" => zh
             ? ["尝试切换垂直同步或帧率上限，对比帧时间稳定性。", "尝试无边框窗口模式，并更新显卡驱动。"]
             : ["Try toggling V-Sync or a frame cap and compare stability.", "Try borderless mode and update the GPU driver."],
+        "Thermal" => zh
+            ? ["改善散热并清理积灰，确认风扇曲线与机箱风道。", "适当降低画质或帧率上限，观察高温与卡顿是否同步缓解。"]
+            : ["Improve cooling and clear dust; check fan curves and airflow.", "Lower quality or the frame cap and see whether heat and stutter ease together."],
         _ => zh
             ? ["开启帧采集后在相同场景复现，补充帧级证据。", "关闭不必要的后台程序后再次标记，比较两次结果。"]
             : ["Enable frame capture, reproduce in the same scene and add frame evidence.", "Close unnecessary background apps, mark again and compare."],
