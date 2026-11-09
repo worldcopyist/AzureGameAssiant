@@ -440,6 +440,82 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+
+                    <Separator Margin="0,12,0,10" Background="{DynamicResource BorderBrush}" />
+
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource SectionTitle}"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[StutterTitle]}" />
+                            <TextBlock FontSize="11" Margin="8,0,0,0" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Text="{Binding StutterSummaryText}" />
+                        </StackPanel>
+                        <Button Grid.Column="1" Style="{StaticResource FlatButton}" Padding="10,2" FontSize="11"
+                                Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[MarkStutter]}"
+                                ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[MarkStutterHint]}"
+                                Command="{Binding MarkStutterCommand}" />
+                    </Grid>
+
+                    <Grid Margin="0,0,0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="58" />
+                            <ColumnDefinition Width="64" />
+                            <ColumnDefinition Width="80" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="110" />
+                            <ColumnDefinition Width="46" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ColumnTime]}" />
+                        <TextBlock Grid.Column="1" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[StutterScoreHeader]}" />
+                        <TextBlock Grid.Column="2" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[StutterCauseHeader]}" />
+                        <TextBlock Grid.Column="3" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[StutterSignalHeader]}" />
+                        <TextBlock Grid.Column="5" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[StutterDurationHeader]}"
+                                   HorizontalAlignment="Right" />
+                    </Grid>
+
+                    <ScrollViewer MaxHeight="156" VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding StutterEvents}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Height="24">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="58" />
+                                            <ColumnDefinition Width="64" />
+                                            <ColumnDefinition Width="80" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="110" />
+                                            <ColumnDefinition Width="46" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Style="{StaticResource MonoText}" VerticalAlignment="Center"
+                                                   Text="{Binding TimeText}" />
+                                        <TextBlock Grid.Column="1" Style="{StaticResource MonoText}" VerticalAlignment="Center"
+                                                   Text="{Binding ScoreText}" />
+                                        <TextBlock Grid.Column="2" FontSize="11" VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" Text="{Binding CauseText}" />
+                                        <TextBlock Grid.Column="3" FontSize="11" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   TextTrimming="CharacterEllipsis" Text="{Binding SignalsText}"
+                                                   ToolTip="{Binding PeakText}" />
+                                        <TextBlock Grid.Column="4" FontSize="11" VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" Text="{Binding ProcessName}" />
+                                        <TextBlock Grid.Column="5" Style="{StaticResource MonoText}" VerticalAlignment="Center"
+                                                   HorizontalAlignment="Right" Text="{Binding DurationText}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
                 </StackPanel>
             </Border>
 

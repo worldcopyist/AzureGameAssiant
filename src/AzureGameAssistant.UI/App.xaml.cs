@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using AzureGameAssistant.Ai;
 using AzureGameAssistant.Core;
+using AzureGameAssistant.Core.Detection;
 using AzureGameAssistant.Core.Diagnostics;
 using AzureGameAssistant.Core.Hardware;
 using AzureGameAssistant.Core.Logging;
@@ -36,6 +37,7 @@ public partial class App : Application
     private MainWindow? _window;
     private OverlayWindow? _overlay;
     private TrayIconService? _tray;
+    private HotkeyService? _hotkey;
     private AiAnalysisService? _ai;
     private AiAnalysisWindow? _aiWindow;
     private DispatcherTimer? _timer;
@@ -149,6 +151,11 @@ public partial class App : Application
         _tray = new TrayIconService(new WindowInteropHelper(_window).Handle);
         _tray.OpenRequested += (_, _) => ShowMainWindow();
         _tray.MenuRequested += OnTrayMenuRequested;
+
+        _hotkey = new HotkeyService(new WindowInteropHelper(_window).Handle);
+        _hotkey.Pressed += OnHotkeyPressed;
+        RegisterHotkey(_settings.Hotkey, notifyConflict: true);
+        _viewModel.StutterDetected += OnStutterDetected;
 
         LocalizationService.Instance.LanguageChanged += OnLanguageChanged;
 
@@ -560,6 +567,7 @@ public partial class App : Application
             settings.Sensors.IntervalMs != _appliedSensorIntervalMs ||
             !string.Equals(settings.Sensors.CpuMode, _appliedCpuMode, StringComparison.Ordinal);
 
+        RegisterHotkey(settings.Hotkey, notifyConflict: true);
         ThemeService.Apply(settings.Theme);
         LocalizationService.Instance.SetLanguage(settings.Language);
         _viewModel?.RefreshLocalization();
@@ -794,7 +802,8 @@ public partial class App : Application
         _tray.UpdateTip(LocalizationService.Instance.Format(
             "TrayTip",
             latest.CpuUtilityPct.ToString("F0"),
-            latest.GpuUtilPct.ToString("F0")));
+            latest.GpuUtilPct.ToString("F0"),
+            TelemetryMath.MemoryUsagePct(latest).ToString("F0")));
     }
 
     private void OnTrayMenuRequested(object? sender, System.Windows.Point point)
@@ -816,13 +825,11 @@ public partial class App : Application
             FontWeight = FontWeights.SemiBold,
         });
 
-        var mark = new MenuItem
+        menu.Items.Add(new MenuItem
         {
             Header = LocalizationService.Instance["MarkStutter"],
-            IsEnabled = false,
-        };
-
-        menu.Items.Add(mark);
+            Command = _viewModel.MarkStutterCommand,
+        });
         menu.Items.Add(new Separator());
 
         var pause = new MenuItem
@@ -873,6 +880,50 @@ public partial class App : Application
         SaveSettingsQuietly("保存通知设置失败");
     }
 
+    /// <summary>
+    /// A conflict is only surfaced when the user just changed the gesture, so a
+    /// stale saved hotkey never nags at startup.
+    /// </summary>
+    private void RegisterHotkey(string gesture, bool notifyConflict)
+    {
+        if (_hotkey?.TryRegister(gesture) == true)
+        {
+            return;
+        }
+
+        _logger?.Warn($"热键注册失败：{gesture}（错误码 {_hotkey?.LastError ?? 0}）");
+        if (notifyConflict)
+        {
+            _tray?.ShowBalloon(
+                LocalizationService.Instance["HotkeyConflictTitle"],
+                LocalizationService.Instance.Format("HotkeyConflictText", gesture));
+        }
+    }
+
+    private void OnHotkeyPressed(object? sender, EventArgs e)
+    {
+        _logger?.Info($"热键触发：{_settings.Hotkey}");
+        if (_viewModel?.MarkStutterCommand.CanExecute(null) == true)
+        {
+            _viewModel.MarkStutterCommand.Execute(null);
+        }
+    }
+
+    private void OnStutterDetected(object? sender, StutterEvent stutterEvent)
+    {
+        _logger?.Info(
+            $"检测到卡顿：评分 {stutterEvent.Score}，时长 {stutterEvent.DurationMs:F0} ms，原因 {stutterEvent.Cause}");
+
+        if (!_settings.Notifications || _tray is null)
+        {
+            return;
+        }
+
+        _tray.ShowBalloon(
+            LocalizationService.Instance["StutterTitle"],
+            LocalizationService.Instance.Format("StutterBalloon", stutterEvent.Score));
+    }
+
     private async Task ShutdownAsync()
     {
         if (_shuttingDown)
@@ -908,6 +959,9 @@ public partial class App : Application
             {
             }
         }
+
+        _hotkey?.Dispose();
+        _hotkey = null;
 
         _tray?.Dispose();
         _tray = null;

@@ -120,6 +120,96 @@
   <data name="Foreground" xml:space="preserve">
     <value>前台</value>
   </data>
+  <data name="StutterTitle" xml:space="preserve">
+    <value>最近卡顿</value>
+  </data>
+  <data name="StutterEmpty" xml:space="preserve">
+    <value>暂无卡顿事件</value>
+  </data>
+  <data name="StutterCount" xml:space="preserve">
+    <value>共 {0} 次</value>
+  </data>
+  <data name="StutterScore" xml:space="preserve">
+    <value>{0} 分</value>
+  </data>
+  <data name="StutterBalloon" xml:space="preserve">
+    <value>检测到卡顿 · 评分 {0}，点击打开主界面。</value>
+  </data>
+  <data name="HotkeyConflictTitle" xml:space="preserve">
+    <value>热键不可用</value>
+  </data>
+  <data name="HotkeyConflictText" xml:space="preserve">
+    <value>{0} 已被其他程序占用或格式不正确，请在设置中换一个组合键。</value>
+  </data>
+  <data name="HotkeyLabel" xml:space="preserve">
+    <value>卡顿标记热键</value>
+  </data>
+  <data name="HotkeyHint" xml:space="preserve">
+    <value>示例：Ctrl+Alt+M、Alt+Shift+F9；至少一个修饰键加字母、数字或 F1–F24。独占全屏游戏可能拦截系统热键。</value>
+  </data>
+  <data name="MarkStutterHint" xml:space="preserve">
+    <value>把当前时刻手动记为一次卡顿，AI 分析时会读取该标记。</value>
+  </data>
+  <data name="ColumnTime" xml:space="preserve">
+    <value>时间</value>
+  </data>
+  <data name="StutterScoreHeader" xml:space="preserve">
+    <value>评分</value>
+  </data>
+  <data name="StutterCauseHeader" xml:space="preserve">
+    <value>原因</value>
+  </data>
+  <data name="StutterSignalHeader" xml:space="preserve">
+    <value>信号</value>
+  </data>
+  <data name="StutterDurationHeader" xml:space="preserve">
+    <value>时长</value>
+  </data>
+  <data name="SignalFrameSpike" xml:space="preserve">
+    <value>帧尖峰</value>
+  </data>
+  <data name="SignalDisplayGap" xml:space="preserve">
+    <value>显示间隔</value>
+  </data>
+  <data name="SignalJitter" xml:space="preserve">
+    <value>定时器抖动</value>
+  </data>
+  <data name="SignalCpuSpike" xml:space="preserve">
+    <value>CPU 尖峰</value>
+  </data>
+  <data name="SignalGpuSpike" xml:space="preserve">
+    <value>GPU 尖峰</value>
+  </data>
+  <data name="SignalMemoryPressure" xml:space="preserve">
+    <value>内存压力</value>
+  </data>
+  <data name="SignalDiskPressure" xml:space="preserve">
+    <value>磁盘压力</value>
+  </data>
+  <data name="SignalManual" xml:space="preserve">
+    <value>手动标记</value>
+  </data>
+  <data name="CauseCpu" xml:space="preserve">
+    <value>CPU 抢占</value>
+  </data>
+  <data name="CauseGpu" xml:space="preserve">
+    <value>GPU 瓶颈</value>
+  </data>
+  <data name="CauseMemory" xml:space="preserve">
+    <value>内存压力</value>
+  </data>
+  <data name="CauseDisk" xml:space="preserve">
+    <value>磁盘瓶颈</value>
+  </data>
+  <data name="CauseFramePacing" xml:space="preserve">
+    <value>帧节奏</value>
+  </data>
+  <data name="CauseManual" xml:space="preserve">
+    <value>手动</value>
+  </data>
+  <data name="CauseUnknown" xml:space="preserve">
+    <value>未知</value>
+  </data>
   <data name="NoData" xml:space="preserve">
     <value>等待采样数据…</value>
   </data>
@@ -158,6 +248,54 @@
   </data>
   <data name="GameInterval" xml:space="preserve">
     <value>游戏采样间隔</value>
+  </data>
+  <data name="DetectionSection" xml:space="preserve">
+    <value>卡顿检测</value>
+  </data>
+  <data name="DetectionEnabled" xml:space="preserve">
+    <value>启用卡顿检测</value>
+  </data>
+  <data name="DetectionHint" xml:space="preserve">
+    <value>修改立即生效。深模式以帧尖峰单独确认；浅模式需要两个资源信号或已确认的抖动。</value>
+  </data>
+  <data name="DetectionFrameSpikeRatio" xml:space="preserve">
+    <value>帧尖峰倍数</value>
+  </data>
+  <data name="DetectionFrameSpikeFloor" xml:space="preserve">
+    <value>帧尖峰地板 (ms)</value>
+  </data>
+  <data name="DetectionDisplayGap" xml:space="preserve">
+    <value>显示间隔 (ms)</value>
+  </data>
+  <data name="DetectionJitterSuspect" xml:space="preserve">
+    <value>抖动疑似 (ms)</value>
+  </data>
+  <data name="DetectionJitterConfirm" xml:space="preserve">
+    <value>抖动确认 (ms)</value>
+  </data>
+  <data name="DetectionCpuRatio" xml:space="preserve">
+    <value>CPU 尖峰倍数</value>
+  </data>
+  <data name="DetectionGpuPct" xml:space="preserve">
+    <value>GPU 尖峰 (%)</value>
+  </data>
+  <data name="DetectionMemFloor" xml:space="preserve">
+    <value>可用内存下限 (MB)</value>
+  </data>
+  <data name="DetectionCommit" xml:space="preserve">
+    <value>提交率</value>
+  </data>
+  <data name="DetectionDiskLatency" xml:space="preserve">
+    <value>磁盘延迟 (ms)</value>
+  </data>
+  <data name="DetectionConfirmScore" xml:space="preserve">
+    <value>确认评分</value>
+  </data>
+  <data name="DetectionQuiet" xml:space="preserve">
+    <value>静默期 (ms)</value>
+  </data>
+  <data name="DetectionCooldown" xml:space="preserve">
+    <value>冷却 (ms)</value>
   </data>
   <data name="InterfaceSection" xml:space="preserve">
     <value>界面</value>
@@ -262,7 +400,7 @@
     <value>{0} 秒</value>
   </data>
   <data name="TrayTip" xml:space="preserve">
-    <value>蓝天游戏助手 — CPU {0}% · GPU {1}%</value>
+    <value>蓝天游戏助手 — CPU {0}% · GPU {1}% · 内存 {2}%</value>
   </data>
   <data name="Paused" xml:space="preserve">
     <value>已暂停</value>

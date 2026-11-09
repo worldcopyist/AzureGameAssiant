@@ -120,6 +120,96 @@
   <data name="Foreground" xml:space="preserve">
     <value>Foreground</value>
   </data>
+  <data name="StutterTitle" xml:space="preserve">
+    <value>Recent stutters</value>
+  </data>
+  <data name="StutterEmpty" xml:space="preserve">
+    <value>No stutters detected yet.</value>
+  </data>
+  <data name="StutterCount" xml:space="preserve">
+    <value>Total {0}</value>
+  </data>
+  <data name="StutterScore" xml:space="preserve">
+    <value>Score {0}</value>
+  </data>
+  <data name="StutterBalloon" xml:space="preserve">
+    <value>Stutter detected · score {0}. Click to open the window.</value>
+  </data>
+  <data name="HotkeyConflictTitle" xml:space="preserve">
+    <value>Hotkey unavailable</value>
+  </data>
+  <data name="HotkeyConflictText" xml:space="preserve">
+    <value>{0} is already taken or not a valid combination. Choose another gesture in settings.</value>
+  </data>
+  <data name="HotkeyLabel" xml:space="preserve">
+    <value>Stutter marker hotkey</value>
+  </data>
+  <data name="HotkeyHint" xml:space="preserve">
+    <value>Examples: Ctrl+Alt+M, Alt+Shift+F9. Needs one modifier plus a letter, digit or F1–F24. Exclusive fullscreen games may block global hotkeys.</value>
+  </data>
+  <data name="MarkStutterHint" xml:space="preserve">
+    <value>Record the current moment as a manual stutter marker for AI analysis.</value>
+  </data>
+  <data name="ColumnTime" xml:space="preserve">
+    <value>Time</value>
+  </data>
+  <data name="StutterScoreHeader" xml:space="preserve">
+    <value>Score</value>
+  </data>
+  <data name="StutterCauseHeader" xml:space="preserve">
+    <value>Cause</value>
+  </data>
+  <data name="StutterSignalHeader" xml:space="preserve">
+    <value>Signals</value>
+  </data>
+  <data name="StutterDurationHeader" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+  <data name="SignalFrameSpike" xml:space="preserve">
+    <value>Frame spike</value>
+  </data>
+  <data name="SignalDisplayGap" xml:space="preserve">
+    <value>Display gap</value>
+  </data>
+  <data name="SignalJitter" xml:space="preserve">
+    <value>Timer jitter</value>
+  </data>
+  <data name="SignalCpuSpike" xml:space="preserve">
+    <value>CPU spike</value>
+  </data>
+  <data name="SignalGpuSpike" xml:space="preserve">
+    <value>GPU spike</value>
+  </data>
+  <data name="SignalMemoryPressure" xml:space="preserve">
+    <value>Memory pressure</value>
+  </data>
+  <data name="SignalDiskPressure" xml:space="preserve">
+    <value>Disk pressure</value>
+  </data>
+  <data name="SignalManual" xml:space="preserve">
+    <value>Manual</value>
+  </data>
+  <data name="CauseCpu" xml:space="preserve">
+    <value>CPU contention</value>
+  </data>
+  <data name="CauseGpu" xml:space="preserve">
+    <value>GPU bottleneck</value>
+  </data>
+  <data name="CauseMemory" xml:space="preserve">
+    <value>Memory pressure</value>
+  </data>
+  <data name="CauseDisk" xml:space="preserve">
+    <value>Disk bottleneck</value>
+  </data>
+  <data name="CauseFramePacing" xml:space="preserve">
+    <value>Frame pacing</value>
+  </data>
+  <data name="CauseManual" xml:space="preserve">
+    <value>Manual</value>
+  </data>
+  <data name="CauseUnknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
   <data name="NoData" xml:space="preserve">
     <value>Waiting for samples…</value>
   </data>
@@ -158,6 +248,54 @@
   </data>
   <data name="GameInterval" xml:space="preserve">
     <value>Game interval</value>
+  </data>
+  <data name="DetectionSection" xml:space="preserve">
+    <value>Stutter detection</value>
+  </data>
+  <data name="DetectionEnabled" xml:space="preserve">
+    <value>Enable stutter detection</value>
+  </data>
+  <data name="DetectionHint" xml:space="preserve">
+    <value>Changes apply immediately. Deep mode confirms on frame spikes alone; shallow mode needs two resource signals or a confirmed jitter.</value>
+  </data>
+  <data name="DetectionFrameSpikeRatio" xml:space="preserve">
+    <value>Frame spike ratio</value>
+  </data>
+  <data name="DetectionFrameSpikeFloor" xml:space="preserve">
+    <value>Frame spike floor (ms)</value>
+  </data>
+  <data name="DetectionDisplayGap" xml:space="preserve">
+    <value>Display gap (ms)</value>
+  </data>
+  <data name="DetectionJitterSuspect" xml:space="preserve">
+    <value>Jitter suspect (ms)</value>
+  </data>
+  <data name="DetectionJitterConfirm" xml:space="preserve">
+    <value>Jitter confirm (ms)</value>
+  </data>
+  <data name="DetectionCpuRatio" xml:space="preserve">
+    <value>CPU spike ratio</value>
+  </data>
+  <data name="DetectionGpuPct" xml:space="preserve">
+    <value>GPU spike (%)</value>
+  </data>
+  <data name="DetectionMemFloor" xml:space="preserve">
+    <value>Free memory floor (MB)</value>
+  </data>
+  <data name="DetectionCommit" xml:space="preserve">
+    <value>Commit ratio</value>
+  </data>
+  <data name="DetectionDiskLatency" xml:space="preserve">
+    <value>Disk latency (ms)</value>
+  </data>
+  <data name="DetectionConfirmScore" xml:space="preserve">
+    <value>Confirm score</value>
+  </data>
+  <data name="DetectionQuiet" xml:space="preserve">
+    <value>Quiet period (ms)</value>
+  </data>
+  <data name="DetectionCooldown" xml:space="preserve">
+    <value>Cooldown (ms)</value>
   </data>
   <data name="InterfaceSection" xml:space="preserve">
     <value>Interface</value>
@@ -262,7 +400,7 @@
     <value>{0} s</value>
   </data>
   <data name="TrayTip" xml:space="preserve">
-    <value>Azure Game Assistant — CPU {0}% · GPU {1}%</value>
+    <value>Azure Game Assistant — CPU {0}% · GPU {1}% · Memory {2}%</value>
   </data>
   <data name="Paused" xml:space="preserve">
     <value>Paused</value>

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AzureGameAssistant.Ai;
+using AzureGameAssistant.Core.Detection;
 using AzureGameAssistant.Core.Diagnostics;
 using AzureGameAssistant.Core.Frames;
 using AzureGameAssistant.Core.Hardware;
@@ -36,6 +37,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly FrameTimeline _frameTimeline = new(FrameTimelineCapacity);
     private readonly FrameDropTracker _dropTracker = new();
     private readonly HighLoadTracker _highLoadTracker = new();
+    private readonly DetectionEngine _detector;
+
+    private const int StutterEventCapacity = 50;
+    private long _lastStutterSampleTicks;
 
     private const int DropMarkerCapacity = 64;
     private const int HighLoadMarkerCapacity = 16;
@@ -154,6 +159,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _loc = loc;
         _settings = settings;
         _settingsService = settingsService;
+        _detector = new DetectionEngine(_settings.Detection);
 
         for (int i = 0; i < 5; i++)
         {
@@ -170,6 +176,20 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public ObservableCollection<ProcessRow> Processes { get; } = new();
 
     public ObservableCollection<FrameTargetOption> FrameTargets { get; } = new();
+
+    public ObservableCollection<StutterEventRow> StutterEvents { get; } = new();
+
+    [ObservableProperty]
+    private int _stutterEventCount;
+
+    public string StutterSummaryText => StutterEventCount == 0
+        ? _loc["StutterEmpty"]
+        : _loc.Format("StutterCount", StutterEventCount);
+
+    public event EventHandler<StutterEvent>? StutterDetected;
+
+    partial void OnStutterEventCountChanged(int value) =>
+        OnPropertyChanged(nameof(StutterSummaryText));
 
     public SampleRecord[] TimelineBuffer => _timeline;
 
@@ -453,7 +473,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 UpdateProcesses();
                 TimelineCount = _telemetry.CopyTo(_timeline);
                 TrackHighLoad();
+                _detector.DeepMode = IsFrameDataFresh;
                 UpdateFrames();
+                TrackStutter();
+                DrainStutterEvents();
             }
             else
             {
@@ -875,6 +898,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             _lastFrameAt = DateTime.MinValue;
             _dropTracker.Clear();
             _highLoadTracker.Clear();
+            _detector.Reset();
         }
 
         _frameState = status.FrameState;
@@ -978,6 +1002,58 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _highLoadTracker.Observe(sample, utcTicks);
     }
 
+    private void TrackStutter()
+    {
+        if (_telemetry.Count == 0)
+        {
+            return;
+        }
+
+        SampleRecord sample = _telemetry.Latest;
+        if (sample.UtcTicks == 0 || sample.UtcTicks == _lastStutterSampleTicks)
+        {
+            return;
+        }
+
+        _lastStutterSampleTicks = sample.UtcTicks;
+        _detector.ObserveSample(sample);
+    }
+
+    private void DrainStutterEvents()
+    {
+        while (_detector.TryDequeue(out StutterEvent stutterEvent))
+        {
+            AddStutterEvent(stutterEvent);
+        }
+    }
+
+    [RelayCommand]
+    private void MarkStutter()
+    {
+        _detector.MarkManual(DateTime.UtcNow.Ticks);
+        DrainStutterEvents();
+    }
+
+    private void AddStutterEvent(StutterEvent stutterEvent)
+    {
+        string name = stutterEvent.ForegroundPid == 0
+            ? _loc["NotAvailable"]
+            : _names.GetName(stutterEvent.ForegroundPid);
+        if (string.IsNullOrEmpty(name))
+        {
+            name = _loc["Unknown"];
+        }
+
+        StutterEvents.Insert(0, new StutterEventRow(stutterEvent, name, _loc));
+        while (StutterEvents.Count > StutterEventCapacity)
+        {
+            StutterEvents.RemoveAt(StutterEvents.Count - 1);
+        }
+
+        StutterEventCount++;
+        StutterDetected?.Invoke(this, stutterEvent);
+    }
+
     private void UpdateFrames()
     {
         long writeIndex = _telemetry.FrameWriteIndex;
@@ -986,6 +1062,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             _frameStats.Clear();
             _frameTimeline.Clear();
             _dropTracker.Clear();
+            _detector.Reset();
             _frameSnapshot = default;
             _lastFrameIndex = -1;
         }
@@ -1029,6 +1106,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 }
 
                 _frameTimeline.Add(utcTicks, frame.FrameTimeMs, spike);
+                _detector.ObserveFrame(utcTicks, frame.FrameTimeMs, frame.DisplayLatencyMs);
                 _dropTracker.Observe(
                     utcTicks > 0 ? utcTicks : DateTime.UtcNow.Ticks,
                     frame,
@@ -1297,6 +1375,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public void RefreshLocalization()
     {
         PauseText = IsPaused ? _loc["Resume"] : _loc["Pause"];
+        OnPropertyChanged(nameof(StutterSummaryText));
+        foreach (StutterEventRow row in StutterEvents)
+        {
+            row.RefreshTexts(_loc);
+        }
+
         UpdateCollectorTexts();
         UpdateFrameTexts();
         UpdateFooter();

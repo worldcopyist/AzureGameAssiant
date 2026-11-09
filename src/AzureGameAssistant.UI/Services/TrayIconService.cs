@@ -139,6 +139,7 @@ public sealed class TrayIconService : IDisposable
                 break;
 
             case NativeMethods.WmLButtonDblClk:
+            case NativeMethods.NinBalloonUserClick:
                 OpenRequested?.Invoke(this, EventArgs.Empty);
                 handled = true;
                 break;

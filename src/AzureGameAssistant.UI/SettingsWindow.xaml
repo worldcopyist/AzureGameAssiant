@@ -46,6 +46,101 @@
                 </Border>
 
                 <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,8"
+                           Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[DetectionSection]}" />
+                <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                    <StackPanel>
+                        <CheckBox IsChecked="{Binding DetectionEnabled, Mode=TwoWay}"
+                                  Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[DetectionEnabled]}" />
+                        <TextBlock Margin="24,2,0,10" FontSize="11" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[DetectionHint]}" />
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" MinWidth="140" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" MinWidth="140" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[DetectionFrameSpikeRatio]}" />
+                            <TextBox Grid.Column="1" Width="80" HorizontalAlignment="Left"
+                                     Text="{Binding DetectionFrameSpikeRatio, Mode=TwoWay}" />
+
+                            <TextBlock Grid.Column="2" Margin="16,0,0,0" VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[DetectionFrameSpikeFloor]}" />
+                            <TextBox Grid.Column="3" Width="80" HorizontalAlignment="Left"
+                                     Text="{Binding DetectionFrameSpikeFloorMs, Mode=TwoWay}" />
+
+                            <TextBlock Grid.Row="1" Margin="0,8,0,0" VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[DetectionDisplayGap]}" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Width="80" Margin="0,8,0,0" HorizontalAlignment="Left"
+                                     Text="{Binding DetectionDisplayGapMs, Mode=TwoWay}" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="2" Margin="16,8,0,0" VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[DetectionJitterConfirm]}" />
+                            <TextBox Grid.Row="1" Grid.Column="3" Width="80" Margin="0,8,0,0" HorizontalAlignment="Left"
+                                     Text="{Binding DetectionJitterConfirmMs, Mode=TwoWay}" />
+
+                            <TextBlock Grid.Row="2" Margin="0,8,0,0" VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[DetectionJitterSuspect]}" />
+                            <TextBox Grid.Row="2" Grid.Column="1" Width="80" Margin="0,8,0,0" HorizontalAlignment="Left"
+                                     Text="{Binding DetectionJitterSuspectMs, Mode=TwoWay}" />
+
+                            <TextBlock Grid.Row="2" Grid.Column="2" Margin="16,8,0,0" VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[DetectionConfirmScore]}" />
+                            <TextBox Grid.Row="2" Grid.Column="3" Width="80" Margin="0,8,0,0" HorizontalAlignment="Left"
+                                     Text="{Binding DetectionConfirmScore, Mode=TwoWay}" />
+
+                            <TextBlock Grid.Row="3" Margin="0,8,0,0" VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[DetectionCpuRatio]}" />
+                            <TextBox Grid.Row="3" Grid.Column="1" Width="80" Margin="0,8,0,0" HorizontalAlignment="Left"
+                                     Text="{Binding DetectionCpuSpikeRatio, Mode=TwoWay}" />
+
+                            <TextBlock Grid.Row="3" Grid.Column="2" Margin="16,8,0,0" VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[DetectionGpuPct]}" />
+                            <TextBox Grid.Row="3" Grid.Column="3" Width="80" Margin="0,8,0,0" HorizontalAlignment="Left"
+                                     Text="{Binding DetectionGpuSpikePct, Mode=TwoWay}" />
+
+                            <TextBlock Grid.Row="4" Margin="0,8,0,0" VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[DetectionMemFloor]}" />
+                            <TextBox Grid.Row="4" Grid.Column="1" Width="80" Margin="0,8,0,0" HorizontalAlignment="Left"
+                                     Text="{Binding DetectionMemFloorMb, Mode=TwoWay}" />
+
+                            <TextBlock Grid.Row="4" Grid.Column="2" Margin="16,8,0,0" VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[DetectionCommit]}" />
+                            <TextBox Grid.Row="4" Grid.Column="3" Width="80" Margin="0,8,0,0" HorizontalAlignment="Left"
+                                     Text="{Binding DetectionCommitRatio, Mode=TwoWay}" />
+
+                            <TextBlock Grid.Row="5" Margin="0,8,0,0" VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[DetectionDiskLatency]}" />
+                            <TextBox Grid.Row="5" Grid.Column="1" Width="80" Margin="0,8,0,0" HorizontalAlignment="Left"
+                                     Text="{Binding DetectionDiskLatencyMs, Mode=TwoWay}" />
+
+                            <TextBlock Grid.Row="6" Margin="0,8,0,0" VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[DetectionQuiet]}" />
+                            <TextBox Grid.Row="6" Grid.Column="1" Width="80" Margin="0,8,0,0" HorizontalAlignment="Left"
+                                     Text="{Binding DetectionQuietMs, Mode=TwoWay}" />
+
+                            <TextBlock Grid.Row="6" Grid.Column="2" Margin="16,8,0,0" VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[DetectionCooldown]}" />
+                            <TextBox Grid.Row="6" Grid.Column="3" Width="80" Margin="0,8,0,0" HorizontalAlignment="Left"
+                                     Text="{Binding DetectionCooldownMs, Mode=TwoWay}" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,8"
                            Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartsSection]}" />
                 <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                     <WrapPanel>
@@ -80,6 +175,8 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
                         <TextBlock VerticalAlignment="Center"
@@ -100,6 +197,14 @@
                         <CheckBox Grid.Row="3" Grid.ColumnSpan="2" Margin="0,8,0,0"
                                   IsChecked="{Binding AutoStart, Mode=TwoWay}"
                                   Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AutoStartLabel]}" />
+
+                        <TextBlock Grid.Row="4" Margin="0,12,0,0" VerticalAlignment="Center"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[HotkeyLabel]}" />
+                        <TextBox Grid.Row="4" Grid.Column="1" Margin="0,12,0,0" MinWidth="160"
+                                 Text="{Binding Hotkey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Grid.Row="5" Grid.ColumnSpan="2" Margin="24,2,0,0" FontSize="11"
+                                   TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[HotkeyHint]}" />
                     </Grid>
                 </Border>
 

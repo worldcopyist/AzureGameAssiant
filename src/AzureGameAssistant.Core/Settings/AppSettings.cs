@@ -41,11 +41,12 @@ public sealed class AppSettings
         Detection.DisplayGapMs = Math.Clamp(Detection.DisplayGapMs, 10.0, 10_000.0);
         Detection.CpuSpikeRatio = Math.Clamp(Detection.CpuSpikeRatio, 1.0, 20.0);
         Detection.GpuSpikePct = Math.Clamp(Detection.GpuSpikePct, 1.0, 100.0);
-        Detection.VramRatio = Math.Clamp(Detection.VramRatio, 0.5, 1.0);
         Detection.MemAvailableFloorMb = Math.Clamp(Detection.MemAvailableFloorMb, 128, 1_000_000);
         Detection.CommitRatio = Math.Clamp(Detection.CommitRatio, 0.5, 1.0);
         Detection.DiskLatencyMs = Math.Clamp(Detection.DiskLatencyMs, 1.0, 10_000.0);
         Detection.ConfirmScore = Math.Clamp(Detection.ConfirmScore, 0, 100);
+        Detection.QuietMs = Math.Clamp(Detection.QuietMs, 500, 10_000);
+        Detection.CooldownMs = Math.Clamp(Detection.CooldownMs, 0, 60_000);
 
         Frames ??= new FrameSettings();
         Frames.Mode = Frames.Mode?.Trim().ToLowerInvariant() switch
@@ -199,6 +200,7 @@ public sealed class SamplingSettings
 
 public sealed class DetectionSettings
 {
+    public bool Enabled { get; set; } = true;
     public int JitterSuspectMs { get; set; } = 50;
     public int JitterConfirmMs { get; set; } = 100;
     public double FrameSpikeRatio { get; set; } = 2.5;
@@ -206,11 +208,12 @@ public sealed class DetectionSettings
     public double DisplayGapMs { get; set; } = 100;
     public double CpuSpikeRatio { get; set; } = 2.5;
     public double GpuSpikePct { get; set; } = 85;
-    public double VramRatio { get; set; } = 0.95;
     public int MemAvailableFloorMb { get; set; } = 1_024;
     public double CommitRatio { get; set; } = 0.90;
     public double DiskLatencyMs { get; set; } = 50;
     public int ConfirmScore { get; set; } = 40;
+    public int QuietMs { get; set; } = 2_000;
+    public int CooldownMs { get; set; } = 5_000;
 }
 
 public sealed class FrameSettings
