@@ -119,6 +119,9 @@ internal sealed class PresentMonSupervisor : IDisposable
         _task = Task.Run(() => RunAsync(_stop.Token), CancellationToken.None);
     }
 
+    /// <summary>Cancels the capture loop without waiting for PresentMon to exit.</summary>
+    public void Cancel() => _stop.Cancel();
+
     public void Stop()
     {
         _stop.Cancel();

@@ -41,6 +41,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly HighLoadTracker _highLoadTracker = new();
     private readonly DetectionEngine _detector;
     private readonly SessionRecorder _sessions;
+    private readonly GameModeTracker _gameMode = new();
 
     private const int StutterEventCapacity = 50;
     private const string PresentMonVersion = "2.6.0";
@@ -71,7 +72,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private DateTime _autoCaptureBlockedUntil = DateTime.MinValue;
     private int? _autoCaptureSuppressedPid;
     private int? _autoCaptureCandidatePid;
+    private int? _autoCaptureStartedPid;
+    private int? _autoCaptureStopPendingPid;
     private DateTime _autoCaptureCandidateSince = DateTime.MinValue;
+    private int _samplingTargetMs;
+    private int? _gameProbePid;
+    private uint _gameProbeForeground;
+    private DateTime _gameProbeAt = DateTime.MinValue;
 
     private static readonly HashSet<string> AutoCaptureExcluded = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -178,6 +185,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
 
         ShowElevationButton = !PermissionDiagnostics.IsElevated();
+        _samplingTargetMs = Math.Clamp(settings.Sampling.NormalMs, 100, 10_000);
         PauseText = _loc["Pause"];
         UpdateCollectorTexts();
         UpdateFrameTexts();
@@ -506,9 +514,19 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 await RefreshCollectorStatusAsync().ConfigureAwait(true);
             }
 
-            if (_connected && _statusTicks % 4 == 0)
+            if (_connected)
             {
-                await TryAutoCaptureAsync().ConfigureAwait(true);
+                if (_autoCaptureStopPendingPid is int pendingPid)
+                {
+                    await StopAutoFramesAsync(pendingPid).ConfigureAwait(true);
+                }
+
+                await UpdateGameModeAsync().ConfigureAwait(true);
+
+                if (_statusTicks % 4 == 0)
+                {
+                    await TryAutoCaptureAsync().ConfigureAwait(true);
+                }
             }
 
             UpdateFooter();
@@ -600,6 +618,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _frameTargetPid = target.Pid;
         _frameError = null;
         _autoCaptureSuppressedPid = null;
+        _autoCaptureStartedPid = null;
+        _autoCaptureStopPendingPid = null;
         _settings.Frames.TargetPid = target.Pid;
         _settingsService.Save(_settings);
         UpdateFrameTexts();
@@ -624,9 +644,127 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _autoCaptureSuppressedPid = _frameTargetPid;
         _frameTargetPid = null;
         _frameError = null;
+        _autoCaptureStartedPid = null;
+        _autoCaptureStopPendingPid = null;
         _settings.Frames.TargetPid = null;
         _settingsService.Save(_settings);
         UpdateFrameTexts();
+    }
+
+    /// <summary>
+    /// Raises the sampler to the game interval while a fullscreen game owns the
+    /// foreground, and restores the normal interval (plus the auto-started
+    /// frame capture) after the exit delay. The collector is never restarted.
+    /// </summary>
+    private async Task UpdateGameModeAsync()
+    {
+        if (!_settings.GameDetection.Enabled)
+        {
+            if (_gameMode.IsActive)
+            {
+                _gameMode.Reset();
+                int normalMs = Math.Clamp(_settings.Sampling.NormalMs, 100, 10_000);
+                await ApplySamplingAsync(normalMs, gameMode: false).ConfigureAwait(true);
+            }
+
+            return;
+        }
+
+        DateTime now = DateTime.UtcNow;
+        GameModeUpdate update = _gameMode.Observe(now, DetectGamePid(now));
+
+        if (update.Active)
+        {
+            int gameMs = Math.Clamp(_settings.Sampling.GameMs, 100, 10_000);
+            await ApplySamplingAsync(gameMs, gameMode: true).ConfigureAwait(true);
+            return;
+        }
+
+        if (update.ExitDue)
+        {
+            int normalMs = Math.Clamp(_settings.Sampling.NormalMs, 100, 10_000);
+            await ApplySamplingAsync(normalMs, gameMode: false).ConfigureAwait(true);
+            await StopAutoFramesAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async Task ApplySamplingAsync(int intervalMs, bool gameMode)
+    {
+        if (_samplingTargetMs == intervalMs)
+        {
+            return;
+        }
+
+        if (await _client.SetSamplingIntervalAsync(intervalMs, gameMode, _cts.Token).ConfigureAwait(true))
+        {
+            _samplingTargetMs = intervalMs;
+            _samplingIntervalMs = intervalMs;
+        }
+        else
+        {
+            _samplingTargetMs = 0;
+        }
+    }
+
+    /// <summary>Stops only the capture that game detection started itself.</summary>
+    private async Task StopAutoFramesAsync()
+    {
+        if (_autoCaptureStartedPid is not int pid ||
+            _frameTargetPid != pid ||
+            _frameState is not ("capturing" or "starting"))
+        {
+            _autoCaptureStartedPid = null;
+            return;
+        }
+
+        _autoCaptureStartedPid = null;
+        // Leaving fullscreen must not let auto-capture pick the same target up
+        // again on the next tick while the player is still in that window.
+        _autoCaptureSuppressedPid = pid;
+        await StopAutoFramesAsync(pid).ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// Sends frames.stop for an auto-started capture and keeps the request
+    /// pending until the collector acknowledges it, so a single slow or lost
+    /// reply cannot leave PresentMon running after the game has exited.
+    /// </summary>
+    private async Task StopAutoFramesAsync(int pid)
+    {
+        _autoCaptureStopPendingPid = pid;
+        string? state = await _client.StopFramesAsync(_cts.Token).ConfigureAwait(true);
+        if (state is null)
+        {
+            return;
+        }
+
+        _autoCaptureStopPendingPid = null;
+        if (_frameTargetPid == pid)
+        {
+            _frameState = "stopped";
+            _frameTargetPid = null;
+            _frameError = null;
+            UpdateFrameTexts();
+        }
+    }
+
+    // Process queries cost more than the telemetry read, so cache the result
+    // for a second and only re-probe immediately when the foreground changes.
+    private int? DetectGamePid(DateTime now)
+    {
+        uint foregroundPid = _telemetry.Latest.ForegroundPid;
+        if (foregroundPid == _gameProbeForeground &&
+            now - _gameProbeAt < TimeSpan.FromSeconds(1))
+        {
+            return _gameProbePid;
+        }
+
+        _gameProbeAt = now;
+        _gameProbeForeground = foregroundPid;
+        _gameProbePid = foregroundPid != 0 && IsGameLikeProcess((int)foregroundPid)
+            ? (int)foregroundPid
+            : null;
+        return _gameProbePid;
     }
 
     private async Task TryAutoCaptureAsync()
@@ -725,6 +863,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _frameState = state;
         _frameTargetPid = pid;
         _frameError = null;
+        _autoCaptureStartedPid = state is "capturing" or "starting" ? pid : null;
 
         if (state == "permissionDenied")
         {
@@ -762,7 +901,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 return false;
             }
 
-            return IsFullscreen(window) || GpuPercentFor(pid) >= 5.0;
+            // Exclusive fullscreen (D3D) is trusted for the foreground process;
+            // borderless games are recognized by monitor coverage.
+            return IsD3DFullscreen() || IsFullscreen(window) || GpuPercentFor(pid) >= 5.0;
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or Win32Exception)
         {
@@ -832,11 +973,21 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             return false;
         }
 
-        const int tolerance = 2;
-        return bounds.Left <= info.Monitor.Left + tolerance &&
-               bounds.Top <= info.Monitor.Top + tolerance &&
-               bounds.Right >= info.Monitor.Right - tolerance &&
-               bounds.Bottom >= info.Monitor.Bottom - tolerance;
+        return GameDisplayRules.CoversMonitor(
+            bounds.Left,
+            bounds.Top,
+            bounds.Right,
+            bounds.Bottom,
+            info.Monitor.Left,
+            info.Monitor.Top,
+            info.Monitor.Right,
+            info.Monitor.Bottom);
+    }
+
+    private static bool IsD3DFullscreen()
+    {
+        return NativeMethods.SHQueryUserNotificationState(out int state) == 0 &&
+               state == NativeMethods.QunsRunningD3DFullscreen;
     }
 
     private double GpuPercentFor(int pid)
@@ -899,6 +1050,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (status is null)
         {
             _connected = false;
+            _samplingTargetMs = 0;
             UpdateCollectorTexts();
             return;
         }
@@ -908,6 +1060,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         PauseText = IsPaused ? _loc["Resume"] : _loc["Pause"];
         _uptimeSeconds = status.UptimeSeconds;
         _samplingIntervalMs = status.SamplingIntervalMs > 0 ? status.SamplingIntervalMs : _settings.Sampling.NormalMs;
+        _samplingTargetMs = _samplingIntervalMs;
         _collectorError = status.LastError;
         if (status.FrameTargetPid != _frameTargetPid)
         {
@@ -924,6 +1077,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (_frameState == "stopped")
         {
             _lastFrameAt = DateTime.MinValue;
+            _autoCaptureStartedPid = null;
+        }
+
+        if (_autoCaptureStopPendingPid is int pendingStop &&
+            (_frameState == "stopped" || status.FrameTargetPid != pendingStop))
+        {
+            _autoCaptureStopPendingPid = null;
         }
 
         if (!_helloDone || _appVersion.Length == 0)

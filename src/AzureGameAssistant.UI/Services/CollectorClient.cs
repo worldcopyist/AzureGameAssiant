@@ -30,6 +30,10 @@ public sealed class CollectorClient : IDisposable
     private static readonly TimeSpan ConnectTimeout = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(2);
 
+    // The collector tears PresentMon down on a background task, but a busy
+    // machine can still queue the command behind others; give it more room.
+    private static readonly TimeSpan StopFramesTimeout = TimeSpan.FromSeconds(6);
+
     private readonly SemaphoreSlim _gate = new(1, 1);
     private NamedPipeClientStream? _pipe;
     private int _nextId;
@@ -95,6 +99,27 @@ public sealed class CollectorClient : IDisposable
         return result == true;
     }
 
+    public async Task<bool> SetSamplingIntervalAsync(
+        int intervalMs,
+        bool gameMode,
+        CancellationToken cancellationToken)
+    {
+        int? applied = await SendAsync(
+            "sampling",
+            data => data.TryGetProperty("samplingIntervalMs", out JsonElement interval) &&
+                    interval.TryGetInt32(out int value)
+                ? value
+                : 0,
+            cancellationToken,
+            writer =>
+            {
+                writer.WriteNumber("intervalMs", intervalMs);
+                writer.WriteBoolean("gameMode", gameMode);
+            }).ConfigureAwait(true);
+
+        return applied is int appliedMs && Math.Abs(appliedMs - intervalMs) <= 1;
+    }
+
     public Task<string?> StartFramesAsync(int pid, CancellationToken cancellationToken) =>
         SendAsync(
             "frames.start",
@@ -103,13 +128,14 @@ public sealed class CollectorClient : IDisposable
             writer => writer.WriteNumber("pid", pid));
 
     public Task<string?> StopFramesAsync(CancellationToken cancellationToken) =>
-        SendAsync("frames.stop", ParseFrameState, cancellationToken);
+        SendAsync("frames.stop", ParseFrameState, cancellationToken, timeout: StopFramesTimeout);
 
     private async Task<T?> SendAsync<T>(
         string command,
         Func<JsonElement, T> parse,
         CancellationToken cancellationToken,
-        Action<Utf8JsonWriter>? writeBody = null)
+        Action<Utf8JsonWriter>? writeBody = null,
+        TimeSpan? timeout = null)
     {
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(true);
         try
@@ -122,18 +148,18 @@ public sealed class CollectorClient : IDisposable
             NamedPipeClientStream pipe = _pipe!;
             int id = Interlocked.Increment(ref _nextId);
 
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeout.CancelAfter(RequestTimeout);
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            linked.CancelAfter(timeout ?? RequestTimeout);
 
             byte[] payload = BuildRequest(id, command, writeBody);
             byte[] header = new byte[4];
             BinaryPrimitives.WriteInt32LittleEndian(header, payload.Length);
 
-            await pipe.WriteAsync(header, timeout.Token).ConfigureAwait(true);
-            await pipe.WriteAsync(payload, timeout.Token).ConfigureAwait(true);
-            await pipe.FlushAsync(timeout.Token).ConfigureAwait(true);
+            await pipe.WriteAsync(header, linked.Token).ConfigureAwait(true);
+            await pipe.WriteAsync(payload, linked.Token).ConfigureAwait(true);
+            await pipe.FlushAsync(linked.Token).ConfigureAwait(true);
 
-            await ReadExactAsync(pipe, header, timeout.Token).ConfigureAwait(true);
+            await ReadExactAsync(pipe, header, linked.Token).ConfigureAwait(true);
             int length = BinaryPrimitives.ReadInt32LittleEndian(header);
             if (length <= 0 || length > ControlProtocol.MaxFrameBytes)
             {
@@ -142,7 +168,7 @@ public sealed class CollectorClient : IDisposable
             }
 
             byte[] response = new byte[length];
-            await ReadExactAsync(pipe, response, timeout.Token).ConfigureAwait(true);
+            await ReadExactAsync(pipe, response, linked.Token).ConfigureAwait(true);
 
             using JsonDocument document = JsonDocument.Parse(response);
             JsonElement root = document.RootElement;

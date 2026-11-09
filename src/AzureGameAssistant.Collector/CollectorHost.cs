@@ -29,13 +29,14 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
     private ProcessSlot[] _latestSlots = new ProcessSlot[5];
     private readonly CancellationTokenSource _stop = new();
     private readonly Stopwatch _uptime = new();
-    private readonly int _intervalMs;
+    private volatile int _intervalMs;
     private readonly int _capabilities;
     private readonly string _appVersion;
     private ControlPipeServer? _pipeServer;
     private Task? _pipeTask;
     private long _sampleCount;
     private volatile bool _paused;
+    private volatile bool _gameMode;
     private volatile string? _lastError;
     private volatile int _modeFlags;
     private volatile bool _sensorFresh;
@@ -121,7 +122,6 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
         _sensor?.Start();
 
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(_stop.Token, externalToken);
-        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(_intervalMs));
 
         _uptime.Start();
         _logger.Info($"采集进程启动：间隔 {_intervalMs}ms，PID {Environment.ProcessId}");
@@ -130,10 +130,9 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
         {
             while (!linked.IsCancellationRequested)
             {
-                if (!await timer.WaitForNextTickAsync(linked.Token))
-                {
-                    break;
-                }
+                // Re-read the interval every cycle so game detection can raise
+                // the sampling rate without restarting the collector.
+                await Task.Delay(_intervalMs, linked.Token);
 
                 Tick();
 
@@ -413,7 +412,7 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
 
         return new CollectorStatus(
             _intervalMs,
-            false,
+            _gameMode,
             _paused,
             _uptime.Elapsed.TotalSeconds,
             Interlocked.Read(ref _sampleCount),
@@ -446,8 +445,7 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
 
             StopFramesLocked();
 
-            var supervisor = new PresentMonSupervisor(
-                _logger, _telemetry, _presentMonPath, pid,
+            var supervisor = new PresentMonSupervisor(                _logger, _telemetry, _presentMonPath, pid,
                 () => IsTargetActive(pid));
             supervisor.Start();
             if (supervisor.State == FrameCaptureState.Unavailable)
@@ -467,19 +465,36 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
         lock (_framesGate)
         {
             StopFramesLocked();
-            return true;
         }
+
+        return true;
     }
 
     private void StopFramesLocked()
     {
-        if (_presentMon is not { } supervisor)
+        PresentMonSupervisor? supervisor = _presentMon;
+        _presentMon = null;
+        if (supervisor is null)
         {
             return;
         }
 
-        _presentMon = null;
-        supervisor.Dispose();
+        // PresentMon needs up to a few seconds to exit. Blocking the control
+        // pipe here made "frames.stop" exceed the client timeout, so the caller
+        // never learned that the capture had actually ended.
+        supervisor.Cancel();
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                supervisor.Dispose();
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException)
+            {
+            }
+
+            _logger.Info($"帧采集已停止：PID {supervisor.TargetPid}");
+        });
     }
 
     private static string FrameStateName(FrameCaptureState state) => state switch
@@ -490,6 +505,27 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
         FrameCaptureState.Unavailable => "unavailable",
         _ => "stopped",
     };
+
+    public bool SetSamplingInterval(int intervalMs, bool gameMode)
+    {
+        if (intervalMs <= 0)
+        {
+            return false;
+        }
+
+        int clamped = Math.Clamp(intervalMs, 100, 10_000);
+        bool changed = clamped != _intervalMs;
+        _intervalMs = clamped;
+        _gameMode = gameMode;
+        _telemetry.SetSamplingInterval(clamped);
+
+        if (changed)
+        {
+            _logger.Info($"采样间隔调整为 {clamped}ms（游戏模式：{(gameMode ? "是" : "否")}）");
+        }
+
+        return true;
+    }
 
     public bool SetPaused(bool paused)
     {

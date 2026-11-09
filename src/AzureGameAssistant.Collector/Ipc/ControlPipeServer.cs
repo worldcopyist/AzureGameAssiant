@@ -25,6 +25,7 @@ internal interface ICollectorControl
     int CapabilityFlags { get; }
     CollectorStatus GetStatus();
     bool SetPaused(bool paused);
+    bool SetSamplingInterval(int intervalMs, bool gameMode);
     bool StartFrames(int pid);
     bool StopFrames();
     void RequestQuit();
@@ -140,6 +141,28 @@ internal sealed class ControlPipeServer
                     await WriteResponseAsync(server, id, true, WriteCapabilities, null, cancellationToken);
                     break;
 
+                case "sampling":
+                {
+                    int intervalMs = root.TryGetProperty("intervalMs", out JsonElement intervalElement) &&
+                                     intervalElement.ValueKind == JsonValueKind.Number &&
+                                     intervalElement.TryGetInt32(out int parsedInterval)
+                        ? parsedInterval
+                        : 0;
+                    bool gameMode = root.TryGetProperty("gameMode", out JsonElement modeElement) &&
+                                    modeElement.ValueKind is JsonValueKind.True or JsonValueKind.False &&
+                                    modeElement.GetBoolean();
+
+                    bool applied = _control.SetSamplingInterval(intervalMs, gameMode);
+                    await WriteResponseAsync(
+                        server,
+                        id,
+                        applied,
+                        applied ? WriteSampling : null,
+                        applied ? null : "采样间隔无效",
+                        cancellationToken);
+                    break;
+                }
+
                 case "pause":
                 {
                     _control.SetPaused(true);
@@ -191,7 +214,7 @@ internal sealed class ControlPipeServer
                         id,
                         false,
                         null,
-                        $"命令在 M1 中不可用：{command}",
+                        $"未知命令：{command}",
                         cancellationToken);
                     break;
             }
@@ -264,6 +287,13 @@ internal sealed class ControlPipeServer
         {
             writer.WriteString("error", status.FrameError);
         }
+    }
+
+    private void WriteSampling(Utf8JsonWriter writer)
+    {
+        CollectorStatus status = _control.GetStatus();
+        writer.WriteNumber("samplingIntervalMs", status.SamplingIntervalMs);
+        writer.WriteBoolean("gameMode", status.GameMode);
     }
 
     private void WriteCapabilities(Utf8JsonWriter writer)

@@ -32,6 +32,8 @@ internal static partial class NativeMethods
 
     public const int SwRestore = 9;
 
+    public const int QunsRunningD3DFullscreen = 3;
+
     public const int GwlStyle = -16;
     public const int GwlExStyle = -20;
     public const long WsCaption = 0x00C00000;
@@ -125,6 +127,9 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
+
+    [LibraryImport("shell32.dll")]
+    public static partial int SHQueryUserNotificationState(out int state);
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

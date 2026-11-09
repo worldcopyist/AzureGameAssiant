@@ -142,6 +142,14 @@ internal sealed unsafe class TelemetryWriter : IDisposable
         }
     }
 
+    public void SetSamplingInterval(int intervalMs)
+    {
+        if (_view != IntPtr.Zero)
+        {
+            _header->SamplingIntervalMs = intervalMs;
+        }
+    }
+
     public void Dispose()
     {
         if (_view != IntPtr.Zero)
