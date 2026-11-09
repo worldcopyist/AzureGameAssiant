@@ -21,6 +21,8 @@ internal static class Program
         AppPaths.EnsureDirectories();
         using var logger = new FileLogger("collector");
         logger.Enabled = LogMaintenance.IsLoggingEnabled();
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+            logger.Error("采集进程未处理异常", e.ExceptionObject as Exception);
 
         CollectorOptions options = CollectorOptions.Parse(args);
         if (options.ShowHelp)

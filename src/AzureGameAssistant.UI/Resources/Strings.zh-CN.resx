@@ -214,7 +214,7 @@
     <value>运行期间持续写入日志</value>
   </data>
   <data name="LogRecordingHint" xml:space="preserve">
-    <value>从启动到退出约每分钟写入一条运行状态，包含帧率读取中断等信息。警告和错误始终保留。</value>
+    <value>应用启动到退出约每分钟写一行状态，包含帧采集中断；警告、错误与崩溃另外按月归档到 logs\issues\issues-YYYY-MM.log。</value>
   </data>
   <data name="LogRetentionLabel" xml:space="preserve">
     <value>自动删除超过</value>
@@ -248,6 +248,9 @@
   </data>
   <data name="Open" xml:space="preserve">
     <value>打开</value>
+  </data>
+  <data name="OpenIssueLogs" xml:space="preserve">
+    <value>打开问题日志</value>
   </data>
   <data name="M1Notice" xml:space="preserve">
     <value>帧级真相、卡顿判定与 AI 分析将在后续版本提供。</value>

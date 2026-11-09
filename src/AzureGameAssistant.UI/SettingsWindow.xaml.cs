@@ -220,6 +220,11 @@ public partial class SettingsWindow : Window
         OpenFolder(AppPaths.LogsDirectory);
     }
 
+    private void OnOpenIssueLogs(object sender, RoutedEventArgs e)
+    {
+        OpenFolder(AppPaths.IssueLogsDirectory);
+    }
+
     private void OnOpenDiagnosticsFolder(object sender, RoutedEventArgs e)
     {
         OpenFolder(AppPaths.DiagnosticsDirectory);

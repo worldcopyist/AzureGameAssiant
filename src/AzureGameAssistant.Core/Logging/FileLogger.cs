@@ -15,6 +15,7 @@ public sealed class FileLogger : IDisposable
 {
     private readonly object _gate = new();
     private readonly string _directory;
+    private readonly string _issueDirectory;
     private readonly string _component;
     private readonly long _maxBytes;
     private readonly int _maxFiles;
@@ -28,11 +29,14 @@ public sealed class FileLogger : IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(component);
         _component = Sanitize(component);
         _directory = directory ?? AppPaths.LogsDirectory;
+        _issueDirectory = Path.Combine(_directory, "issues");
         _maxBytes = Math.Max(64 * 1024, maxBytes);
         _maxFiles = Math.Max(1, maxFiles);
     }
 
     public string DirectoryPath => _directory;
+
+    public string IssueDirectoryPath => _issueDirectory;
 
     /// <summary>
     /// When false, every write is dropped and the file handle is released.
@@ -72,6 +76,13 @@ public sealed class FileLogger : IDisposable
         if (Volatile.Read(ref _disposed) || !_enabled)
         {
             return;
+        }
+
+        // Problems also go to the cross-run monthly archive; routine info
+        // stays in the per-run file so the archive stays small and readable.
+        if (level >= LogLevel.Warn)
+        {
+            IssueLog.Write(_issueDirectory, _component, level, message, exception, DateTime.Now);
         }
 
         lock (_gate)

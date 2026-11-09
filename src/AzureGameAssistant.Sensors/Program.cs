@@ -34,6 +34,8 @@ internal static class Program
         AppPaths.EnsureDirectories();
         using var logger = new FileLogger("sensors");
         logger.Enabled = LogMaintenance.IsLoggingEnabled();
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+            logger.Error("传感器边车未处理异常", e.ExceptionObject as Exception);
 
         IntPtr mutex = Kernel32.CreateMutexW(IntPtr.Zero, initialOwner: true, MutexName);
         if (mutex == IntPtr.Zero)

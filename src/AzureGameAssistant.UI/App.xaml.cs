@@ -962,6 +962,10 @@ public partial class App : Application
         {
             _logger?.Error("界面域未处理异常", exception);
         }
+        else
+        {
+            _logger?.Error($"界面域未处理异常：{e.ExceptionObject}");
+        }
     }
 
     private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)

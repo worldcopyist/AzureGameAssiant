@@ -26,6 +26,12 @@ public static class Program
 
         using (logger)
         {
+            if (logger is not null)
+            {
+                AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+                    logger.Error("MCP 服务未处理异常", e.ExceptionObject as Exception);
+            }
+
             logger?.Info("MCP 硬件数据服务启动");
 
             using var inspector = new HardwareInspector();
