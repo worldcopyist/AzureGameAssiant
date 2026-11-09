@@ -2,6 +2,10 @@ using System.Buffers;
 
 namespace AzureGameAssistant.Core.Frames;
 
+/// <summary>
+/// FPS values are rates over recent frames: InstantFps covers about the last
+/// second, AverageFps and the low percentiles the last ten seconds.
+/// </summary>
 public readonly record struct FrameStatsSnapshot(
     double InstantFps,
     double AverageFps,
@@ -21,6 +25,14 @@ public sealed class FrameStats
     private const double SpikeRatio = 2.5;
     private const double SpikeFloorMs = 50.0;
 
+    // FPS is a rate over a window of frames, never 1000 / last frame time: a
+    // single missed vsync (33.3 ms at 60 fps) must not read as "30 FPS", and
+    // menus, loading screens and earlier captures must not drag the average.
+    private const double InstantWindowMs = 1000.0;
+    private const double AverageWindowMs = 10_000.0;
+    private const int InstantFrameCap = 256;
+    private const int AverageFrameCap = 4096;
+
     private readonly double[] _times;
     private readonly double[] _median;
     private int _start;
@@ -28,7 +40,6 @@ public sealed class FrameStats
     private int _medianStart;
     private int _medianCount;
     private double _lastFrameTimeMs;
-    private double _sumFrameTimeMs;
 
     public FrameStats(int capacity = 16_384)
     {
@@ -50,7 +61,6 @@ public sealed class FrameStats
         _medianStart = 0;
         _medianCount = 0;
         _lastFrameTimeMs = 0;
-        _sumFrameTimeMs = 0;
     }
 
     /// <summary>
@@ -70,14 +80,11 @@ public sealed class FrameStats
         {
             _times[(_start + _count) % _times.Length] = frameTimeMs;
             _count++;
-            _sumFrameTimeMs += frameTimeMs;
         }
         else
         {
-            _sumFrameTimeMs -= _times[_start];
             _times[_start] = frameTimeMs;
             _start = (_start + 1) % _times.Length;
-            _sumFrameTimeMs += frameTimeMs;
         }
 
         if (_medianCount < _median.Length)
@@ -114,18 +121,18 @@ public sealed class FrameStats
             return default;
         }
 
-        double instant = _lastFrameTimeMs > 0 ? 1000.0 / _lastFrameTimeMs : 0;
-        double average = _sumFrameTimeMs > 0 ? _count * 1000.0 / _sumFrameTimeMs : 0;
+        double instant = Rate(InstantWindowMs, InstantFrameCap, out _);
+        double average = Rate(AverageWindowMs, AverageFrameCap, out int windowCount);
 
-        double[] rented = ArrayPool<double>.Shared.Rent(_count);
+        double[] rented = ArrayPool<double>.Shared.Rent(windowCount);
         try
         {
-            for (int i = 0; i < _count; i++)
+            for (int i = 0; i < windowCount; i++)
             {
-                rented[i] = _times[(_start + i) % _times.Length];
+                rented[i] = _times[SlotFromEnd(i)];
             }
 
-            Span<double> window = rented.AsSpan(0, _count);
+            Span<double> window = rented.AsSpan(0, windowCount);
             window.Sort();
 
             double onePercent = LowFps(window, 0.01);
@@ -143,6 +150,31 @@ public sealed class FrameStats
             ArrayPool<double>.Shared.Return(rented);
         }
     }
+
+    /// <summary>
+    /// Frames per second over the most recent frames covering <paramref name="windowMs"/>
+    /// of frame time. Frame times are intervals, so count / sum is exact even
+    /// when the cap cuts the window short.
+    /// </summary>
+    private double Rate(double windowMs, int frameCap, out int frameCount)
+    {
+        double sum = 0;
+        int count = 0;
+        while (count < _count && count < frameCap)
+        {
+            sum += _times[SlotFromEnd(count)];
+            count++;
+            if (sum >= windowMs)
+            {
+                break;
+            }
+        }
+
+        frameCount = count;
+        return sum > 0 ? count * 1000.0 / sum : 0;
+    }
+
+    private int SlotFromEnd(int offset) => (_start + _count - 1 - offset) % _times.Length;
 
     private static double LowFps(ReadOnlySpan<double> sortedAscending, double fraction)
     {

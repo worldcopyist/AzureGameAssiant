@@ -434,7 +434,14 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
         {
             if (_presentMon is { } existing && existing.TargetPid == pid)
             {
-                return existing.State != FrameCaptureState.Unavailable;
+                if (existing.State is not (FrameCaptureState.Unavailable or FrameCaptureState.Stopped))
+                {
+                    return true;
+                }
+
+                // A finished or failed session must be replaceable, otherwise
+                // the target stays dead until the player switches games.
+                _logger.Info($"帧采集重新启动：PID {pid}");
             }
 
             StopFramesLocked();

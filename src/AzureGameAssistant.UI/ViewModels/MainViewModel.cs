@@ -129,10 +129,15 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         "obsidian",
     ];
 
-    private static readonly TimeSpan FrameFreshWindow = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan FrameFreshWindow = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan FrameHoldWindow = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan OverlayFrameHoldWindow = TimeSpan.FromSeconds(20);
     private static readonly TimeSpan AutoCaptureDwell = TimeSpan.FromSeconds(2);
+
+    // After a pause PresentMon reports the whole idle gap as one frame time,
+    // often tens of seconds. Such a frame is a capture interruption, not a
+    // rendered frame, and must not enter the FPS window.
+    private const double DiscontinuityFrameMs = 2000.0;
 
     public MainViewModel(
         TelemetryService telemetry,
@@ -618,11 +623,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             _autoCaptureSuppressedPid = null;
         }
 
-        if (now < _autoCaptureBlockedUntil && pid == _frameTargetPid)
-        {
-            return;
-        }
-
         if (_frameTargetPid == pid)
         {
             if (_frameState is "capturing" or "starting")
@@ -632,8 +632,15 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
             if (_frameState is "permissionDenied" or "unavailable")
             {
-                _autoCaptureBlockedUntil = now.AddSeconds(20);
-                return;
+                // A failed target cools down only while it stays in the
+                // background; the player returning to the game retries at once.
+                if (_frameState == "permissionDenied" || !IsAutoCaptureCandidate(pid))
+                {
+                    _autoCaptureBlockedUntil = now.AddSeconds(20);
+                    return;
+                }
+
+                _autoCaptureBlockedUntil = DateTime.MinValue;
             }
         }
 
@@ -1002,6 +1009,17 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             for (int i = 0; i < read; i++)
             {
                 FrameRecord frame = _frameBuffer[i];
+                long utcTicks = anchor.QpcTicks > 0
+                    ? FrameTimeline.ToUtcTicks(frame.QpcTicks, anchor.QpcTicks, anchor.UtcTicks, qpcTicksPerSecond)
+                    : 0;
+
+                if (frame.FrameTimeMs >= DiscontinuityFrameMs)
+                {
+                    // Mark the gap on the chart but keep it out of the stats.
+                    _frameTimeline.Add(utcTicks, frame.FrameTimeMs, true);
+                    continue;
+                }
+
                 bool spike = _frameStats.Add(frame.FrameTimeMs);
                 _framesSeen++;
                 if (spike)
@@ -1009,9 +1027,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                     _spikesSeen++;
                 }
 
-                long utcTicks = anchor.QpcTicks > 0
-                    ? FrameTimeline.ToUtcTicks(frame.QpcTicks, anchor.QpcTicks, anchor.UtcTicks, qpcTicksPerSecond)
-                    : 0;
                 _frameTimeline.Add(utcTicks, frame.FrameTimeMs, spike);
                 _dropTracker.Observe(
                     utcTicks > 0 ? utcTicks : DateTime.UtcNow.Ticks,

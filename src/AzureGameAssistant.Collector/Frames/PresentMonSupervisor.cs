@@ -58,6 +58,7 @@ internal sealed class PresentMonSupervisor : IDisposable
     private long _lastFrameQpc;
     private long _frequency = 10_000_000;
     private int _batchCount;
+    private int _emptyAttempts;
     private long _frameCount;
     private volatile FrameCaptureState _state;
     private volatile string? _lastError;
@@ -198,7 +199,11 @@ internal sealed class PresentMonSupervisor : IDisposable
 
                 // A stall is a dead ETW session, not a broken target: keep
                 // restarting at the shortest delay instead of giving up.
-                failures = produced > 0 || result.Stalled ? 1 : failures + 1;
+                // A target that never presents (still loading, minimised, or an
+                // API PresentMon cannot see) is not a broken session either, so
+                // it retries slowly instead of poisoning the failure budget.
+                _emptyAttempts = result.NoFrames ? _emptyAttempts + 1 : 0;
+                failures = result.NoFrames || produced > 0 || result.Stalled ? 1 : failures + 1;
                 if (failures >= FailureLimit)
                 {
                     _lastError = result.Error ?? $"PresentMon 连续 {failures} 次退出（代码 {result.ExitCode}）";
@@ -207,12 +212,18 @@ internal sealed class PresentMonSupervisor : IDisposable
                     return;
                 }
 
-                TimeSpan delay = RetryDelays[Math.Min(failures - 1, RetryDelays.Length - 1)];
+                TimeSpan delay = result.NoFrames
+                    ? TimeSpan.FromSeconds(Math.Min(15, _emptyAttempts * 2))
+                    : RetryDelays[Math.Min(failures - 1, RetryDelays.Length - 1)];
                 _lastError = result.Error;
                 _state = FrameCaptureState.Starting;
-                string detail = string.IsNullOrEmpty(result.Error) ? string.Empty : "：" + result.Error;
-                _logger.Warn(
-                    $"PresentMon 退出（代码 {result.ExitCode} / 0x{unchecked((uint)result.ExitCode):X8}）{detail}，{delay.TotalSeconds:0.#}s 后重启");
+                if (!result.NoFrames || _emptyAttempts <= 2 || _emptyAttempts % 10 == 0)
+                {
+                    string detail = string.IsNullOrEmpty(result.Error) ? string.Empty : "：" + result.Error;
+                    _logger.Warn(
+                        $"PresentMon 退出（代码 {result.ExitCode} / 0x{unchecked((uint)result.ExitCode):X8}）{detail}，{delay.TotalSeconds:0.#}s 后重启");
+                }
+
                 await Task.Delay(delay, token).ConfigureAwait(false);
             }
         }
@@ -345,6 +356,7 @@ internal sealed class PresentMonSupervisor : IDisposable
         bool gotFrame = false;
         bool killed = false;
         bool stalled = false;
+        bool noFrames = false;
         int invalidRun = 0;
         string? error = null;
         long startTicks = Stopwatch.GetTimestamp();
@@ -374,6 +386,7 @@ internal sealed class PresentMonSupervisor : IDisposable
                         if (ElapsedMs(startTicks) >= FirstFrameTimeout.TotalMilliseconds &&
                             _isTargetActive())
                         {
+                            noFrames = true;
                             error = "PresentMon 启动后 20 秒内未产生帧";
                             break;
                         }
@@ -504,7 +517,7 @@ internal sealed class PresentMonSupervisor : IDisposable
             error = diagnostics.Length > 0 ? diagnostics : $"PresentMon 退出代码 {exitCode}";
         }
 
-        return new AttemptResult(exitCode, false, error, killed, stalled);
+        return new AttemptResult(exitCode, false, error, killed, stalled, noFrames);
     }
 
     private ProcessStartInfo BuildStartInfo(bool terminateExisting = false)
@@ -668,5 +681,6 @@ internal sealed class PresentMonSupervisor : IDisposable
         bool PermissionDenied,
         string? Error,
         bool Killed,
-        bool Stalled = false);
+        bool Stalled = false,
+        bool NoFrames = false);
 }

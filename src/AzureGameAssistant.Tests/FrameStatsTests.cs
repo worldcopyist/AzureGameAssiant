@@ -23,6 +23,47 @@ public sealed class FrameStatsTests
     }
 
     [Fact]
+    public void InstantFps_SurvivesSingleMissedVsync()
+    {
+        // 60 fps with one 33.3 ms frame used to read exactly 30 FPS because the
+        // value was 1000 / last frame time.
+        var stats = new FrameStats(capacity: 1024);
+        for (int i = 0; i < 120; i++)
+        {
+            stats.Add(16.7);
+        }
+
+        stats.Add(33.3);
+        FrameStatsSnapshot snapshot = stats.Snapshot();
+
+        Assert.InRange(snapshot.InstantFps, 57.0, 59.0);
+        Assert.InRange(snapshot.AverageFps, 58.0, 59.6);
+    }
+
+    [Fact]
+    public void AverageFps_IgnoresOlderSlowCapture()
+    {
+        // A slow phase older than the average window must not pull down the
+        // reading of the current, fast gameplay.
+        var stats = new FrameStats(capacity: 2048);
+        for (int i = 0; i < 400; i++)
+        {
+            stats.Add(100.0);
+        }
+
+        for (int i = 0; i < 600; i++)
+        {
+            stats.Add(16.7);
+        }
+
+        FrameStatsSnapshot snapshot = stats.Snapshot();
+
+        Assert.InRange(snapshot.AverageFps, 59.0, 60.0);
+        Assert.InRange(snapshot.OnePercentLowFps, 55.0, 60.0);
+        Assert.InRange(snapshot.InstantFps, 59.0, 60.0);
+    }
+
+    [Fact]
     public void Snapshot_SlowestFramesDriveLowFps()
     {
         var stats = new FrameStats(capacity: 256);
@@ -37,7 +78,7 @@ public sealed class FrameStatsTests
         Assert.Equal(10.0, snapshot.OnePercentLowFps, 3);
         Assert.Equal(10.0, snapshot.PointOnePercentLowFps, 3);
         Assert.Equal(1000.0 * 100 / 1090.0, snapshot.AverageFps, 3);
-        Assert.Equal(10.0, snapshot.InstantFps, 3);
+        Assert.InRange(snapshot.InstantFps, 90.0, 100.0);
     }
 
     [Fact]

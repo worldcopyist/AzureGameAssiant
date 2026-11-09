@@ -219,7 +219,7 @@ public partial class App : Application
             wasFresh != fresh &&
             _viewModel.IsFrameCaptureRunning)
         {
-            _logger?.Info(fresh ? "帧率数据恢复" : "帧率数据中断：超过 2 秒没有新帧");
+            _logger?.Info(fresh ? "帧率数据恢复" : "帧率数据中断：超过 5 秒没有新帧");
         }
 
         _lastFrameFresh = fresh;
