@@ -1026,6 +1026,12 @@
   <data name="AiResultTitle" xml:space="preserve">
     <value>Analysis complete</value>
   </data>
+  <data name="AiRunAgain" xml:space="preserve">
+    <value>Re-run analysis</value>
+  </data>
+  <data name="AiCachedResult" xml:space="preserve">
+    <value>Showing the stored analysis for this session (same model and facts). Choose “Re-run analysis” to request again.</value>
+  </data>
   <data name="AiReady" xml:space="preserve">
     <value>Ready</value>
   </data>

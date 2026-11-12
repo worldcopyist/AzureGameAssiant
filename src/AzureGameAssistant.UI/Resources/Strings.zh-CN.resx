@@ -1026,6 +1026,12 @@
   <data name="AiResultTitle" xml:space="preserve">
     <value>分析完成</value>
   </data>
+  <data name="AiRunAgain" xml:space="preserve">
+    <value>重新分析</value>
+  </data>
+  <data name="AiCachedResult" xml:space="preserve">
+    <value>已复用本会话上次的分析结果（模型与事实未变化）；需要重新请求请点击“重新分析”。</value>
+  </data>
   <data name="AiReady" xml:space="preserve">
     <value>就绪</value>
   </data>

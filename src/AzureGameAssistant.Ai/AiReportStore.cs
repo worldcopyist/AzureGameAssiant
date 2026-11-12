@@ -13,6 +13,12 @@ public static class AiReportStore
 {
     public static string PathFor(string sessionPath) => sessionPath + ".ai.json";
 
+    public static bool IsReusable(AiReport? report, string model, string factsHash) =>
+        report is not null &&
+        !string.IsNullOrEmpty(report.FactsHash) &&
+        string.Equals(report.FactsHash, factsHash, StringComparison.Ordinal) &&
+        string.Equals(report.Model ?? string.Empty, model ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+
     public static AiReport? Read(string sessionPath)
     {
         string path = PathFor(sessionPath);

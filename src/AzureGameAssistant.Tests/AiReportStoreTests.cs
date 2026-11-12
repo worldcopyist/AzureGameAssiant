@@ -66,6 +66,57 @@ public sealed class AiReportStoreTests : IDisposable
     }
 
     [Fact]
+    public void ModelAndFactsHashSurviveRoundTrip()
+    {
+        string sessionPath = Path.Combine(_directory, "reusable.agsession.jsonl.gz");
+        Assert.True(AiReportStore.Write(sessionPath, new AiReport
+        {
+            Model = "gpt-test",
+            FactsHash = "0123abcd",
+            Summary = "CPU 受限",
+        }));
+
+        AiReport? report = AiReportStore.Read(sessionPath);
+
+        Assert.NotNull(report);
+        Assert.Equal("gpt-test", report!.Model);
+        Assert.True(AiReportStore.IsReusable(report, "GPT-Test", "0123abcd"));
+        Assert.False(AiReportStore.IsReusable(report, "other-model", "0123abcd"));
+        Assert.False(AiReportStore.IsReusable(report, "gpt-test", "ffff"));
+    }
+
+    [Fact]
+    public void ReportsWithoutFingerprintAreNeverReused()
+    {
+        Assert.False(AiReportStore.IsReusable(null, "m", "hash"));
+        Assert.False(AiReportStore.IsReusable(new AiReport(), "m", "hash"));
+        Assert.False(AiReportStore.IsReusable(new AiReport { Model = "m" }, "m", ""));
+    }
+
+    [Fact]
+    public void FactsHashIgnoresLanguage()
+    {
+        var chinese = new FactsDocument
+        {
+            Locale = "zh-CN",
+            Metrics = new FactsMetrics { CpuPeakPct = 12 },
+        };
+        var english = new FactsDocument
+        {
+            Locale = "en-US",
+            Metrics = new FactsMetrics { CpuPeakPct = 12 },
+        };
+
+        string hash = AiAnalysisService.ComputeFactsHash(chinese);
+
+        Assert.Equal("zh-CN", chinese.Locale);
+        Assert.Equal(hash, AiAnalysisService.ComputeFactsHash(english));
+
+        english.Metrics.CpuPeakPct = 13;
+        Assert.NotEqual(hash, AiAnalysisService.ComputeFactsHash(english));
+    }
+
+    [Fact]
     public void FactsComeFromTheSessionAndSkipCollectorGaps()
     {
         SessionDocument document = new()

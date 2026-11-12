@@ -46,6 +46,16 @@ public partial class AiAnalysisWindow : Window
 
         DataContext = _viewModel;
         Closing += OnClosing;
+
+        if (sessionPath is not null)
+        {
+            AiReport? stored = AiReportStore.Read(sessionPath);
+            if (stored is not null &&
+                AiReportStore.IsReusable(stored, _prepared.Provider.Model, _prepared.FactsHash))
+            {
+                _viewModel.ApplyCachedReport(stored, AiReportStore.PathFor(sessionPath));
+            }
+        }
     }
 
     private async void OnRunClick(object sender, RoutedEventArgs e)
@@ -81,6 +91,10 @@ public partial class AiAnalysisWindow : Window
             AiAnalysisResult result = await _ai.AnalyzeAsync(_prepared, progress, _cancellation.Token);
             _viewModel.ApplyResult(result);
             AttachToSession(result);
+            if (_sessionPath is not null)
+            {
+                _viewModel.MarkSessionBound();
+            }
         }
         catch (OperationCanceledException)
         {
@@ -105,6 +119,9 @@ public partial class AiAnalysisWindow : Window
         {
             return;
         }
+
+        report.Model = _prepared.Provider.Model;
+        report.FactsHash = _prepared.FactsHash;
 
         if (AiReportStore.Write(_sessionPath, report))
         {

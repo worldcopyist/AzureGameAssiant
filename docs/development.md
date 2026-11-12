@@ -1173,7 +1173,7 @@ internal sealed record AiProviderProfile(
   - 每日预算、每月预算（用户填写美元金额）；达到后硬停止，UI 显示原因。
   - 自动分析属 FR-020 规划项，当前未实现，不提供开关，也不会发起任何后台请求。
 - 并发：同一时间最多 1 个请求；新请求排队或取消旧请求由用户选择。
-- 缓存：会话分析成功后写入 `<会话>.ai.json`；再次打开分析目前仍会重新请求，自动复用（同一模型 + 同一事实哈希）尚未实现。
+- 复用：会话分析成功后写入 `<会话>.ai.json`，同时记录 `model` 与 `factsHash`（事实层去掉 `locale` 后序列化的 SHA-256，切换界面语言不会让报告失效）。再次打开分析时，若模型与事实哈希都一致，直接显示上次结果并提示“已复用”，按钮变为“重新分析”；不一致才需要重新请求。
 
 ### 10.10 安全
 
@@ -1211,10 +1211,11 @@ internal sealed record AiProviderProfile(
 | 预算与用量 | `AiBudget.cs` | 完成：UTF8/3 估算 token，日/月滚动，原子落盘 |
 | 本地兜底 | `LocalReportBuilder.cs` | 完成：同时生成掉帧原因与高负载进程归因 |
 | UI | `AiAnalysisWindow`、设置页 AI 分组、主界面“AI 分析” | 完成：分析窗新增“掉帧分析”“高负载归因”卡片；设置页新增“测试连接”与输入 / 输出单价（美元 / 百万 Token，按供应商保存）；单元测试通过，点击级验证待重启后执行 |
+| 报告复用 | `AiReportStore.IsReusable`、`AiAnalysisService.ComputeFactsHash` | 完成：会话报告记录 `model` 与 `factsHash`；同一模型 + 同一事实时直接展示并提示“已复用”，按钮变“重新分析” |
 | 严重事件自动分析 | — | 未实现：当前没有写入评分事件的判定源；不提供开关，避免出现无效控件或后台请求 |
 
 - 报告目录：`%LOCALAPPDATA%\AzureGameAssistant\ai\reports\`；解析失败原文：`%LOCALAPPDATA%\AzureGameAssistant\logs\ai-parse-*.log`（不含 Key）。
-- 两个入口共用同一分析窗：主界面“AI 分析”使用“采样环 + 最近 4096 帧”的实时快照；会话窗口“AI 分析”用 `SessionFactsFactory.FromSession` 从会话文件重建事实层（排除 ≥ `SessionSchema.DiscontinuityFrameMs` 的采集断帧），成功后再由 `AiReportStore` 写入 `<会话>.ai.json`。按评分事件自动触发仍属 FR-020 的“严重事件自动分析”，当前不提供开关。
+- 两个入口共用同一分析窗：主界面“AI 分析”使用“采样环 + 最近 4096 帧”的实时快照；会话窗口“AI 分析”用 `SessionFactsFactory.FromSession` 从会话文件重建事实层（排除 ≥ `SessionSchema.DiscontinuityFrameMs` 的采集断帧），成功后再由 `AiReportStore` 写入 `<会话>.ai.json`。打开会话分析窗时，若已有报告的模型与事实哈希都匹配，直接复用并显示提示，不重复请求；按评分事件自动触发仍属 FR-020 的“严重事件自动分析”，当前不提供开关。
 
 ### 10.13 掉帧与高负载标记
 

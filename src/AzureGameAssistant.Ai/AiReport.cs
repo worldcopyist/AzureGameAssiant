@@ -6,6 +6,8 @@ namespace AzureGameAssistant.Ai;
 
 public sealed class AiReport
 {
+    public string? Model { get; set; }
+    public string? FactsHash { get; set; }
     public string Summary { get; set; } = string.Empty;
     public string PrimaryCause { get; set; } = "Unknown";
     public string Confidence { get; set; } = "low";

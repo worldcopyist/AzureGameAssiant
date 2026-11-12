@@ -94,8 +94,6 @@ public sealed partial class AiAnalysisViewModel : ObservableObject
 
     public string ConsentText { get; }
 
-    public string RunText { get; }
-
     public bool HasData { get; }
 
     public bool HasConfigError { get; }
@@ -131,6 +129,9 @@ public sealed partial class AiAnalysisViewModel : ObservableObject
 
     [ObservableProperty]
     private string _progressText = string.Empty;
+
+    [ObservableProperty]
+    private string _runText = string.Empty;
 
     [ObservableProperty]
     private bool _hasResult;
@@ -231,7 +232,46 @@ public sealed partial class AiAnalysisViewModel : ObservableObject
             ? _loc["AiLocalFallback"] + " · " + error
             : _loc["AiLocalFallback"];
 
-        AiReport report = result.Report;
+        Populate(result.Report, result.Warnings);
+
+        HasSavedPath = !string.IsNullOrEmpty(result.SavedPath);
+        SavedText = HasSavedPath ? _loc.Format("AiSavedReport", result.SavedPath) : string.Empty;
+
+        StatusText = _loc["AiResultTitle"];
+        UpdateCanRun();
+    }
+
+    /// <summary>
+    /// A stored report matching the current model and fact layer is shown right
+    /// away; the run button becomes an explicit re-analysis.
+    /// </summary>
+    public void ApplyCachedReport(AiReport report, string path)
+    {
+        HasResult = true;
+        UsedLocalFallback = false;
+        FallbackText = string.Empty;
+        Populate(report, []);
+        HasSavedPath = true;
+        SavedText = _loc.Format("AiSavedSessionReport", path);
+        if (!HasConfigError)
+        {
+            RunText = _loc["AiRunAgain"];
+        }
+
+        StatusText = _loc["AiCachedResult"];
+        UpdateCanRun();
+    }
+
+    public void MarkSessionBound()
+    {
+        if (!HasConfigError)
+        {
+            RunText = _loc["AiRunAgain"];
+        }
+    }
+
+    private void Populate(AiReport report, IReadOnlyList<string> warnings)
+    {
         SummaryText = report.Summary;
         CauseText = LocalizeCause(report.PrimaryCause) + " · " +
                     _loc.Format("AiConfidence", LocalizeConfidence(report.Confidence));
@@ -290,20 +330,14 @@ public sealed partial class AiAnalysisViewModel : ObservableObject
                     : _loc["AiRollback"] + "：" + recommendation.Rollback));
         }
 
-        HasWarnings = result.Warnings.Count > 0;
-        WarningsText = string.Join(Environment.NewLine, result.Warnings);
+        HasWarnings = warnings.Count > 0;
+        WarningsText = string.Join(Environment.NewLine, warnings);
 
         HasLimitations = report.Limitations.Count > 0;
         LimitationsText = string.Join(Environment.NewLine, report.Limitations);
 
         HasDisclaimer = !string.IsNullOrWhiteSpace(report.Disclaimer);
         DisclaimerText = report.Disclaimer;
-
-        HasSavedPath = !string.IsNullOrEmpty(result.SavedPath);
-        SavedText = HasSavedPath ? _loc.Format("AiSavedReport", result.SavedPath) : string.Empty;
-
-        StatusText = _loc["AiResultTitle"];
-        UpdateCanRun();
     }
 
     private void UpdateCanRun() =>

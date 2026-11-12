@@ -22,6 +22,7 @@ public sealed record AiPreparedRequest(
     Uri? Endpoint,
     FactsDocument Facts,
     string FactsJson,
+    string FactsHash,
     string Locale,
     int InputTokens,
     int MaxOutputTokens,
@@ -111,6 +112,7 @@ public sealed class AiAnalysisService : IDisposable
 
         facts.Locale = string.IsNullOrWhiteSpace(locale) ? "zh-CN" : locale;
 
+        string factsHash = ComputeFactsHash(facts);
         string json = SerializeAndRedact(facts, settings.Ai.Redact, out int hits, out IReadOnlyList<string> categories);
         AiPrompt prompt = PromptBuilder.Build(json, facts.Locale);
         int tokens = CostEstimator.EstimateTokens(prompt.System) + CostEstimator.EstimateTokens(prompt.User);
@@ -140,6 +142,7 @@ public sealed class AiAnalysisService : IDisposable
             endpoint,
             facts,
             json,
+            factsHash,
             facts.Locale,
             tokens,
             provider.MaxOutputTokens,
@@ -330,6 +333,26 @@ public sealed class AiAnalysisService : IDisposable
             Math.Clamp(configured?.MaxOutputTokens ?? 2_000, 128, 32_000),
             Math.Max(0, configured?.InputPricePerMillion ?? 0),
             Math.Max(0, configured?.OutputPricePerMillion ?? 0));
+    }
+
+    /// <summary>
+    /// Identity of the fact layer a report was produced from. Locale is left
+    /// out so switching the UI language does not invalidate a stored report.
+    /// </summary>
+    public static string ComputeFactsHash(FactsDocument facts)
+    {
+        string locale = facts.Locale;
+        facts.Locale = string.Empty;
+        try
+        {
+            return Convert.ToHexString(
+                    SHA256.HashData(Encoding.UTF8.GetBytes(FactsSerializer.Serialize(facts))))
+                .ToLowerInvariant();
+        }
+        finally
+        {
+            facts.Locale = locale;
+        }
     }
 
     private static string SerializeAndRedact(
