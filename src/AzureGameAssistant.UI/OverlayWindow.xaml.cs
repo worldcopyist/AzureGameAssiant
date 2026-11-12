@@ -84,6 +84,18 @@ public partial class OverlayWindow : Window
         Opacity = Math.Clamp(_settings.Opacity, 30, 100) / 100.0;
         Resources["OverlayValueBrush"] = FrozenBrush(value);
         Resources["OverlayLabelBrush"] = FrozenBrush(label);
+        byte backdropAlpha = (byte)Math.Round(Math.Clamp(_settings.BackdropOpacity, 0, 80) * 255.0 / 100.0);
+        if (backdropAlpha == 0)
+        {
+            Resources["OverlayBackdropBrush"] = Brushes.Transparent;
+            Backdrop.Padding = new Thickness(0);
+        }
+        else
+        {
+            Resources["OverlayBackdropBrush"] = FrozenBrush(Color.FromArgb(backdropAlpha, shadow.R, shadow.G, shadow.B));
+            Backdrop.Padding = new Thickness(6);
+        }
+
         Resources["OverlayTextShadow"] = new DropShadowEffect
         {
             Color = shadow,

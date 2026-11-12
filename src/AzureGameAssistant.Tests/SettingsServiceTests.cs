@@ -49,6 +49,7 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.Equal("Default", result.Settings.Overlay.Theme);
         Assert.Equal("#FFFFFF", result.Settings.Overlay.Color);
         Assert.Equal(100, result.Settings.Overlay.Opacity);
+        Assert.Equal(0, result.Settings.Overlay.BackdropOpacity);
     }
 
     [Fact]
@@ -64,6 +65,7 @@ public sealed class SettingsServiceTests : IDisposable
         settings.Diagnostics.IntervalSeconds = 30;
         settings.GameDetection.Exclude.Add("obs.exe");
         settings.Overlay.Opacity = 65;
+        settings.Overlay.BackdropOpacity = 35;
         settings.Charts.Detached.Left = -1200;
         settings.Charts.Detached.Top = 80;
         settings.Charts.Detached.Width = 640;
@@ -82,6 +84,7 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.Equal(30, result.Settings.Diagnostics.IntervalSeconds);
         Assert.Contains("obs.exe", result.Settings.GameDetection.Exclude);
         Assert.Equal(65, result.Settings.Overlay.Opacity);
+        Assert.Equal(35, result.Settings.Overlay.BackdropOpacity);
         Assert.Equal(-1200, result.Settings.Charts.Detached.Left);
         Assert.Equal(80, result.Settings.Charts.Detached.Top);
         Assert.Equal(640, result.Settings.Charts.Detached.Width);
@@ -221,6 +224,7 @@ public sealed class SettingsServiceTests : IDisposable
                 Theme = " custom ",
                 Color = " 00ff7f ",
                 Opacity = 5,
+                BackdropOpacity = 99,
             },
         };
 
@@ -235,6 +239,7 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.Equal("Custom", settings.Overlay.Theme);
         Assert.Equal("#00FF7F", settings.Overlay.Color);
         Assert.Equal(30, settings.Overlay.Opacity);
+        Assert.Equal(80, settings.Overlay.BackdropOpacity);
     }
 
     [Fact]

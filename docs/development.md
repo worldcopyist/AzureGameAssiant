@@ -1314,6 +1314,7 @@ internal sealed record AiProviderProfile(
 - 布局：每个数据项为“标签 + 数值”横向 `StackPanel`，整体从左到右排列；`MaxWidth = WorkArea.Width - 2 × OffsetX`（下限 240 DIP），放不下时按数据项自动换行，窗口高度随行数增长。
 - 可读性：文字使用 `DropShadowEffect`（BlurRadius 3、无偏移），不使用背景遮挡桌面。
 - 文字配色：`overlay.theme` 取 `Default`（白字）、`Light`（深字）、`Azure`（天空蓝）、`Custom`（自定义）；`overlay.color` 为 `#RRGGBB` 或 `#AARRGGBB`，统一由 `Core/Overlay/OverlayColor` 解析与规范化；8 位色的 alpha 同时作用于数值、标签（再乘以 78%）与阴影，6 位色按不透明处理。
+- 可选背景：`overlay.backdropOpacity`（0–80，默认 0）经 `ApplyAppearance` 换算为圆角 `Border` 的 `OverlayBackdropBrush`，颜色取当前阴影色（与文字对比），非 0 时内边距 6px；0 时画刷透明、内边距 0，保持无背景外观。
 - `ApplyAppearance()` 把解析结果写回窗口资源 `OverlayValueBrush` / `OverlayLabelBrush` / `OverlayTextShadow`，XAML 用 `DynamicResource` 引用，切换无需重建窗口。
 - 标签颜色取数值色的 78% 不透明度；阴影按数值色亮度（0.55 阈值）自动选黑或白，避免自定义浅色在浅色桌面上“消失”。
 - 颜色解析失败（非 6 位十六进制）回退白色；归一化在 Core 的 `AppSettings.Normalize()` 完成，界面只使用已归一化的值。
@@ -1424,7 +1425,8 @@ internal sealed record AiProviderProfile(
     "showVram": false,
     "theme": "Default",
     "color": "#FFFFFF",
-    "opacity": 100
+    "opacity": 100,
+    "backdropOpacity": 0
   }
 }
 ```
@@ -1650,7 +1652,7 @@ AzureGameAssistant-<version>-win-x64/
 | 系统 | Win10 22H2、Win11 22H2+ |
 | 显卡 | NVIDIA、AMD、Intel 核显、混合显卡 |
 | 显示器 | 单屏、双屏、不同 DPI |
-| 悬浮窗 | 默认左上、无背景、横向换行、四角、偏移、内容开关、鼠标穿透、主窗口隐藏、配色主题、自定义颜色（含 `#AARRGGBB` 透明度）、不透明度、按主窗口所在显示器定位（含负坐标显示器与越界夹紧） |
+| 悬浮窗 | 默认左上、无背景、可选半透明底、横向换行、四角、偏移、内容开关、鼠标穿透、主窗口隐藏、配色主题、自定义颜色（含 `#AARRGGBB` 透明度）、不透明度、按主窗口所在显示器定位（含负坐标显示器与越界夹紧） |
 | 图表 | 单图开关、至少保留一张、脱离小窗、关闭小窗归还、主窗口隐藏时小窗继续刷新 |
 | 游戏状态 | DX11、DX12、无边框窗口、全屏独占 |
 | 权限 | 普通用户、管理员、Performance Log Users |

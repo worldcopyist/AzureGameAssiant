@@ -546,6 +546,12 @@
   <data name="OverlayColorHint" xml:space="preserve">
     <value>十六进制格式 #RRGGBB 或 #AARRGGBB（含透明度），仅在“自定义颜色”主题下生效；标签使用同色低透明度，透明度同样作用于阴影。</value>
   </data>
+  <data name="OverlayBackdrop" xml:space="preserve">
+    <value>背景透明度</value>
+  </data>
+  <data name="OverlayBackdropHint" xml:space="preserve">
+    <value>0% 保持透明外观；10%–40% 为极亮壁纸加一层半透明底。</value>
+  </data>
   <data name="OverlayNotice" xml:space="preserve">
     <value>FPS、帧统计与温度将在 M2/M3 采集链路接入后显示真实数据；悬浮窗始终置顶且不拦截鼠标。</value>
   </data>

@@ -12,6 +12,7 @@
     <Window.Resources>
         <SolidColorBrush x:Key="OverlayValueBrush" Color="#FFFFFF" />
         <SolidColorBrush x:Key="OverlayLabelBrush" Color="#D6DEE8" />
+        <SolidColorBrush x:Key="OverlayBackdropBrush" Color="Transparent" />
         <DropShadowEffect x:Key="OverlayTextShadow" Color="Black" BlurRadius="3"
                           ShadowDepth="0" Opacity="0.9" />
         <Style x:Key="OverlayLabel" TargetType="TextBlock">
@@ -30,5 +31,8 @@
         </Style>
     </Window.Resources>
 
-    <WrapPanel x:Name="Rows" Orientation="Horizontal" />
+    <Border x:Name="Backdrop" CornerRadius="6" Padding="0"
+            Background="{DynamicResource OverlayBackdropBrush}">
+        <WrapPanel x:Name="Rows" Orientation="Horizontal" />
+    </Border>
 </Window>

@@ -546,6 +546,12 @@
   <data name="OverlayColorHint" xml:space="preserve">
     <value>Hex #RRGGBB or #AARRGGBB, used by the Custom color theme. Labels reuse the color at reduced opacity; an alpha prefix also fades the shadow.</value>
   </data>
+  <data name="OverlayBackdrop" xml:space="preserve">
+    <value>Backdrop opacity</value>
+  </data>
+  <data name="OverlayBackdropHint" xml:space="preserve">
+    <value>0% keeps the transparent look. 10–40% adds a translucent panel for bright wallpapers.</value>
+  </data>
   <data name="OverlayNotice" xml:space="preserve">
     <value>FPS, frame statistics and temperature show real values once the M2/M3 capture pipelines are connected. The overlay is topmost and click-through.</value>
   </data>

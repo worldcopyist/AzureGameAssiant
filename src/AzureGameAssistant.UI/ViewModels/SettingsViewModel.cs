@@ -81,6 +81,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         OverlayTheme = settings.Overlay.Theme;
         OverlayColor = settings.Overlay.Color;
         OverlayOpacity = settings.Overlay.Opacity;
+        OverlayBackdropOpacity = settings.Overlay.BackdropOpacity;
 
         ThemeOptions =
         [
@@ -391,6 +392,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private int _overlayOpacity = 100;
 
+    [ObservableProperty]
+    private int _overlayBackdropOpacity;
+
     public bool IsOverlayCustomTheme => string.Equals(OverlayTheme, "Custom", StringComparison.Ordinal);
 
     public Brush OverlayColorPreview =>
@@ -557,6 +561,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         settings.Overlay.Theme = OverlayTheme;
         settings.Overlay.Color = OverlayColor;
         settings.Overlay.Opacity = (int)Math.Round(Clamp(OverlayOpacity, 30, 100, 100));
+        settings.Overlay.BackdropOpacity = (int)Math.Round(Clamp(OverlayBackdropOpacity, 0, 80, 0));
 
         settings.Ai.Enabled = AiEnabled;
         settings.Ai.ActiveProvider = (AiActiveProvider ?? string.Empty).Trim().ToLowerInvariant();
