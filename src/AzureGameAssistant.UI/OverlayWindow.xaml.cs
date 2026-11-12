@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
+using AzureGameAssistant.Core.Overlay;
 using AzureGameAssistant.Core.Settings;
 using AzureGameAssistant.UI.Interop;
 using AzureGameAssistant.UI.Services;
@@ -215,6 +216,8 @@ public partial class OverlayWindow : Window
         _entries.Add(new OverlayEntry(field, value));
     }
 
+    public void RefreshPlacement() => Reposition();
+
     private void Reposition()
     {
         if (!IsVisible)
@@ -222,7 +225,7 @@ public partial class OverlayWindow : Window
             return;
         }
 
-        Rect work = SystemParameters.WorkArea;
+        Rect work = TargetWorkArea();
         double maxWidth = Math.Max(240, work.Width - (_settings.OffsetX * 2.0));
         if (Math.Abs(Rows.MaxWidth - maxWidth) > 0.5)
         {
@@ -232,11 +235,40 @@ public partial class OverlayWindow : Window
 
         double width = Math.Max(ActualWidth, 1);
         double height = Math.Max(ActualHeight, 1);
-        bool right = _settings.Corner is "TopRight" or "BottomRight";
-        bool bottom = _settings.Corner is "BottomLeft" or "BottomRight";
+        (Left, Top) = OverlayPlacement.Place(
+            _settings.Corner,
+            work.Left,
+            work.Top,
+            work.Width,
+            work.Height,
+            width,
+            height,
+            _settings.OffsetX,
+            _settings.OffsetY);
+    }
 
-        Left = right ? work.Right - width - _settings.OffsetX : work.Left + _settings.OffsetX;
-        Top = bottom ? work.Bottom - height - _settings.OffsetY : work.Top + _settings.OffsetY;
+    /// <summary>
+    /// Uses the main window's monitor so the overlay follows the app across
+    /// displays; DIP conversion matches the system-DPI coordinate space WPF
+    /// positions windows in. Any failure keeps the primary work area.
+    /// </summary>
+    private Rect TargetWorkArea()
+    {
+        Window? main = Application.Current?.MainWindow;
+        IntPtr handle = main is null ? IntPtr.Zero : new WindowInteropHelper(main).Handle;
+        if (!MonitorWorkArea.TryGet(handle, out NativeMethods.Rect32 work))
+        {
+            return SystemParameters.WorkArea;
+        }
+
+        DpiScale dpi = VisualTreeHelper.GetDpi(this);
+        double scaleX = dpi.DpiScaleX > 0 ? dpi.DpiScaleX : 1;
+        double scaleY = dpi.DpiScaleY > 0 ? dpi.DpiScaleY : 1;
+        return new Rect(
+            work.Left / scaleX,
+            work.Top / scaleY,
+            (work.Right - work.Left) / scaleX,
+            (work.Bottom - work.Top) / scaleY);
     }
 
     private void OnSourceInitialized(object? sender, EventArgs e)

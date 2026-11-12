@@ -152,6 +152,7 @@ public partial class App : Application
         _overlay = new OverlayWindow();
         _overlay.ApplySettings(_settings.Overlay);
         _overlay.IsVisibleChanged += (_, _) => UpdateTimerState();
+        _window.LocationChanged += (_, _) => _overlay?.RefreshPlacement();
 
         _tray = new TrayIconService(new WindowInteropHelper(_window).Handle);
         _tray.OpenRequested += (_, _) => ShowMainWindow();

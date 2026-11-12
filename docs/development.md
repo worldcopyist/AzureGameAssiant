@@ -1308,7 +1308,7 @@ internal sealed record AiProviderProfile(
 
 - `OverlayWindow`：无边框、透明（`AllowsTransparency`）、`Topmost`、`ShowInTaskbar=false`、`ShowActivated=false`、`Focusable=false`；根元素为裸 `WrapPanel`，无背景面板与边框。
 - Win32 扩展样式追加 `WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE`：鼠标穿透、不进入 Alt+Tab、不抢焦点。
-- 位置：`SystemParameters.WorkArea` 四角 + 水平/垂直偏移，默认左上；`SizeChanged` 后重新定位；当前仅主显示器。
+- 位置：`MonitorWorkArea.TryGet` 取主窗口所在显示器的工作区（`MonitorFromWindow` + `GetMonitorInfo`），按窗口 DPI 缩放换算为 DIP 后交给 Core 的 `OverlayPlacement.Place` 计算四角 + 偏移；定位失败回退 `SystemParameters.WorkArea`；越界时夹紧到工作区。`SizeChanged`、显示与主窗口 `LocationChanged` 时重新定位。跨显示器位置记忆、拖动与透明度仍待后续。
 - 布局：每个数据项为“标签 + 数值”横向 `StackPanel`，整体从左到右排列；`MaxWidth = WorkArea.Width - 2 × OffsetX`（下限 240 DIP），放不下时按数据项自动换行，窗口高度随行数增长。
 - 可读性：文字使用 `DropShadowEffect`（BlurRadius 3、无偏移），不使用背景遮挡桌面。
 - 文字配色：`overlay.theme` 取 `Default`（白字）、`Light`（深字）、`Azure`（天空蓝）、`Custom`（自定义）；`overlay.color` 为 `#RRGGBB`。
@@ -1318,7 +1318,7 @@ internal sealed record AiProviderProfile(
 - 内容：FPS、平均帧、1% Low、CPU、GPU、GPU 温度、内存、显存；按设置顺序生成数据项，缺失数据显示“—”。
 - 数据：主窗口与悬浮窗共用 `MainViewModel.GetOverlayData()` 与 500ms 刷新节拍；主窗口隐藏后计时器仍为悬浮窗运行。
 - 帧率、平均帧、Low 帧与温度字段已预留，M2 PresentMon / M3 LHM 接入后自动显示数值，无需改悬浮窗。
-- 托盘菜单与设置页均可开关；M3 再评估拖动、透明度与多显示器位置记忆。
+- 托盘菜单与设置页均可开关；已按主窗口所在显示器定位，M3 再评估拖动、透明度与跨显示器位置记忆。
 
 ### 11.6 国际化与主题
 
@@ -1631,7 +1631,7 @@ AzureGameAssistant-<version>-win-x64/
 | 系统 | Win10 22H2、Win11 22H2+ |
 | 显卡 | NVIDIA、AMD、Intel 核显、混合显卡 |
 | 显示器 | 单屏、双屏、不同 DPI |
-| 悬浮窗 | 默认左上、无背景、横向换行、四角、偏移、内容开关、鼠标穿透、主窗口隐藏、配色主题、自定义颜色 |
+| 悬浮窗 | 默认左上、无背景、横向换行、四角、偏移、内容开关、鼠标穿透、主窗口隐藏、配色主题、自定义颜色、按主窗口所在显示器定位（含负坐标显示器与越界夹紧） |
 | 图表 | 单图开关、至少保留一张、脱离小窗、关闭小窗归还、主窗口隐藏时小窗继续刷新 |
 | 游戏状态 | DX11、DX12、无边框窗口、全屏独占 |
 | 权限 | 普通用户、管理员、Performance Log Users |
