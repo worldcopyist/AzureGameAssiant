@@ -346,6 +346,12 @@
 - 实现：`build/package.ps1` 新增自包含发布边车到 `artifacts\sensors`，再复制到 `collector\sensors\`（跳过 pdb，保留 `LICENSES\`）；包根新增 `LICENSES\`（来自 `third_party\licenses`）。`CollectorHost.ResolveSensorsPath` 依次查找 `collector\sensors\`、采集进程同目录、开发树 `Release/Debug` 输出，找不到时深模式自动降级为无温度数据。
 - 验证：`dotnet publish` 边车成功，输出含 `AzureGameAssistant.Sensors.exe`、`LibreHardwareMonitorLib.dll`、`HidSharp.dll`、`LICENSES\`，共 81MB；采集进程 Release 构建 0 警告 0 错误；`package.ps1` 通过 pwsh 语法解析。整包 ZIP 与打包后边车启动待退出旧实例后复验。
 
+### 3.24 包内说明文档与许可路径（2026-11-12）
+
+- 缺口：开发文档 §14.4 的包结构要求带 `README.md` 与 `THIRD-PARTY-NOTICES.md`，但 `package.ps1` 只复制 PresentMon 与许可证，README 被标为“后续补充”，第三方声明也没进包；`THIRD-PARTY-NOTICES.md` 里的许可路径指向仓库目录 `third_party\...`，解压后不存在。
+- 实现：`package.ps1` 强制复制 `README.md` 与 `THIRD-PARTY-NOTICES.md`（缺失即失败），项目自身 `LICENSE` 未定（K-05）时改为输出警告而非静默跳过；第三方声明中的许可路径改为包内相对路径 `LICENSES\...` 与 `collector\presentmon\LICENSE.txt`；README 的 AI 段落更新为“可选严重事件自动分析，默认关闭”。
+- 验证：`package.ps1` 通过 pwsh 语法解析；README / 第三方声明路径与包结构逐条对照；整包 ZIP 仍需退出旧实例后复验。
+
 ## 4. 进行中
 
 - **会话 AI 分析（3.16）**：按钮与写入链路已完成并通过单测；待配置 API Key 后在会话窗口点一次“AI 分析”，确认报告写入 `<会话>.ai.json`、详情区出现 AI 段、导出 Markdown 末尾附带 AI 章节。
@@ -380,6 +386,7 @@
 13. **自动分析（FR-020）已完成**：评分门控、双预算、同意与 Key 校验均已接入；准备阶段移到后台线程，避免阻塞界面节拍。剩余为用户配置 Key 后的真实长测。
 14. **8 小时稳定性**：重点复核 Collector 句柄趋势（K-15）与睡眠唤醒。
 15. **多显示器悬浮窗已完成（见 3.22）**：按主窗口所在显示器工作区定位并提供越界夹紧；跨屏实机复验待重启后执行。
+16. **整包复验（见 3.24）**：退出旧实例后运行 `build/package.ps1`，解压 ZIP 确认根目录含 `README.md`、`THIRD-PARTY-NOTICES.md`、`LICENSES\`，`collector\sensors\AzureGameAssistant.Sensors.exe` 能启动并读出温度；实机执行第 5 节步骤 5 的 AI 点击级验证。
 
 每个步骤完成后：更新本文件 → 按提交规范提交 → 在交接日志追加一行。
 
@@ -463,7 +470,7 @@
 | K-26 | LHM 0.9.6 对本机 RTX 4060 不提供功耗传感器 | GPU 功耗为“—” | 不写 0；改用驱动 SDK 或新版 LHM 时再补，保持缺失语义 |
 | K-27 | ~~便携包尚未包含 `AzureGameAssistant.Sensors.exe` 与 LHM 依赖~~ | 已解决（待整包复验） | `package.ps1` 自包含发布边车到 `collector\sensors\`，并复制 `LICENSES\`；采集进程优先解析该子目录。边车发布与依赖清单已单独验证，整包 ZIP 需退出旧实例后复验 |
 | K-29 | `AiAnalysisWindow`（含新增“测试连接”、掉帧分析、高负载归因卡片）尚未做本机点击级验证 | UI 交互问题可能未被发现 | 本轮已停止旧实例、重建并重启 Release；下一步按第 5 节步骤点击验证。服务层已有 135 项测试覆盖 |
-| K-30 | FR-020“严重事件自动分析”未实现 | 与需求文档原描述存在差距 | 已在需求文档标注实现现状；不提供开关，避免后台请求。待事件评分源落地后实现 |
+| K-30 | ~~FR-020“严重事件自动分析”未实现~~ | 已解决（待真实长测） | 见 3.21：默认关闭，按评分、双预算、同意与 Key 门控，会话完整落盘后触发一次并写同一 `.ai.json`；已在设置页提供“自动分析严重事件”与“最低评分”。真实联网触发待用户配置 Key 后长测 |
 | K-31 | MCP 以非管理员运行时 `get_collector_status` 为 `degraded` | 缺少运行时长与最近错误 | 属设计行为；快照/历史/帧统计/进程排行不受影响。需要完整状态时由用户以管理员身份运行 Agent |
 | K-32 | MCP 默认框架依赖单文件，目标机需 .NET 8 运行时 | 无运行时环境无法启动 | `build/publish-mcp.ps1 -SelfContained` 生成自包含版本 |
 | K-33 | ~~同名 PresentMon ETW 残留会话导致新会话静默停帧~~ | 已解决 | 启动前 `--terminate_existing_session --no_csv` 清理，正式会话不再带 `--stop_existing_session`；500ms 轮询看门狗；三角洲行动 75 秒连续 8,379 帧验证通过 |
@@ -595,6 +602,7 @@ MCP 冒烟（无需 Agent 客户端，直接走 stdio）：
 | 2026-11-12 | Qoder | 会话收尾补测：退出时 `FlushPending` 将未完成采集写成 `complete`，删除会话同时删除同名 `.ai.json`；新增 2 项测试，总数 209；Release 0 警告 0 错误 | `1b5685b` |
 | 2026-11-12 | Qoder | 悬浮窗按显示器定位（K-16 部分）：主窗口所在显示器工作区 + DPI 换算 + 越界夹紧，定位失败回退主屏；新增 4 项定位单测，总数 213；Release 0 警告 0 错误；补充 handoff 3.22 | `0d4c4a3` |
 | 2026-11-12 | Qoder | 便携包内置传感器边车（K-27）：`package.ps1` 自包含发布边车到 `collector\sensors\` 并复制 `LICENSES\`；采集进程按子目录 → 同目录 → 开发树解析；边车单独发布 81MB、依赖齐全，整包待复验；补充 handoff 3.23 | `e0b8f1d` |
+| 2026-11-12 | Qoder | 包内说明文档：`package.ps1` 强制复制 `README.md` 与 `THIRD-PARTY-NOTICES.md`（缺失即失败），`LICENSE` 未定时改为警告；第三方声明许可路径改为包内相对路径；README 更新自动分析现状；新增 handoff 3.24，K-30 标为已解决；补充 handoff 3.24 | `待回填` |
 
 ## 10. 下次交接模板
 

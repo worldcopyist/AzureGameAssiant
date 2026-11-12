@@ -134,13 +134,35 @@ if ($actualHash -ne $expectedHash) {
 Copy-Item $presentMon -Destination $collectorStage -Recurse -Force
 
 $licenseFiles = @("LICENSE", "LICENSE.md", "LICENSE.txt")
+$licenseCopied = $false
 foreach ($license in $licenseFiles) {
     $candidate = Join-Path $root $license
     if (Test-Path $candidate) {
         Copy-Item $candidate -Destination $stage -Force
+        $licenseCopied = $true
         break
     }
 }
+
+if (-not $licenseCopied) {
+    Write-Warning "包内未包含 LICENSE：项目自身许可证尚未确定（K-05），首次公开发布前需补齐。"
+}
+
+$readme = Join-Path $root "README.md"
+if (-not (Test-Path $readme)) {
+    Write-Error "README missing: $readme"
+    exit 1
+}
+
+Copy-Item $readme -Destination $stage -Force
+
+$notices = Join-Path $root "THIRD-PARTY-NOTICES.md"
+if (-not (Test-Path $notices)) {
+    Write-Error "Third-party notices missing: $notices"
+    exit 1
+}
+
+Copy-Item $notices -Destination $stage -Force
 
 $thirdPartyLicenses = Join-Path $root "third_party\licenses"
 if (Test-Path $thirdPartyLicenses) {
