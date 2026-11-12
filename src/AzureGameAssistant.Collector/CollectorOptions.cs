@@ -7,6 +7,7 @@ internal sealed class CollectorOptions
     public TimeSpan? Duration { get; private init; }
     public int? IntervalOverrideMs { get; private init; }
     public bool EnablePipe { get; private init; } = true;
+    public int? ParentProcessId { get; private init; }
     public bool ShowHelp { get; private init; }
     public string? ParseError { get; private init; }
 
@@ -15,6 +16,7 @@ internal sealed class CollectorOptions
         TimeSpan? duration = null;
         int? interval = null;
         bool pipe = true;
+        int? parent = null;
         bool help = false;
         string? error = null;
 
@@ -46,6 +48,21 @@ internal sealed class CollectorOptions
 
                     break;
 
+                case "--parent":
+                    if (i + 1 < args.Length &&
+                        int.TryParse(args[i + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int parentPid) &&
+                        parentPid > 0)
+                    {
+                        parent = parentPid;
+                        i++;
+                    }
+                    else
+                    {
+                        error = "--parent 需要一个有效的进程号";
+                    }
+
+                    break;
+
                 case "--interval":
                     if (i + 1 < args.Length &&
                         int.TryParse(args[i + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int intervalMs) &&
@@ -69,6 +86,7 @@ internal sealed class CollectorOptions
             Duration = duration,
             IntervalOverrideMs = interval,
             EnablePipe = pipe,
+            ParentProcessId = parent,
             ShowHelp = help,
             ParseError = error,
         };

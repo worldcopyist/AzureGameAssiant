@@ -123,6 +123,11 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
 
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(_stop.Token, externalToken);
 
+        if (_options.ParentProcessId is int parentPid)
+        {
+            _ = WatchParentAsync(parentPid, linked.Token);
+        }
+
         _uptime.Start();
         _logger.Info($"采集进程启动：间隔 {_intervalMs}ms，PID {Environment.ProcessId}");
 
@@ -155,6 +160,46 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
         }
 
         return 0;
+    }
+
+    /// <summary>
+    /// A crashed or force-closed UI cannot ask the collector to quit, and the
+    /// leftover process would keep the packaged executable locked. Exit with
+    /// the parent instead of relying on the control pipe.
+    /// </summary>
+    private async Task WatchParentAsync(int parentPid, CancellationToken token)
+    {
+        Process? parent = null;
+        try
+        {
+            parent = Process.GetProcessById(parentPid);
+            while (!token.IsCancellationRequested)
+            {
+                await Task.Delay(2_000, token).ConfigureAwait(false);
+                if (parent.HasExited)
+                {
+                    _logger.Info($"父进程 {parentPid} 已退出，采集进程随之停止");
+                    _stop.Cancel();
+                    return;
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (ArgumentException)
+        {
+            _logger.Info($"父进程 {parentPid} 不存在，采集进程退出");
+            _stop.Cancel();
+        }
+        catch (InvalidOperationException)
+        {
+            _stop.Cancel();
+        }
+        finally
+        {
+            parent?.Dispose();
+        }
     }
 
     private void Tick()

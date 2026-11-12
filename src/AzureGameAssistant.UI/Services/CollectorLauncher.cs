@@ -63,6 +63,7 @@ public sealed class CollectorLauncher : IDisposable
             var startInfo = new ProcessStartInfo
             {
                 FileName = ExecutablePath,
+                Arguments = $"--parent {Environment.ProcessId}",
                 WorkingDirectory = Path.GetDirectoryName(ExecutablePath) ?? AppContext.BaseDirectory,
                 UseShellExecute = false,
                 CreateNoWindow = true,

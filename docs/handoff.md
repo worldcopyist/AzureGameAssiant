@@ -306,6 +306,14 @@
 - 开发文档 §9：显存压力与热降频两节由“规划项”改为“已接入归因”，写明 `LocalReportBuilder` 的实际判定条件（GPU 峰值 ≥ 40 且温度 ≥ 85°C / 热点 ≥ 95°C；CPU 峰值 ≥ 40 且温度 ≥ 90°C；显存占比峰值归因，`HighLoadTracker` 92% 记录高负载）。
 - 开发文档 §10.12：删去“UI 尚未绑定会话文件”，改为两个入口说明（主界面实时快照 / 会话窗口 `SessionFactsFactory` 重建），并标注按事件自动触发仍属 FR-020 未实现项。
 
+### 3.18 采集重试风暴与残留进程（2026-11-12）
+
+- 现象：`collector-*.log` 每 2 秒成对出现 `未找到 PresentMon` / `帧采集无法启动`；同时一个采集进程在界面异常结束后仍常驻，锁住 `artifacts\AzureGameAssistant-0.1.0-win-x64\collector\AzureGameAssistant.Collector.exe`，导致 `build/package.ps1` 无法覆盖。
+- 根因一：`MainViewModel._autoCaptureBlockedUntil` 只写不读，`StartFramesAsync` 返回空（管道错误或采集端拒绝）时直接返回，下一拍（2 秒）继续请求；`unavailable` 的前台分支还会清空冷却。
+- 根因二：`CollectorLauncher` 不监控子进程，采集端也没有父进程感知；界面被强杀或崩溃后采集端继续运行。
+- 修复：冷却按 PID 记录并在尝试前生效（`permissionDenied` 5 分钟 / `unavailable` 1 分钟 / 无应答 15 秒）；采集端新增 `--parent <界面 PID>`，每 2 秒检查父进程，父进程消失即自行停止。界面启动采集时自动传入该参数。
+- 验证：Debug/Release 0 警告 0 错误，198 项测试通过。重启后的实机验证待执行（当前运行中的旧版来自不完整的 artifacts 目录，缺 `presentmon` 子目录）。
+
 ## 4. 进行中
 
 - **会话 AI 分析（3.16）**：按钮与写入链路已完成并通过单测；待配置 API Key 后在会话窗口点一次“AI 分析”，确认报告写入 `<会话>.ai.json`、详情区出现 AI 段、导出 Markdown 末尾附带 AI 章节。
@@ -547,6 +555,7 @@ MCP 冒烟（无需 Agent 客户端，直接走 stdio）：
 | 2026-11-10 | Qoder | FR-010 游戏自动识别与动态采样：`SHQueryUserNotificationState` / 95% 覆盖 / GPU≥5% 三路判定 + 排除名单，`GameModeTracker` 10 秒宽限；控制管道新增 `sampling` 命令，200ms / 1000ms 切换不重启采集进程，共享内存头与状态同步；修复 `frames.stop` 阻塞管道导致离开全屏后采集残留（后台释放 PresentMon + 客户端 6 秒超时 + UI 待办重试与目标抑制）；新增 `GameModeTests` 14 项，总数 185 项通过；实机全屏探针与星穹铁道均验证 200ms→自动采集→回落 1000ms→帧采集已停止；Release 0 警告 0 错误 | `308d7c6` |
 | 2026-11-12 | Qoder | AI 报告合并进会话：`AiReportStore` 读写 `<会话>.ai.json`（原子写入、损坏静默忽略），`SessionFactsFactory` 从会话重建事实层并排除 ≥1000 ms 断帧；会话窗口新增“AI 分析”，成功后详情区显示摘要/主因/证据/建议，导出自动附带；离线回退不写入；`SessionSchema.DiscontinuityFrameMs` 统一阈值；新增 4 项测试，总数 198；Debug/Release 0 警告 0 错误 | `14b685b` |
 | 2026-11-12 | Qoder | 文档一致性修正：FR-006 与开发文档 §9 统一为“显存/热降频只作归因证据”；§10.12 更新为实时快照与会话事实层两个入口；补充 handoff 3.17 | `56baadb` |
+| 2026-11-12 | Qoder | 修复自动采集重试风暴与残留采集进程：冷却按 PID 真正生效（5 分钟 / 1 分钟 / 15 秒），采集端 `--parent` 父进程监控；补充 handoff 3.18 | `待回填` |
 
 ## 10. 下次交接模板
 

@@ -70,6 +70,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private long _lastLoadSampleTicks;
     private DateTime _lastAutoCaptureAttempt = DateTime.MinValue;
     private DateTime _autoCaptureBlockedUntil = DateTime.MinValue;
+    private int? _autoCaptureBlockedPid;
     private int? _autoCaptureSuppressedPid;
     private int? _autoCaptureCandidatePid;
     private int? _autoCaptureStartedPid;
@@ -792,6 +793,19 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
 
         int pid = (int)foregroundPid;
+        if (now < _autoCaptureBlockedUntil)
+        {
+            if (_autoCaptureBlockedPid == pid)
+            {
+                return;
+            }
+        }
+        else
+        {
+            _autoCaptureBlockedUntil = DateTime.MinValue;
+            _autoCaptureBlockedPid = null;
+        }
+
         if (_autoCaptureSuppressedPid is int suppressed)
         {
             if (suppressed == pid)
@@ -816,6 +830,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 if (_frameState == "permissionDenied" || !IsAutoCaptureCandidate(pid))
                 {
                     _autoCaptureBlockedUntil = now.AddSeconds(20);
+                    _autoCaptureBlockedPid = pid;
                     return;
                 }
 
@@ -857,6 +872,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         string? state = await _client.StartFramesAsync(pid, _cts.Token).ConfigureAwait(true);
         if (state is null)
         {
+            // The collector answered with an error (missing PresentMon, invalid
+            // target). Without a cooldown this retries every tick and floods
+            // both logs.
+            _autoCaptureBlockedUntil = now.AddSeconds(15);
+            _autoCaptureBlockedPid = pid;
             return;
         }
 
@@ -868,10 +888,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (state == "permissionDenied")
         {
             _autoCaptureBlockedUntil = now.AddMinutes(5);
+            _autoCaptureBlockedPid = pid;
         }
         else if (state == "unavailable")
         {
             _autoCaptureBlockedUntil = now.AddMinutes(1);
+            _autoCaptureBlockedPid = pid;
         }
 
         UpdateFrameTexts();
