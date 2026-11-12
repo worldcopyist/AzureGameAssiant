@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
@@ -105,9 +104,11 @@ public partial class OverlayWindow : Window
                 return (Color.FromRgb(0x5F, 0xC0, 0xFF), Color.FromRgb(0xB9, 0xE2, 0xFF), Colors.Black);
 
             case "Custom":
-                Color value = TryParseColor(settings.Color, out Color custom) ? custom : Colors.White;
-                Color label = Color.FromArgb(0xC8, value.R, value.G, value.B);
-                Color shadow = Luminance(value) > 0.55 ? Colors.Black : Colors.White;
+                (byte alpha, byte r, byte g, byte b) = TryParseColor(settings.Color);
+                Color value = Color.FromArgb(alpha, r, g, b);
+                Color label = Color.FromArgb((byte)Math.Round(alpha * 0xC8 / 255.0), r, g, b);
+                byte shadowLevel = Luminance(value) > 0.55 ? (byte)0 : (byte)255;
+                Color shadow = Color.FromArgb(alpha, shadowLevel, shadowLevel, shadowLevel);
                 return (value, label, shadow);
 
             default:
@@ -115,19 +116,10 @@ public partial class OverlayWindow : Window
         }
     }
 
-    private static bool TryParseColor(string? text, out Color color)
-    {
-        color = Colors.White;
-        string value = (text ?? string.Empty).Trim().TrimStart('#');
-        if (value.Length != 6 ||
-            !uint.TryParse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint rgb))
-        {
-            return false;
-        }
-
-        color = Color.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb);
-        return true;
-    }
+    private static (byte A, byte R, byte G, byte B) TryParseColor(string? text) =>
+        OverlayColor.TryParse(text, out (byte A, byte R, byte G, byte B) color)
+            ? color
+            : ((byte)255, (byte)255, (byte)255, (byte)255);
 
     private static double Luminance(in Color color) =>
         ((0.2126 * color.R) + (0.7152 * color.G) + (0.0722 * color.B)) / 255.0;

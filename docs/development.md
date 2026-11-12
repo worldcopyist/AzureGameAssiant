@@ -1313,7 +1313,7 @@ internal sealed record AiProviderProfile(
 - 不透明度：`overlay.opacity` 取 30–100（默认 100），在 `Normalize()` 中夹紧；`ApplyAppearance()` 将其换算为窗口 `Opacity`，与配色一起即时生效，不引入背景面板。
 - 布局：每个数据项为“标签 + 数值”横向 `StackPanel`，整体从左到右排列；`MaxWidth = WorkArea.Width - 2 × OffsetX`（下限 240 DIP），放不下时按数据项自动换行，窗口高度随行数增长。
 - 可读性：文字使用 `DropShadowEffect`（BlurRadius 3、无偏移），不使用背景遮挡桌面。
-- 文字配色：`overlay.theme` 取 `Default`（白字）、`Light`（深字）、`Azure`（天空蓝）、`Custom`（自定义）；`overlay.color` 为 `#RRGGBB`。
+- 文字配色：`overlay.theme` 取 `Default`（白字）、`Light`（深字）、`Azure`（天空蓝）、`Custom`（自定义）；`overlay.color` 为 `#RRGGBB` 或 `#AARRGGBB`，统一由 `Core/Overlay/OverlayColor` 解析与规范化；8 位色的 alpha 同时作用于数值、标签（再乘以 78%）与阴影，6 位色按不透明处理。
 - `ApplyAppearance()` 把解析结果写回窗口资源 `OverlayValueBrush` / `OverlayLabelBrush` / `OverlayTextShadow`，XAML 用 `DynamicResource` 引用，切换无需重建窗口。
 - 标签颜色取数值色的 78% 不透明度；阴影按数值色亮度（0.55 阈值）自动选黑或白，避免自定义浅色在浅色桌面上“消失”。
 - 颜色解析失败（非 6 位十六进制）回退白色；归一化在 Core 的 `AppSettings.Normalize()` 完成，界面只使用已归一化的值。
@@ -1336,7 +1336,7 @@ internal sealed record AiProviderProfile(
 - UI 是唯一写入方；采集进程启动时读取，之后只接收管道补丁。
 - 写入采用临时文件 + 原子替换；读取失败时备份为 `settings.corrupt-<timestamp>.json` 并回退默认值。
 - `schemaVersion` 与迁移函数集中管理。
-- 加载时归一化：悬浮窗角落名转 PascalCase（缺省 TopLeft）；偏移量限制 0–4000；内容项全部关闭时强制打开 CPU 与 GPU，避免出现空窗口；配色主题名转 PascalCase（缺省 Default）；自定义颜色去 `#` 后校验 6 位十六进制并统一大写，非法值回退 `#FFFFFF`；图表全部关闭时强制打开 CPU 图（含新增的帧时间图，默认开启）。
+- 加载时归一化：悬浮窗角落名转 PascalCase（缺省 TopLeft）；偏移量限制 0–4000；内容项全部关闭时强制打开 CPU 与 GPU，避免出现空窗口；配色主题名转 PascalCase（缺省 Default）；自定义颜色去 `#` 后校验 6 或 8 位十六进制并统一大写（8 位 alpha 为 `FF` 时收窄为 6 位），非法值回退 `#FFFFFF`；图表全部关闭时强制打开 CPU 图（含新增的帧时间图，默认开启）。
 
 ```json
 {
@@ -1650,7 +1650,7 @@ AzureGameAssistant-<version>-win-x64/
 | 系统 | Win10 22H2、Win11 22H2+ |
 | 显卡 | NVIDIA、AMD、Intel 核显、混合显卡 |
 | 显示器 | 单屏、双屏、不同 DPI |
-| 悬浮窗 | 默认左上、无背景、横向换行、四角、偏移、内容开关、鼠标穿透、主窗口隐藏、配色主题、自定义颜色、不透明度、按主窗口所在显示器定位（含负坐标显示器与越界夹紧） |
+| 悬浮窗 | 默认左上、无背景、横向换行、四角、偏移、内容开关、鼠标穿透、主窗口隐藏、配色主题、自定义颜色（含 `#AARRGGBB` 透明度）、不透明度、按主窗口所在显示器定位（含负坐标显示器与越界夹紧） |
 | 图表 | 单图开关、至少保留一张、脱离小窗、关闭小窗归还、主窗口隐藏时小窗继续刷新 |
 | 游戏状态 | DX11、DX12、无边框窗口、全屏独占 |
 | 权限 | 普通用户、管理员、Performance Log Users |

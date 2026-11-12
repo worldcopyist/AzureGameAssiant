@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Reflection;
 using System.Windows.Media;
 using AzureGameAssistant.Ai;
@@ -6,6 +5,7 @@ using AzureGameAssistant.Core;
 using AzureGameAssistant.Core.Settings;
 using AzureGameAssistant.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
+using OverlayColorParser = AzureGameAssistant.Core.Overlay.OverlayColor;
 
 namespace AzureGameAssistant.UI.ViewModels;
 
@@ -394,8 +394,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     public bool IsOverlayCustomTheme => string.Equals(OverlayTheme, "Custom", StringComparison.Ordinal);
 
     public Brush OverlayColorPreview =>
-        TryParseColor(OverlayColor, out Color color)
-            ? FrozenBrush(color)
+        OverlayColorParser.TryParse(OverlayColor, out (byte A, byte R, byte G, byte B) color)
+            ? FrozenBrush(Color.FromArgb(color.A, color.R, color.G, color.B))
             : Brushes.Transparent;
 
     partial void OnOverlayThemeChanged(string value) => OnPropertyChanged(nameof(IsOverlayCustomTheme));
@@ -581,20 +581,6 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     private static double Clamp(double value, double min, double max, double fallback) =>
         double.IsFinite(value) ? Math.Clamp(value, min, max) : fallback;
-
-    private static bool TryParseColor(string? text, out Color color)
-    {
-        color = Colors.White;
-        string value = (text ?? string.Empty).Trim().TrimStart('#');
-        if (value.Length != 6 ||
-            !uint.TryParse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint rgb))
-        {
-            return false;
-        }
-
-        color = Color.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb);
-        return true;
-    }
 
     private static SolidColorBrush FrozenBrush(in Color color)
     {

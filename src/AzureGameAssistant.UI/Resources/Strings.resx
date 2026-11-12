@@ -544,7 +544,7 @@
     <value>Custom color</value>
   </data>
   <data name="OverlayColorHint" xml:space="preserve">
-    <value>Hex #RRGGBB, used by the Custom color theme. Labels reuse the color at reduced opacity.</value>
+    <value>Hex #RRGGBB or #AARRGGBB, used by the Custom color theme. Labels reuse the color at reduced opacity; an alpha prefix also fades the shadow.</value>
   </data>
   <data name="OverlayNotice" xml:space="preserve">
     <value>FPS, frame statistics and temperature show real values once the M2/M3 capture pipelines are connected. The overlay is topmost and click-through.</value>

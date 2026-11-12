@@ -263,4 +263,18 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.Equal("Default", settings.Overlay.Theme);
         Assert.Equal("#FFFFFF", settings.Overlay.Color);
     }
+
+    [Fact]
+    public void Normalize_KeepsAlphaInOverlayColor()
+    {
+        var settings = new AppSettings
+        {
+            Overlay = new OverlaySettings { Theme = "custom", Color = " 80aa00ff " },
+        };
+
+        settings.Normalize();
+
+        Assert.Equal("Custom", settings.Overlay.Theme);
+        Assert.Equal("#80AA00FF", settings.Overlay.Color);
+    }
 }

@@ -1,4 +1,5 @@
 using System.Globalization;
+using AzureGameAssistant.Core.Overlay;
 
 namespace AzureGameAssistant.Core.Settings;
 
@@ -196,17 +197,7 @@ public sealed class AppSettings
         return Math.Clamp(number, min, max);
     }
 
-    private static string NormalizeColor(string? value)
-    {
-        string text = (value ?? string.Empty).Trim().TrimStart('#');
-        if (text.Length == 6 &&
-            uint.TryParse(text, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _))
-        {
-            return "#" + text.ToUpperInvariant();
-        }
-
-        return "#FFFFFF";
-    }
+    private static string NormalizeColor(string? value) => OverlayColor.Normalize(value);
 }
 
 public sealed class SamplingSettings
