@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.IO;
 using System.Text;
-using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -49,21 +48,8 @@ public static class SessionExportService
     /// </summary>
     public static SessionAiSummary? TryReadAiSummary(string sessionPath)
     {
-        string path = sessionPath + ".ai.json";
-        if (!File.Exists(path))
-        {
-            return null;
-        }
-
-        try
-        {
-            AiReport? report = JsonSerializer.Deserialize(File.ReadAllText(path), AiReportJsonContext.Default.AiReport);
-            return report is null ? null : Flatten(report);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
-        {
-            return null;
-        }
+        AiReport? report = AiReportStore.Read(sessionPath);
+        return report is null ? null : Flatten(report);
     }
 
     private static SessionAiSummary Flatten(AiReport report) => new(

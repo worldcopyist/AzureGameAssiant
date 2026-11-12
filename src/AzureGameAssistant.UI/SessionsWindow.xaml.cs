@@ -5,8 +5,10 @@ using System.IO;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using AzureGameAssistant.Ai;
 using AzureGameAssistant.Core;
 using AzureGameAssistant.Core.Sessions;
+using AzureGameAssistant.Core.Settings;
 using AzureGameAssistant.UI.Services;
 using AzureGameAssistant.UI.ViewModels;
 using Microsoft.Win32;
@@ -16,13 +18,24 @@ namespace AzureGameAssistant.UI;
 public partial class SessionsWindow : Window
 {
     private readonly MainViewModel _viewModel;
+    private readonly AppSettings _settings;
+    private readonly SettingsService _settingsService;
+    private readonly AiAnalysisService _ai;
     private readonly ObservableCollection<SessionRow> _rows = new();
     private SessionRow? _selected;
+    private SessionDocument? _document;
 
-    public SessionsWindow(MainViewModel viewModel)
+    public SessionsWindow(
+        MainViewModel viewModel,
+        AppSettings settings,
+        SettingsService settingsService,
+        AiAnalysisService ai)
     {
         InitializeComponent();
         _viewModel = viewModel;
+        _settings = settings;
+        _settingsService = settingsService;
+        _ai = ai;
         SessionList.ItemsSource = _rows;
         _viewModel.SessionsChanged += OnSessionsChanged;
         Loaded += (_, _) => RefreshList();
@@ -80,6 +93,7 @@ public partial class SessionsWindow : Window
         try
         {
             SessionDocument document = SessionStore.Read(info.Path);
+            _document = document;
             ReplayChart.SetSamples(document.Samples, document.Samples.Length);
             ReplayChart.SetFrames(document.Frames, document.Frames.Length);
             ReplayChart.SetEventWindow(document.Event.StartUtc, document.Event.EndUtc);
@@ -90,12 +104,13 @@ public partial class SessionsWindow : Window
                 "{0} · {1}",
                 info.StartUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.CurrentUICulture),
                 CauseText(info.Cause, loc));
-            DetailText.Text = BuildDetail(document, loc);
+            DetailText.Text = BuildDetail(document, info.Path, loc);
             StatusText.Text = loc.Format("SessionListStatus", _rows.Count, info.FileName);
         }
         catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException
                                        or System.Text.Json.JsonException or ArgumentException)
         {
+            _document = null;
             ReplayChart.SetSamples([], 0);
             ReplayChart.SetFrames([], 0);
             ReplayChart.SetEventWindow(0, 0);
@@ -105,7 +120,7 @@ public partial class SessionsWindow : Window
         }
     }
 
-    private static string BuildDetail(SessionDocument document, LocalizationService loc)
+    private static string BuildDetail(SessionDocument document, string sessionPath, LocalizationService loc)
     {
         SessionHeaderLine header = document.Header;
         SessionEventLine eventLine = document.Event;
@@ -154,6 +169,7 @@ public partial class SessionsWindow : Window
         if (report is null)
         {
             builder.AppendLine(loc["SessionNoReport"]);
+            AppendAi(builder, sessionPath, loc);
             return builder.ToString();
         }
 
@@ -213,8 +229,53 @@ public partial class SessionsWindow : Window
             }
         }
 
+        AppendAi(builder, sessionPath, loc);
         return builder.ToString();
     }
+
+    private static void AppendAi(StringBuilder builder, string sessionPath, LocalizationService loc)
+    {
+        AiReport? report = AiReportStore.Read(sessionPath);
+        if (report is null)
+        {
+            return;
+        }
+
+        builder.AppendLine();
+        builder.AppendLine(loc["SessionAiTitle"]);
+        builder.AppendLine(report.Summary);
+        builder.AppendLine(loc.Format("SessionAiCause", AiCauseText(report.PrimaryCause, loc), AiConfidenceText(report.Confidence, loc)));
+
+        foreach (AiEvidence evidence in report.Evidence.Take(4))
+        {
+            builder.AppendLine("• " + evidence.Metric + ": " + evidence.Value + " — " + evidence.Interpretation);
+        }
+
+        foreach (AiRecommendation recommendation in report.Recommendations.Take(3))
+        {
+            builder.AppendLine("• " + recommendation.Action);
+        }
+
+        if (!string.IsNullOrWhiteSpace(report.Disclaimer))
+        {
+            builder.AppendLine();
+            builder.AppendLine(report.Disclaimer);
+        }
+    }
+
+    private static string AiCauseText(string cause, LocalizationService loc)
+    {
+        string key = "AiCause" + cause;
+        string text = loc[key];
+        return string.Equals(text, key, StringComparison.Ordinal) ? cause : text;
+    }
+
+    private static string AiConfidenceText(string confidence, LocalizationService loc) => confidence switch
+    {
+        "high" => loc["AiConfidenceHigh"],
+        "medium" => loc["AiConfidenceMedium"],
+        _ => loc["AiConfidenceLow"],
+    };
 
     private static string CauseText(string cause, LocalizationService loc) => cause switch
     {
@@ -258,6 +319,7 @@ public partial class SessionsWindow : Window
 
     private void ClearDetail(string status)
     {
+        _document = null;
         ReplayChart.SetSamples([], 0);
         ReplayChart.SetFrames([], 0);
         ReplayChart.SetEventWindow(0, 0);
@@ -311,6 +373,36 @@ public partial class SessionsWindow : Window
         {
             StatusText.Text = loc.Format("SessionExportFailed", ex.Message);
         }
+    }
+
+    private void OnAiClick(object sender, RoutedEventArgs e)
+    {
+        LocalizationService loc = LocalizationService.Instance;
+        if (_selected is null || _document is null)
+        {
+            return;
+        }
+
+        string sessionPath = _selected.Info.Path;
+        var window = new AiAnalysisWindow(
+            _settings,
+            _settingsService,
+            _ai,
+            SessionFactsFactory.FromSession(_document, loc.CurrentLanguage),
+            sessionPath)
+        {
+            Owner = this,
+        };
+
+        window.ShowDialog();
+
+        if (AiReportStore.Read(sessionPath) is null)
+        {
+            return;
+        }
+
+        DetailText.Text = BuildDetail(_document, sessionPath, loc);
+        StatusText.Text = loc.Format("SessionAiSaved", AiReportStore.PathFor(sessionPath));
     }
 
     private void OnOpenFolderClick(object sender, RoutedEventArgs e)

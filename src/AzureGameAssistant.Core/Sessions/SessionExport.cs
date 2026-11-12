@@ -28,7 +28,7 @@ public static class SessionMarkdownReport
     public const string ChartSuffix = "-timeline.png";
     public const string MarkdownExtension = ".md";
 
-    private const double DiscontinuityFrameMs = 1000.0;
+    private const double DiscontinuityFrameMs = SessionSchema.DiscontinuityFrameMs;
 
     public static string BuildFileBaseName(SessionEventLine eventLine)
     {

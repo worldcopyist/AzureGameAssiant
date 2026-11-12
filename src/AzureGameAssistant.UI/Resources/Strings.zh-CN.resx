@@ -1116,6 +1116,9 @@
   <data name="AiSavedReport" xml:space="preserve">
     <value>已保存到 {0}</value>
   </data>
+  <data name="AiSavedSessionReport" xml:space="preserve">
+    <value>已附加到会话：{0}</value>
+  </data>
   <data name="AiCauseCpuContention" xml:space="preserve">
     <value>CPU 争用</value>
   </data>
@@ -1184,6 +1187,18 @@
   </data>
   <data name="SessionExportFailed" xml:space="preserve">
     <value>导出失败：{0}</value>
+  </data>
+  <data name="SessionAiAnalyze" xml:space="preserve">
+    <value>AI 分析</value>
+  </data>
+  <data name="SessionAiTitle" xml:space="preserve">
+    <value>AI 分析（可选）</value>
+  </data>
+  <data name="SessionAiCause" xml:space="preserve">
+    <value>主因：{0} · 置信度 {1}</value>
+  </data>
+  <data name="SessionAiSaved" xml:space="preserve">
+    <value>AI 报告已写入会话：{0}</value>
   </data>
   <data name="SessionEventMarker" xml:space="preserve">
     <value>事件窗口</value>

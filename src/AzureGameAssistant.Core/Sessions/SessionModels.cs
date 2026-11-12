@@ -14,6 +14,13 @@ public static class SessionSchema
     public const string Extension = ".agsession.jsonl.gz";
     public const string RecordingState = "recording";
     public const string CompleteState = "complete";
+
+    /// <summary>
+    /// A frame this long means the collector restarted, not that the game
+    /// stalled. Reports, exports and AI facts all keep these out of frame
+    /// statistics and count them as data gaps instead.
+    /// </summary>
+    public const double DiscontinuityFrameMs = 1000.0;
 }
 
 /// <summary>

@@ -202,6 +202,12 @@ public sealed partial class AiAnalysisViewModel : ObservableObject
 
     public void SetStatus(string status) => StatusText = status;
 
+    public void ApplySessionReport(string path)
+    {
+        HasSavedPath = true;
+        SavedText = _loc.Format("AiSavedSessionReport", path);
+    }
+
     public void ApplyCancelled()
     {
         IsRunning = false;

@@ -721,13 +721,14 @@ internal sealed record StutterEvent(
 - `frames` 为 64 帧/批：`q` 为按采样锚点推算的绝对 QPC，`u` 为 UTF ticks，`ft` 帧时间，`cw`/`gw`/`dl` 为 CPU 等待 / GPU 等待 / 显示延迟，`sp` 为尖峰标记；`cb`/`gl`/`gb`/`ae`/`pm` 为预留字段，当前写 0。
 - 新增字段只能追加，不得改变既有含义；读取方遇到更高 `schemaVersion` 拒绝并提示升级。
 - `footer.sha256` 覆盖 footer 之前的全部行（含换行），`complete:false` 的半成品同样带校验值，便于列表判定完整性。
-- AI 报告默认另存为 `sessions/<sessionFileName>.ai.json`，会话内暂不嵌入 `ai` 行；接入 AI 分析时再按需合并。
+- AI 报告写入 `sessions/<sessionFileName>.ai.json`（仅结构化报告本体，不含密钥、请求体与原始响应）。
 
 ### 7.3 AI 报告文件
 
 - 路径：`sessions/<sessionFileName>.ai.json`（与会话同名，便于删除与检索）。
-- 内容：请求元信息（供应商、模型、时间、token 估算、是否脱敏）、结构化报告、原始响应哈希（不保存密钥与完整请求体）。
-- 用户删除会话时一并删除；设置中提供“清除所有 AI 报告”。
+- 内容：`AiReport` 结构化报告（摘要、主因、置信度、证据、可疑进程、帧分析、掉帧归因、高负载归因、建议、局限、免责声明），源生成 camelCase 序列化；不含 API Key、请求体与原始响应。
+- 会话窗口“AI 分析”以选中会话重建设施层（`SessionFactsFactory.FromSession`：采样、帧、进程名、深浅模式；≥1000 ms 的采集断帧不进入事实层），分析成功后由 `AiReportStore.Write` 原子写入（`.tmp` + 覆盖重命名）；离线回退结果属于本地归因，不写入。
+- 用户删除会话时一并删除同名 `.ai.json`。
 
 ## 8. 环形缓冲与会话存储
 
@@ -1414,7 +1415,7 @@ internal sealed record AiProviderProfile(
 - 导出入口：会话窗口“导出报告”，`SaveFileDialog` 默认文件名 `yyyyMMdd-HHmmss-<主因>`，用户选择 `.md` 路径；同目录生成 `<同名>-timeline.png`。导出完全本地，不发起网络请求。
 - 导出 Markdown（`Core/Sessions/SessionExport.cs` 的 `SessionMarkdownReport`）：事件摘要（时间、评分、主因、信号、前台进程、数据窗口、文件状态）、环境摘要表、事件时间轴（嵌入 PNG + 关键时刻表）、指标峰值表、帧统计（优先使用本地报告的帧证据，否则从帧数据重算；≥1000 ms 断帧单独计数，不计入最长帧与低帧）、可疑进程表、结论与建议、数据缺口；表格单元格转义 `|`，中文/英文随界面语言。峰值与关键时刻只取事件窗口内的采样，窗口退化为零长度时回退到整段会话数据。
 - 导出 PNG：`UI/Services/SessionExportService` 在 UI 线程离屏渲染 `TimelineChart`（1200×400，`RenderTargetBitmap` + `PngBitmapEncoder`），整段会话一屏；事件窗口绘制半透明色带 + 虚线 + “事件窗口”标签，帧轨、右侧 ms 量程与时间轴一并输出；背景取主题 `SurfaceBrush`，无主题资源时回退白色；渲染对象在方法结束时释放，不常驻。
-- AI 报告（可选）：若会话旁存在 `<会话文件>.ai.json`（`AiReport` JSON），自动在文末附摘要、证据、建议、局限与免责声明；文件缺失、损坏或字段不符时静默跳过，不影响导出。导出内容不含 API Key、请求体与原始响应。
+- AI 报告（可选）：会话窗口“AI 分析”打开分析窗口（数据取自该会话而非实时环形缓冲），成功后写入 `<会话文件>.ai.json`；详情区显示摘要、主因/置信度、前 4 条证据与前 3 条建议，导出时自动在文末附完整摘要、证据、建议、局限与免责声明。文件缺失、损坏或字段不符时静默跳过，不影响回放与导出。导出内容不含 API Key、请求体与原始响应。
 
 ### 11.9 帧数据消费（M2）
 

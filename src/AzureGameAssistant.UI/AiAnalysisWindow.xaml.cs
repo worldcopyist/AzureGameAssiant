@@ -18,6 +18,7 @@ public partial class AiAnalysisWindow : Window
     private readonly AiAnalysisService _ai;
     private readonly AiPreparedRequest _prepared;
     private readonly AiAnalysisViewModel _viewModel;
+    private readonly string? _sessionPath;
     private CancellationTokenSource? _cancellation;
     private DispatcherTimer? _copyTimer;
 
@@ -25,13 +26,15 @@ public partial class AiAnalysisWindow : Window
         AppSettings settings,
         SettingsService settingsService,
         AiAnalysisService ai,
-        FactsInput input)
+        FactsInput input,
+        string? sessionPath = null)
     {
         InitializeComponent();
 
         _settings = settings;
         _settingsService = settingsService;
         _ai = ai;
+        _sessionPath = sessionPath;
 
         FactsDocument facts = FactsBuilder.Build(input, settings.Ai.HideProcessNames);
         _prepared = ai.BuildRequest(settings, facts, LocalizationService.Instance.CurrentLanguage);
@@ -77,6 +80,7 @@ public partial class AiAnalysisWindow : Window
         {
             AiAnalysisResult result = await _ai.AnalyzeAsync(_prepared, progress, _cancellation.Token);
             _viewModel.ApplyResult(result);
+            AttachToSession(result);
         }
         catch (OperationCanceledException)
         {
@@ -89,6 +93,24 @@ public partial class AiAnalysisWindow : Window
     }
 
     private void OnCancelClick(object sender, RoutedEventArgs e) => _cancellation?.Cancel();
+
+    /// <summary>
+    /// A session-scoped run stores its report next to that session so replay
+    /// and export pick it up. The offline fallback is local attribution data,
+    /// not a model answer, so it is never written as an AI report.
+    /// </summary>
+    private void AttachToSession(AiAnalysisResult result)
+    {
+        if (_sessionPath is null || result.UsedLocalFallback || result.Report is not { } report)
+        {
+            return;
+        }
+
+        if (AiReportStore.Write(_sessionPath, report))
+        {
+            _viewModel.ApplySessionReport(AiReportStore.PathFor(_sessionPath));
+        }
+    }
 
     private void OnCopyPreview(object sender, RoutedEventArgs e)
     {

@@ -1116,6 +1116,9 @@
   <data name="AiSavedReport" xml:space="preserve">
     <value>Saved to {0}</value>
   </data>
+  <data name="AiSavedSessionReport" xml:space="preserve">
+    <value>Attached to session: {0}</value>
+  </data>
   <data name="AiCauseCpuContention" xml:space="preserve">
     <value>CPU contention</value>
   </data>
@@ -1184,6 +1187,18 @@
   </data>
   <data name="SessionExportFailed" xml:space="preserve">
     <value>Export failed: {0}</value>
+  </data>
+  <data name="SessionAiAnalyze" xml:space="preserve">
+    <value>AI analysis</value>
+  </data>
+  <data name="SessionAiTitle" xml:space="preserve">
+    <value>AI analysis (optional)</value>
+  </data>
+  <data name="SessionAiCause" xml:space="preserve">
+    <value>Primary cause: {0} · confidence {1}</value>
+  </data>
+  <data name="SessionAiSaved" xml:space="preserve">
+    <value>AI report saved: {0}</value>
   </data>
   <data name="SessionEventMarker" xml:space="preserve">
     <value>Event</value>

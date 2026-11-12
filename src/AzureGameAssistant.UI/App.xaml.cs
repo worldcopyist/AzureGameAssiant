@@ -490,7 +490,7 @@ public partial class App : Application
 
     private void OnSessionsRequested(object? sender, EventArgs e)
     {
-        if (_viewModel is null || _window is null)
+        if (_viewModel is null || _window is null || _settingsService is null)
         {
             return;
         }
@@ -501,7 +501,8 @@ public partial class App : Application
             return;
         }
 
-        var window = new SessionsWindow(_viewModel)
+        _ai ??= new AiAnalysisService();
+        var window = new SessionsWindow(_viewModel, _settings, _settingsService, _ai)
         {
             Owner = _window,
         };
