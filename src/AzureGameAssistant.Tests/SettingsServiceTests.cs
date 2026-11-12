@@ -63,6 +63,7 @@ public sealed class SettingsServiceTests : IDisposable
         settings.Diagnostics.LongRunRecord = true;
         settings.Diagnostics.IntervalSeconds = 30;
         settings.GameDetection.Exclude.Add("obs.exe");
+        settings.Overlay.Opacity = 65;
 
         service.Save(settings);
         SettingsLoadResult result = service.Load();
@@ -75,6 +76,7 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.True(result.Settings.Diagnostics.LongRunRecord);
         Assert.Equal(30, result.Settings.Diagnostics.IntervalSeconds);
         Assert.Contains("obs.exe", result.Settings.GameDetection.Exclude);
+        Assert.Equal(65, result.Settings.Overlay.Opacity);
     }
 
     [Fact]
