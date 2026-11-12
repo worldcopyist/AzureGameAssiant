@@ -1340,4 +1340,7 @@
     <value>Something went wrong. Details were written to the log.
 {0}</value>
   </data>
+  <data name="OverlayOpacity" xml:space="preserve">
+    <value>Opacity</value>
+  </data>
 </root>

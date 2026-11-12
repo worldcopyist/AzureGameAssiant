@@ -1340,4 +1340,7 @@
     <value>界面发生错误，已记录到日志。
 {0}</value>
   </data>
+  <data name="OverlayOpacity" xml:space="preserve">
+    <value>不透明度</value>
+  </data>
 </root>

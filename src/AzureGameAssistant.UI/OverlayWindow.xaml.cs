@@ -82,6 +82,7 @@ public partial class OverlayWindow : Window
     private void ApplyAppearance()
     {
         (Color value, Color label, Color shadow) = ResolveAppearance(_settings);
+        Opacity = Math.Clamp(_settings.Opacity, 30, 100) / 100.0;
         Resources["OverlayValueBrush"] = FrozenBrush(value);
         Resources["OverlayLabelBrush"] = FrozenBrush(label);
         Resources["OverlayTextShadow"] = new DropShadowEffect

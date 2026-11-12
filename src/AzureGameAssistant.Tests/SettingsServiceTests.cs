@@ -48,6 +48,7 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.Equal("TopLeft", result.Settings.Overlay.Corner);
         Assert.Equal("Default", result.Settings.Overlay.Theme);
         Assert.Equal("#FFFFFF", result.Settings.Overlay.Color);
+        Assert.Equal(100, result.Settings.Overlay.Opacity);
     }
 
     [Fact]
@@ -193,6 +194,7 @@ public sealed class SettingsServiceTests : IDisposable
                 ShowVram = false,
                 Theme = " custom ",
                 Color = " 00ff7f ",
+                Opacity = 5,
             },
         };
 
@@ -206,6 +208,7 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.True(settings.Overlay.ShowGpu);
         Assert.Equal("Custom", settings.Overlay.Theme);
         Assert.Equal("#00FF7F", settings.Overlay.Color);
+        Assert.Equal(30, settings.Overlay.Opacity);
     }
 
     [Fact]

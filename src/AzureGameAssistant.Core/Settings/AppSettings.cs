@@ -134,6 +134,7 @@ public sealed class AppSettings
             _ => "Default",
         };
         Overlay.Color = NormalizeColor(Overlay.Color);
+        Overlay.Opacity = Math.Clamp(Overlay.Opacity, 30, 100);
         if (!Overlay.ShowFps &&
             !Overlay.ShowFrameTimes &&
             !Overlay.ShowCpu &&
@@ -271,6 +272,7 @@ public sealed class OverlaySettings
     public bool ShowVram { get; set; }
     public string Theme { get; set; } = "Default";
     public string Color { get; set; } = "#FFFFFF";
+    public int Opacity { get; set; } = 100;
 }
 
 public sealed class SessionSettings
