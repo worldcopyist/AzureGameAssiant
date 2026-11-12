@@ -1549,6 +1549,7 @@ AzureGameAssistant/
 - .NET SDK 8.0.400+ 或 9.x（当前机器为 9.0.100，可构建 `net8.0`）。
 - Visual Studio 2022 Build Tools，含“使用 C++ 的桌面开发”（NativeAOT 链接需要）。
 - 可选：Visual Studio 2022 / Rider 用于调试。
+- `Directory.Build.targets` 把 net8.0 的 `KnownILCompilerPack` 固定到 8.0.34：SDK 9.0.100 默认解析 8.0.11，而该版本受 GHSA-p3jp-9v83-76w9 影响（8.0.33 修复），NuGet 审计会以 `NU1903` 阻断还原。升级 SDK 内置的 8.0 编译器包后，可删除该覆盖。
 
 ### 14.2 目标框架
 

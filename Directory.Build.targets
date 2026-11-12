@@ -1,0 +1,9 @@
+<Project>
+  <!-- The SDK bundled with .NET 9 resolves the net8.0 NativeAOT compiler to
+       8.0.11, which is covered by GHSA-p3jp-9v83-76w9 (patched in 8.0.33).
+       Overriding the known pack keeps the implicit reference and its version
+       consistent, without an explicit PackageReference warning. -->
+  <ItemGroup Condition="'$(PublishAot)' == 'true' and '$(TargetFramework)' == 'net8.0'">
+    <KnownILCompilerPack Update="Microsoft.DotNet.ILCompiler" ILCompilerPackVersion="8.0.34" />
+  </ItemGroup>
+</Project>

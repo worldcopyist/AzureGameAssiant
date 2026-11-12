@@ -24,7 +24,7 @@ $collectorOutput = Join-Path $artifacts "collector"
 $running = Get-Process -Name "AzureGameAssistant", "AzureGameAssistant.Collector" -ErrorAction SilentlyContinue
 if ($running) {
     $ids = ($running | ForEach-Object { $_.Id }) -join ", "
-    Write-Error "程序正在运行（PID: $ids）。重复打包会清空正在使用的目录并删除 PresentMon，请先从托盘退出后再执行。"
+    Write-Error "Program is running (PID: $ids). Packaging would clear in-use directories and remove PresentMon. Exit from the tray first."
     exit 1
 }
 
@@ -145,7 +145,7 @@ foreach ($license in $licenseFiles) {
 }
 
 if (-not $licenseCopied) {
-    Write-Warning "包内未包含 LICENSE：项目自身许可证尚未确定（K-05），首次公开发布前需补齐。"
+    Write-Warning "Package has no LICENSE file: the project license is undecided (K-05); add one before the first public release."
 }
 
 $readme = Join-Path $root "README.md"
