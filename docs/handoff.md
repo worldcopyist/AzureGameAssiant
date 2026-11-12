@@ -365,6 +365,12 @@
 - 验证：`SettingsServiceTests` 扩充默认值与夹紧断言（默认 100、5 夹到 30）；Release 全量 213 项通过、UI 0 警告 0 错误。滑杆实际观感需重启后由用户确认。
 
 
+### 3.27 打包后布局自检（2026-11-12）
+
+- 缺口：脚本只校验 PresentMon 的存在与哈希，其余文件依赖“复制语句写对”；本机 `artifacts\AzureGameAssistant-0.1.0-win-x64\collector\` 就是反例——只有采集 exe，没有 `presentmon\`，运行时因此拿不到帧数据。
+- 实现：所有文件归位后，`package.ps1` 按开发文档 §14.4 的必需项逐条 `Test-Path`（主程序、README、第三方声明、`LICENSES\LibreHardwareMonitorLib-MPL-2.0.txt`、采集进程、PresentMon 与其许可证、传感器边车），缺失即失败并列出路径。
+- 验证：脚本通过 pwsh 语法解析；用同一份清单跑现有旧包，准确报出 README、第三方声明、LICENSES、PresentMon 两项与传感器边车共 6 项缺失；对合成的完整目录返回 0 项缺失。整包重新生成仍待退出旧实例。
+
 ## 4. 进行中
 
 - **会话 AI 分析（3.16）**：按钮与写入链路已完成并通过单测；待配置 API Key 后在会话窗口点一次“AI 分析”，确认报告写入 `<会话>.ai.json`、详情区出现 AI 段、导出 Markdown 末尾附带 AI 章节。
@@ -618,6 +624,7 @@ MCP 冒烟（无需 Agent 客户端，直接走 stdio）：
 | 2026-11-12 | Qoder | 包内说明文档：`package.ps1` 强制复制 `README.md` 与 `THIRD-PARTY-NOTICES.md`（缺失即失败），`LICENSE` 未定时改为警告；第三方声明许可路径改为包内相对路径；README 更新自动分析现状；新增 handoff 3.24 并把 K-30 标为已解决 | `cfd899c` |
 | 2026-11-12 | Qoder | 界面提示双语补齐（FR-013）：单实例提示、保存设置失败、未处理异常三处改用资源键 `AlreadyRunning` / `SettingsSaveFailed` / `UiUnhandledError`；脚本核对 216 个资源键与中英各 442 条完全对齐；UI Release 0 警告 0 错误；补充 handoff 3.25 | `65c84cc` |
 | 2026-11-12 | Qoder | 悬浮窗不透明度（FR-012 增强）：新增 `overlay.opacity`（30–100，默认 100）、`ApplyAppearance` 即时生效、设置页外观区滑杆与百分比；`SettingsServiceTests` 扩充默认值与夹紧断言，总数仍 213；Release 0 警告 0 错误；补充 handoff 3.26 | `42651af` |
+| 2026-11-12 | Qoder | 打包布局自检：`package.ps1` 按 §14.4 必需项逐条校验，缺项即失败并列出路径；旧包实测报出 6 项缺失、合成完整目录 0 缺失；补充 handoff 3.27 | `待回填` |
 
 ## 10. 下次交接模板
 

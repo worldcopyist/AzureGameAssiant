@@ -169,6 +169,29 @@ if (Test-Path $thirdPartyLicenses) {
     Copy-Item $thirdPartyLicenses -Destination (Join-Path $stage "LICENSES") -Recurse -Force
 }
 
+$required = @(
+    "AzureGameAssistant.exe",
+    "README.md",
+    "THIRD-PARTY-NOTICES.md",
+    "LICENSES\LibreHardwareMonitorLib-MPL-2.0.txt",
+    "collector\AzureGameAssistant.Collector.exe",
+    "collector\presentmon\PresentMon-2.6.0-x64.exe",
+    "collector\presentmon\LICENSE.txt",
+    "collector\sensors\AzureGameAssistant.Sensors.exe"
+)
+
+$missing = @()
+foreach ($relative in $required) {
+    if (-not (Test-Path (Join-Path $stage $relative))) {
+        $missing += $relative
+    }
+}
+
+if ($missing.Count -gt 0) {
+    Write-Error ("Package layout incomplete: " + ($missing -join ", "))
+    exit 1
+}
+
 $zipPath = Join-Path $artifacts "$packageName.zip"
 if (-not $SkipZip) {
     if (Test-Path $zipPath) {
