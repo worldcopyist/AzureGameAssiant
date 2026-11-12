@@ -1170,6 +1170,24 @@
   <data name="SessionClose" xml:space="preserve">
     <value>关闭</value>
   </data>
+  <data name="SessionExport" xml:space="preserve">
+    <value>导出报告</value>
+  </data>
+  <data name="SessionExportDialogTitle" xml:space="preserve">
+    <value>导出会话报告</value>
+  </data>
+  <data name="SessionExportFilter" xml:space="preserve">
+    <value>Markdown 报告 (*.md)|*.md</value>
+  </data>
+  <data name="SessionExportSaved" xml:space="preserve">
+    <value>已导出：{0}</value>
+  </data>
+  <data name="SessionExportFailed" xml:space="preserve">
+    <value>导出失败：{0}</value>
+  </data>
+  <data name="SessionEventMarker" xml:space="preserve">
+    <value>事件窗口</value>
+  </data>
   <data name="SessionEmpty" xml:space="preserve">
     <value>暂无会话。确认卡顿或按下热键后会生成。</value>
   </data>

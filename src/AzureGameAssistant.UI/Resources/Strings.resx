@@ -1170,6 +1170,24 @@
   <data name="SessionClose" xml:space="preserve">
     <value>Close</value>
   </data>
+  <data name="SessionExport" xml:space="preserve">
+    <value>Export report</value>
+  </data>
+  <data name="SessionExportDialogTitle" xml:space="preserve">
+    <value>Export session report</value>
+  </data>
+  <data name="SessionExportFilter" xml:space="preserve">
+    <value>Markdown report (*.md)|*.md</value>
+  </data>
+  <data name="SessionExportSaved" xml:space="preserve">
+    <value>Exported: {0}</value>
+  </data>
+  <data name="SessionExportFailed" xml:space="preserve">
+    <value>Export failed: {0}</value>
+  </data>
+  <data name="SessionEventMarker" xml:space="preserve">
+    <value>Event</value>
+  </data>
   <data name="SessionEmpty" xml:space="preserve">
     <value>No sessions yet. Confirm a stutter or press the hotkey to create one.</value>
   </data>

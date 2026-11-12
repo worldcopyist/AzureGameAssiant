@@ -9,6 +9,7 @@ using AzureGameAssistant.Core;
 using AzureGameAssistant.Core.Sessions;
 using AzureGameAssistant.UI.Services;
 using AzureGameAssistant.UI.ViewModels;
+using Microsoft.Win32;
 
 namespace AzureGameAssistant.UI;
 
@@ -81,6 +82,7 @@ public partial class SessionsWindow : Window
             SessionDocument document = SessionStore.Read(info.Path);
             ReplayChart.SetSamples(document.Samples, document.Samples.Length);
             ReplayChart.SetFrames(document.Frames, document.Frames.Length);
+            ReplayChart.SetEventWindow(document.Event.StartUtc, document.Event.EndUtc);
             ReplayChart.ResetPan();
 
             DetailHeader.Text = string.Format(
@@ -96,6 +98,7 @@ public partial class SessionsWindow : Window
         {
             ReplayChart.SetSamples([], 0);
             ReplayChart.SetFrames([], 0);
+            ReplayChart.SetEventWindow(0, 0);
             DetailHeader.Text = loc["SessionLoadFailed"];
             DetailText.Text = ex.Message;
             StatusText.Text = loc["SessionLoadFailed"];
@@ -257,9 +260,57 @@ public partial class SessionsWindow : Window
     {
         ReplayChart.SetSamples([], 0);
         ReplayChart.SetFrames([], 0);
+        ReplayChart.SetEventWindow(0, 0);
         DetailHeader.Text = LocalizationService.Instance["SessionNoSelection"];
         DetailText.Text = status;
         StatusText.Text = status;
+    }
+
+    private void OnExportClick(object sender, RoutedEventArgs e)
+    {
+        LocalizationService loc = LocalizationService.Instance;
+        if (_selected is null)
+        {
+            return;
+        }
+
+        SessionDocument document;
+        try
+        {
+            document = SessionStore.Read(_selected.Info.Path);
+        }
+        catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException
+                                       or System.Text.Json.JsonException or ArgumentException)
+        {
+            StatusText.Text = loc.Format("SessionExportFailed", ex.Message);
+            return;
+        }
+
+        var dialog = new SaveFileDialog
+        {
+            Title = loc["SessionExportDialogTitle"],
+            Filter = loc["SessionExportFilter"],
+            DefaultExt = ".md",
+            AddExtension = true,
+            FileName = SessionMarkdownReport.BuildFileBaseName(document.Event),
+            InitialDirectory = _viewModel.Sessions.DirectoryPath,
+        };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            string path = SessionExportService.Export(document, _selected.Info.Path, dialog.FileName);
+            StatusText.Text = loc.Format("SessionExportSaved", path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
+                                       or InvalidOperationException or ArgumentException
+                                       or System.Runtime.InteropServices.COMException)
+        {
+            StatusText.Text = loc.Format("SessionExportFailed", ex.Message);
+        }
     }
 
     private void OnOpenFolderClick(object sender, RoutedEventArgs e)

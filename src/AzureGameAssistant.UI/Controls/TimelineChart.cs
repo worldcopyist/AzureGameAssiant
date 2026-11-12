@@ -63,6 +63,8 @@ public sealed class TimelineChart : FrameworkElement
     private static readonly Brush FallbackSpike = Frozen(Color.FromRgb(0xD9, 0x3A, 0x3A));
     private static readonly Dictionary<(Brush, double), Pen> PenCache = new();
     private static readonly Dictionary<Brush, Pen> BandPenCache = new();
+    private static readonly Dictionary<Brush, Pen> DashPenCache = new();
+    private static readonly Dictionary<Brush, Brush> BandFillCache = new();
 
     private readonly List<Point> _linePoints = new(1200);
     private readonly List<Point> _bandPoints = new(1200);
@@ -88,6 +90,8 @@ public sealed class TimelineChart : FrameworkElement
                                   ChartSeries.Vram | ChartSeries.Disk | ChartSeries.Frame;
     private double _windowSeconds = 60;
     private double _panSeconds;
+    private long _eventStartUtc;
+    private long _eventEndUtc;
     private int _version;
 
     private RenderKey _lastKey;
@@ -183,6 +187,22 @@ public sealed class TimelineChart : FrameworkElement
         InvalidateVisual();
     }
 
+    /// <summary>
+    /// Marks the confirmed stutter window so the replay and the exported PNG show
+    /// which part of the timeline the attribution refers to.
+    /// </summary>
+    public void SetEventWindow(long startUtc, long endUtc)
+    {
+        if (_eventStartUtc == startUtc && _eventEndUtc == endUtc)
+        {
+            return;
+        }
+
+        _eventStartUtc = startUtc;
+        _eventEndUtc = endUtc;
+        InvalidateVisual();
+    }
+
     protected override void OnRender(DrawingContext dc)
     {
         var bounds = new Rect(RenderSize);
@@ -247,6 +267,7 @@ public sealed class TimelineChart : FrameworkElement
             DrawMetric(dc, TrackRect(0, 1), MetricIndex(_metric));
         }
 
+        DrawEventWindow(dc, startTicks, endTicks);
         DrawTimeAxis(dc, startTicks, endTicks);
         DrawHover(dc, startTicks, endTicks);
     }
@@ -778,6 +799,47 @@ public sealed class TimelineChart : FrameworkElement
         dc.DrawText(right, new Point(_plot.Right - right.WidthIncludingTrailingWhitespace, y));
     }
 
+    private void DrawEventWindow(DrawingContext dc, double startTicks, double endTicks)
+    {
+        if (_eventStartUtc <= 0)
+        {
+            return;
+        }
+
+        double span = Math.Max(1, endTicks - startTicks);
+        double rawLeft = _plot.Left + ((_eventStartUtc - startTicks) / span) * _plot.Width;
+        double rawRight = _eventEndUtc > _eventStartUtc
+            ? _plot.Left + ((_eventEndUtc - startTicks) / span) * _plot.Width
+            : rawLeft;
+        if (rawRight < _plot.Left || rawLeft > _plot.Right)
+        {
+            return;
+        }
+
+        double left = Math.Clamp(rawLeft, _plot.Left, _plot.Right);
+        double right = Math.Clamp(rawRight, _plot.Left, _plot.Right);
+        Brush marker = GetBrush("ChartFrameBrush", FallbackFrame);
+
+        if (right - left > 1)
+        {
+            dc.DrawRectangle(GetBandFill(marker), null, new Rect(left, _plot.Top, right - left, _plot.Height));
+        }
+
+        Pen dashed = GetDashPen(marker);
+        dc.DrawLine(dashed, new Point(left, _plot.Top), new Point(left, _plot.Bottom));
+        if (right - left > 2)
+        {
+            dc.DrawLine(dashed, new Point(right, _plot.Top), new Point(right, _plot.Bottom));
+        }
+
+        DrawText(
+            dc,
+            LocalizationService.Instance["SessionEventMarker"],
+            new Point(left + 4, _plot.Top + 1),
+            GetBrush("TextSecondaryBrush", FallbackText),
+            10);
+    }
+
     private void DrawHover(DrawingContext dc, double startTicks, double endTicks)
     {
         if (_hoverPoint is not Point hover)
@@ -1166,6 +1228,36 @@ public sealed class TimelineChart : FrameworkElement
         }
 
         return pen;
+    }
+
+    private static Pen GetDashPen(Brush brush)
+    {
+        if (!DashPenCache.TryGetValue(brush, out Pen? pen))
+        {
+            pen = new Pen(brush, 1) { DashStyle = DashStyles.Dash };
+            pen.Freeze();
+            DashPenCache[brush] = pen;
+        }
+
+        return pen;
+    }
+
+    private static Brush GetBandFill(Brush brush)
+    {
+        if (!BandFillCache.TryGetValue(brush, out Brush? fill))
+        {
+            fill = brush;
+            if (brush is SolidColorBrush solid)
+            {
+                var copy = new SolidColorBrush(solid.Color) { Opacity = 0.10 };
+                copy.Freeze();
+                fill = copy;
+            }
+
+            BandFillCache[brush] = fill;
+        }
+
+        return fill;
     }
 
     private static Brush Frozen(Color color)
