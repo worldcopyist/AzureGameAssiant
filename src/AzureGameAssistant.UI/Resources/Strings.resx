@@ -259,7 +259,7 @@
     <value>Enable stutter detection</value>
   </data>
   <data name="DetectionHint" xml:space="preserve">
-    <value>Changes apply immediately. Deep mode confirms on frame spikes alone; shallow mode needs two resource signals or a confirmed jitter.</value>
+    <value>Changes apply immediately. Deep mode confirms on frame spikes alone; shallow mode needs two resource signals or a confirmed jitter. Automatic detection only runs while a game is in the foreground or frames are being captured; manual marks always work.</value>
   </data>
   <data name="DetectionFrameSpikeRatio" xml:space="preserve">
     <value>Frame spike ratio</value>

@@ -846,6 +846,12 @@ diskScore   = clamp((diskLatencyMs - 50) / 100 * 100, 0, 100)
 - 确认阈值默认 40；手动标记固定 100。
 - 深模式下 `frameScore` 为主；浅模式下 `frameScore` 恒为 0。
 
+**游戏上下文门控（2026-11-12）**
+
+- `MainViewModel.TrackStutter` 在送入采样前先判断 `IsPlayContext`：帧采集处于 `capturing` / `starting`，或前台 PID 与缓存（1 秒）的游戏探测结果一致，才调用 `ObserveSample`。
+- 不满足时调用 `DetectionEngine.Suspend()`：若已有未闭合事件，直接 `ResetEventState()` 丢弃，不写事件。否则离开游戏后的第一条采样会把旧事件按“静默 2 秒”收尾，得到一个时长被拉长的假事件。
+- 手动标记走 `MarkManual`，不经过该门控；门控只影响自动信号。设置页提示文案同步说明这一点（中英双语）。
+
 ### 9.2.1 手动标记、热键与托盘通知
 
 - 手动标记：热键、主界面按钮、托盘菜单三处入口都调用 `DetectionEngine.MarkManual`，固定生成评分 100 的手动事件。事件先进入引擎队列，由 `DrainStutterEvents` 统一出队并写入界面，避免“直接添加 + 队列再取一次”造成重复事件。

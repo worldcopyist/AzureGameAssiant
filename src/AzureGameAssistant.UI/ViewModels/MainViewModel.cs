@@ -1228,7 +1228,29 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
 
         _lastStutterSampleTicks = sample.UtcTicks;
+
+        // Automatic detection only means something during play: desktop work
+        // (builds, indexing) pushes system CPU past 85% and used to create
+        // zero-duration events and balloons. Manual marks bypass this gate.
+        if (!IsPlayContext(sample))
+        {
+            _detector.Suspend();
+            return;
+        }
+
         _detector.ObserveSample(sample);
+    }
+
+    private bool IsPlayContext(in SampleRecord sample)
+    {
+        if (_frameTargetPid is not null && _frameState is "capturing" or "starting")
+        {
+            return true;
+        }
+
+        return sample.ForegroundPid != 0 &&
+            DetectGamePid(DateTime.UtcNow) is int gamePid &&
+            gamePid == (int)sample.ForegroundPid;
     }
 
     private void DrainStutterEvents()

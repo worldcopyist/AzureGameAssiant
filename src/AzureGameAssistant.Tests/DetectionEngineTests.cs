@@ -113,6 +113,17 @@ public sealed class DetectionEngineTests
     }
 
     [Fact]
+    public void SuspendDropsOpenEvent()
+    {
+        DetectionEngine engine = Create(deep: false);
+        engine.ObserveSample(Sample(T0, cpu: 92));
+        engine.Suspend();
+        engine.ObserveSample(Sample(T0 + 3_000 * Ms, cpu: 10));
+
+        Assert.False(engine.TryDequeue(out _));
+    }
+
+    [Fact]
     public void DiskPressureNeedsTwoSamples()
     {
         DetectionEngine engine = Create(deep: false);

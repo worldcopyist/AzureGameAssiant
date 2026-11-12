@@ -207,8 +207,23 @@ public sealed class DetectionEngine
         CloseIfQuiet(ticks);
     }
 
-    public bool TryDequeue(out StutterEvent stutterEvent)
+    /// <summary>
+    /// Drops an open event when automatic detection loses its context (the
+    /// user left the game). Without this the next sample would close a stale
+    /// event with an inflated duration; manual marks are unaffected.
+    /// </summary>
+    public void Suspend()
     {
+        if (!_active)
+        {
+            return;
+        }
+
+        _active = false;
+        ResetEventState();
+    }
+
+    public bool TryDequeue(out StutterEvent stutterEvent)    {
         if (_queueCount == 0)
         {
             stutterEvent = default;
