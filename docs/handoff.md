@@ -22,7 +22,7 @@
 | 最新里程碑 | AI 报告合并进会话完成：会话窗口新增“AI 分析”，以选中会话（而非实时缓冲）重建事实层，`≥1000 ms` 采集断帧不参与；分析成功且非离线回退时写入 `<会话文件>.ai.json`，详情区显示摘要、主因/置信度、前 4 条证据与前 3 条建议，FR-015 导出自动附带。`SessionSchema.DiscontinuityFrameMs` 成为报告与 AI 共用的断帧阈值。报告同时记录模型与事实哈希，再次打开时命中即复用并提示“已复用”，按钮变“重新分析”，不再重复请求。FR-020 可选“严重事件自动分析”已落地：默认关闭，仅在完整会话落盘后、评分 / 预算 / 同意 / Key 全部满足时触发并写入同一 `.ai.json`。总数 232 项测试通过；Debug/Release 0 警告 0 错误。会话级点击验证待配置 API Key 后执行。整包已于 2026-11-12 重新生成并核对完整（3.34）。 |
 | 可运行产物 | `build/run-dev.ps1` 可启动；`build/package.ps1` 默认 AOT 流程可生成便携 ZIP（含 PresentMon）；`build/publish-mcp.ps1` 生成 `artifacts/mcp/AzureGameAssistant.Mcp.exe`；二号屏桌面快捷方式指向 Release |
 | 代码分支 | `main`（`feat/m1-foundation` 已 squash 合入，分支保留） |
-| 当前提交 | `50a9d57` |
+| 当前提交 | `faa8797` |
 | 未提交变更 | 无 |
 | 阻塞事项 | 帧率准确性需在用户真实游戏（原神 60 帧、三角洲行动）长测确认；AI 窗口与“测试连接”按钮待点击验证；掉帧/高负载标记需在真实游戏复现后核对事件与报告；3 款游戏 PresentMon 实测与反作弊评估待用户游戏环境（已测明日方舟、三角洲行动）；深模式内存/CPU 与 60 分钟连续性待专项测量；本机默认热键 `Ctrl+Alt+M` 被其他程序占用，需用户在设置页改键（实测 `Ctrl+Alt+F9` 可用）；卡顿判定召回率与误报需真实游戏长测；会话级 AI 分析（3.16）待配置 API Key 后点击验证 |
 
@@ -415,6 +415,13 @@
 - 验证：`dotnet restore` 审计通过；AOT 采集器 3.95MB（预算 30MB）；`package.ps1` 全流程成功，`artifacts/AzureGameAssistant-0.1.0-win-x64` 250MB / ZIP 110MB，根目录含 `README.md`、`THIRD-PARTY-NOTICES.md`、`LICENSES\`，`collector\` 含采集器、`presentmon\PresentMon-2.6.0-x64.exe` 与 `sensors\AzureGameAssistant.Sensors.exe`；Windows PowerShell 5.1 执行 `package.ps1` 已能正常解析（触发“程序正在运行”门禁而非语法错误）。已通过 D: 快捷方式重启并保持运行（UI PID 27116、采集 PID 2288、传感器 PID 2748），重启后自动进入游戏模式 200ms 采样并开始帧采集，瞬时 139.5 FPS；问题日志仅剩已知的 `Ctrl+Alt+M` 热键占用（K 项），无采集错误。
 - **待用户审核**：采集器编译器由 8.0.11 升至 8.0.34 属供应链安全升级，不改变行为；如需回退，删除 `Directory.Build.targets` 并接受审计失败。
 
+### 3.35 菜单可读性与标题栏主题（2026-11-12）
+
+- 缺口：托盘菜单由代码创建，继承窗口前景色却使用系统底色——系统深色 + 应用浅色时出现深底深字；深色主题下原生标题栏仍为白色，与窗口内容割裂。
+- 实现：`Themes/Shared.xaml` 新增 `ContextMenu` / `MenuItem` 隐式样式，背景、前景、边框统一取 `SurfaceBrush` / `TextPrimaryBrush` / `BorderBrush`，悬停高亮仍走系统高亮；新增 `WindowChromeTheme`，用 `DwmSetWindowAttribute` 设置沉浸式深色（20，旧系统回退 19），Windows 11 再把标题栏/边框/文字设为窗口背景与前景色；`App` 注册 `Window.Loaded` 类处理器并对 `ThemeService.ThemeChanged` 全量重刷，覆盖设置、会话、AI、图表等所有窗口。
+- 验证：Release 全解决方案 0 警告 0 错误，232 项测试通过；重启后截图确认深色标题栏已与 `#14181F` 背景统一。浅色菜单与标题栏的截图核对未能自动完成（当前会话光标注入报 0x800700CB），样式已按同一调色板绑定，待用户目视确认。
+- **待用户审核**：菜单外观改为应用调色板、标题栏由 DWM 控制，均无新设置项；若不希望标题栏跟随应用主题，可移除 `WindowChromeTheme` 调用。
+
 ## 4. 进行中
 
 - **会话 AI 分析（3.16）**：按钮与写入链路已完成并通过单测；待配置 API Key 后在会话窗口点一次“AI 分析”，确认报告写入 `<会话>.ai.json`、详情区出现 AI 段、导出 Markdown 末尾附带 AI 章节。
@@ -525,6 +532,7 @@
 | K-16 | 悬浮窗跨显示器位置记忆与拖动未实现 | 不能记忆“副屏右下”这类位置，也不能手动拖动 | 位置已由“显示器（3.31）+ 四角 + 偏移”完整记忆并持久化；拖动与鼠标穿透互斥，明确不实现 |
 | K-49 | `artifacts\AzureGameAssistant-0.1.0-win-x64` 曾为不完整旧包（`collector` 仅含 exe，缺 `presentmon`、`sensors`） | 运行该包时帧率与温度永远为“—”，采集日志每 2 秒重试 | 已解决（3.34）：2026-11-12 重新打包，采集器 / PresentMon / 传感器边车均在包内；旧包目录已被覆盖，不要再复制旧的 ZIP |
 | K-50 | 未在游戏时也会自动判定卡顿：本机约 80 分钟记录 16 次，多为编译满载触发系统 CPU ≥ 85%，`时长 0 ms` | 桌面工作被当成卡顿并弹通知，事件列表噪声大 | 已实施（3.33）：自动判定仅在“前台为游戏或存在帧采集目标”时启用，离开上下文时 `Suspend()` 丢弃未闭合事件；手动标记与阈值调整不受影响；待用户审核是否保留该行为 |
+| K-51 | 浅色主题下托盘菜单深底深字；深色主题下原生标题栏保持白色 | 菜单不可读、窗口上下割裂 | 已修复（3.35）：菜单使用应用调色板，标题栏经 DWM 跟随主题；待用户浅色目视复核 |
 | K-17 | ~~悬浮窗 GPU 温度仍显示“—”~~ | 已解决 | LHM 边车已接入，实机显示 GPU 温度 / 热点；FPS / 平均帧 / 1% Low 已在 M2-2 接通 |
 | K-18 | ~~五张图在固定高度图区内需纵向滚动~~ | 已解决（默认合并图） | 默认改为单张合并叠加图并按可视区自适应高度，不再需要滚动；切到“分开显示图表卡片”后多卡片仍可纵向滚动 |
 | K-19 | ~~悬浮数据无背景，极亮或高对比桌面背景下可读性依赖文字阴影~~ | 已解决（默认仍无背景） | 细阴影 + 可选半透明底（3.30，0%–80%，默认 0）；仍不足时可配合 `#AARRGGBB` 与整体不透明度 |
@@ -680,6 +688,8 @@ MCP 冒烟（无需 Agent 客户端，直接走 stdio）：
 | 2026-11-12 | Qoder | PresentMon 启动失败日志去重（K-49）：启动前检查降为 Debug，`WarnFrameStartFailure` 同一原因 5 分钟只 Warn 一次；总数 231；Release 0 警告 0 错误；补充 handoff 3.32 | `0fc28ea` |
 | 2026-11-12 | Qoder | 自动卡顿判定限游戏上下文（K-50）：`IsPlayContext` 门控 + `DetectionEngine.Suspend()` 丢弃未闭合事件，手动标记不受限；设置提示中英同步；新增 1 项测试，总数 232；Release 0 警告 0 错误；补充 handoff 3.33，待用户审核 | `0b36d53` |
 | 2026-11-12 | Qoder | 整包重建与 AOT 编译器安全升级：`Directory.Build.targets` 将 `KnownILCompilerPack` 固定 8.0.34（修复 NU1903 / GHSA-p3jp-9v83-76w9）；`package.ps1` 中文提示改英文以兼容 PowerShell 5.1；整包 250MB / ZIP 110MB，采集器 3.95MB，presentmon 与 sensors 齐全（K-49 关闭）；补充 handoff 3.34 | `50a9d57` |
+| 2026-11-12 | Qoder | 实机验证记录：重启后游戏模式 200ms 采样、帧采集与 139.5 FPS 正常；热键 Ctrl+Alt+M 被占用（1409），待用户改绑 | `ddb3cfa` |
+| 2026-11-12 | Qoder | 菜单与标题栏主题一致性（K-51）：`Shared.xaml` 为 `ContextMenu` / `MenuItem` 增加调色板隐式样式；新增 `WindowChromeTheme` 经 DWM 跟随主题，`Loaded` 与 `ThemeChanged` 时重刷；新增 handoff 3.35；文档补 FR-013 验收与 v1.17；Release 0 警告 0 错误、232 项测试通过；待用户浅色目视复核 | `faa8797` |
 
 ## 10. 下次交接模板
 
