@@ -99,7 +99,9 @@ internal sealed class PresentMonSupervisor : IDisposable
         {
             _lastError = $"未找到 PresentMon：{_executablePath}";
             _state = FrameCaptureState.Unavailable;
-            _logger.Warn(_lastError);
+            // StartFrames retries per foreground poll; the host warns once and
+            // throttles, so keep the per-attempt line out of the issue log.
+            _logger.Debug(_lastError);
             return;
         }
 
@@ -109,7 +111,7 @@ internal sealed class PresentMonSupervisor : IDisposable
                 ? $"PresentMon 无法读取：{_executablePath}"
                 : $"PresentMon 校验失败（SHA256 {actualHash}）";
             _state = FrameCaptureState.Unavailable;
-            _logger.Warn(_lastError);
+            _logger.Debug(_lastError);
             return;
         }
 

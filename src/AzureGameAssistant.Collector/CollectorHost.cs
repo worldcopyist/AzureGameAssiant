@@ -43,6 +43,10 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
     private SensorRecord _sensorRecord;
     private bool _errorLogged;
     private bool _disposed;
+    private DateTime _lastFrameStartWarnAt;
+    private string? _lastFrameStartWarnMessage;
+
+    private static readonly TimeSpan FrameStartWarnInterval = TimeSpan.FromMinutes(5);
 
     public CollectorHost(AppSettings settings, FileLogger logger, CollectorOptions options)
     {
@@ -504,7 +508,7 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
             supervisor.Start();
             if (supervisor.State == FrameCaptureState.Unavailable)
             {
-                _logger.Warn($"帧采集无法启动：{supervisor.LastError}");
+                WarnFrameStartFailure($"帧采集无法启动：{supervisor.LastError}");
                 supervisor.Dispose();
                 return false;
             }
@@ -549,6 +553,20 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
 
             _logger.Info($"帧采集已停止：PID {supervisor.TargetPid}");
         });
+    }
+
+    private void WarnFrameStartFailure(string message)
+    {
+        DateTime now = DateTime.UtcNow;
+        if (message == _lastFrameStartWarnMessage && now - _lastFrameStartWarnAt < FrameStartWarnInterval)
+        {
+            _logger.Debug(message);
+            return;
+        }
+
+        _lastFrameStartWarnAt = now;
+        _lastFrameStartWarnMessage = message;
+        _logger.Warn(message);
     }
 
     private static string FrameStateName(FrameCaptureState state) => state switch

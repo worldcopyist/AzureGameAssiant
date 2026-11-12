@@ -533,6 +533,7 @@ PresentMon.exe --process_id <pid> --output_stdout --v2_metrics --session_name Az
 
 - 采集进程用 `Process` 启动（底层 `CreateProcessW`），重定向 stdout/stderr，加入 kill-on-close 的 Job Object；停止时先取消读取，2 秒内未退出再杀掉整个进程树。
 - 状态机（`PresentMonSupervisor` 实际枚举）：`Stopped` / `Starting` / `Capturing` / `PermissionDenied` / `Unavailable`。
+- 启动前检查（文件缺失、SHA256 不符）只写 Debug 并返回 `Unavailable`，由 `CollectorHost` 汇总告警；`frames.start` 失败按消息去重，同一原因 5 分钟内最多 Warn 一次，其余降为 Debug，避免前台轮询刷问题日志（K-49）。
 
 ```
 Stopped ──有目标 PID──► Starting ──首帧──► Capturing

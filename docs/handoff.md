@@ -395,6 +395,12 @@
 - 实现：`OverlaySettings.Monitor`（默认 `Follow`）由 `NormalizeMonitor` 收敛为 `Follow` / `Primary` / `\\.\DISPLAYn`。`MonitorWorkArea` 新增 `EnumDisplayMonitors` + `MONITORINFOEX` 的 `Enumerate()` 与 `TryGetByDevice`；`OverlayWindow.TargetWorkArea` 按 `Primary` → `SystemParameters.WorkArea`、`DISPLAYn` → `TryGetByDevice` + DPI 换算、其余 → 主窗口所在显示器，任一失败回退主屏。设置页位置区新增显示器下拉（跟随主窗口 / 主显示器 / 枚举结果），当前显示器不在枚举中时保留原名选项。
 - 验证：`Normalize_MonitorAcceptsKnownValues` 4 组输入与设置往返断言；总数 231 项通过，Release 全解决方案 0 警告 0 错误。双屏实机切换与热插拔待重启后确认。
 
+### 3.32 PresentMon 启动失败日志去重（2026-11-12）
+
+- 缺口：不完整便携包缺少 `presentmon` 时，前台自动采集每个轮询周期都调用 `frames.start`，采集进程每次写两条 Warn（未找到 PresentMon、帧采集无法启动），问题日志被刷屏。
+- 实现：`PresentMonSupervisor` 的启动前检查（文件缺失、SHA256 不符）降为 Debug，错误仍通过 `LastError`/状态返回；`CollectorHost.WarnFrameStartFailure` 按消息去重，同一原因 5 分钟内只 Warn 一次，其余写 Debug。UI 侧原有的 15 秒失败冷却保持不变。
+- 验证：Release 全解决方案 0 警告 0 错误，231 项测试通过；日志节流效果待完整包重启后确认。
+
 ## 4. 进行中
 
 - **会话 AI 分析（3.16）**：按钮与写入链路已完成并通过单测；待配置 API Key 后在会话窗口点一次“AI 分析”，确认报告写入 `<会话>.ai.json`、详情区出现 AI 段、导出 Markdown 末尾附带 AI 章节。
@@ -502,7 +508,7 @@
 | K-14 | 当前仅验证单显示器、单 GPU、本机驱动 | 兼容性未知 | M2-0 扩展手工验收矩阵；高 DPI/多显示器在 M2 验收 |
 | K-15 | Collector 句柄在 30 分钟可见状态下 381 → 455 缓慢上升 | 长时运行可能累积 | 托盘 10 分钟窗口内回落且内存稳定；8 小时稳定性测试复核，必要时用句柄表定位 |
 | K-16 | 悬浮窗跨显示器位置记忆与拖动未实现 | 不能记忆“副屏右下”这类位置，也不能手动拖动 | 位置已由“显示器（3.31）+ 四角 + 偏移”完整记忆并持久化；拖动与鼠标穿透互斥，明确不实现 |
-| K-49 | `artifacts\AzureGameAssistant-0.1.0-win-x64` 为不完整旧包（`collector` 仅含 exe，缺 `presentmon`、`sensors`） | 运行该包时帧率与温度永远为“—”，采集日志每 2 秒重试 | 新代码已对启动失败加冷却；必须退出旧实例后重跑 `package.ps1` 再用新包，勿直接使用现有 artifacts |
+| K-49 | `artifacts\AzureGameAssistant-0.1.0-win-x64` 为不完整旧包（`collector` 仅含 exe，缺 `presentmon`、`sensors`） | 运行该包时帧率与温度永远为“—”，采集日志每 2 秒重试 | 新代码已加 UI 冷却与采集侧日志去重（3.32）；必须退出旧实例后重跑 `package.ps1` 再用新包，勿直接使用现有 artifacts |
 | K-17 | ~~悬浮窗 GPU 温度仍显示“—”~~ | 已解决 | LHM 边车已接入，实机显示 GPU 温度 / 热点；FPS / 平均帧 / 1% Low 已在 M2-2 接通 |
 | K-18 | ~~五张图在固定高度图区内需纵向滚动~~ | 已解决（默认合并图） | 默认改为单张合并叠加图并按可视区自适应高度，不再需要滚动；切到“分开显示图表卡片”后多卡片仍可纵向滚动 |
 | K-19 | ~~悬浮数据无背景，极亮或高对比桌面背景下可读性依赖文字阴影~~ | 已解决（默认仍无背景） | 细阴影 + 可选半透明底（3.30，0%–80%，默认 0）；仍不足时可配合 `#AARRGGBB` 与整体不透明度 |
