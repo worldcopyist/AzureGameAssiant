@@ -22,7 +22,7 @@
 | 最新里程碑 | AI 报告合并进会话完成：会话窗口新增“AI 分析”，以选中会话（而非实时缓冲）重建事实层，`≥1000 ms` 采集断帧不参与；分析成功且非离线回退时写入 `<会话文件>.ai.json`，详情区显示摘要、主因/置信度、前 4 条证据与前 3 条建议，FR-015 导出自动附带。`SessionSchema.DiscontinuityFrameMs` 成为报告与 AI 共用的断帧阈值。报告同时记录模型与事实哈希，再次打开时命中即复用并提示“已复用”，按钮变“重新分析”，不再重复请求。FR-020 可选“严重事件自动分析”已落地：默认关闭，仅在完整会话落盘后、评分 / 预算 / 同意 / Key 全部满足时触发并写入同一 `.ai.json`。总数 213 项测试通过；Debug/Release 0 警告 0 错误。会话级点击验证待配置 API Key 后执行。 |
 | 可运行产物 | `build/run-dev.ps1` 可启动；`build/package.ps1` 默认 AOT 流程可生成便携 ZIP（含 PresentMon）；`build/publish-mcp.ps1` 生成 `artifacts/mcp/AzureGameAssistant.Mcp.exe`；二号屏桌面快捷方式指向 Release |
 | 代码分支 | `main`（`feat/m1-foundation` 已 squash 合入，分支保留） |
-| 当前提交 | `65c84cc` |
+| 当前提交 | `42651af` |
 | 未提交变更 | 无 |
 | 阻塞事项 | 帧率准确性需在用户真实游戏（原神 60 帧、三角洲行动）长测确认；AI 窗口与“测试连接”按钮待点击验证；掉帧/高负载标记需在真实游戏复现后核对事件与报告；3 款游戏 PresentMon 实测与反作弊评估待用户游戏环境（已测明日方舟、三角洲行动）；深模式内存/CPU 与 60 分钟连续性待专项测量；本机默认热键 `Ctrl+Alt+M` 被其他程序占用，需用户在设置页改键（实测 `Ctrl+Alt+F9` 可用）；卡顿判定召回率与误报需真实游戏长测；会话级 AI 分析（3.16）待配置 API Key 后点击验证 |
 
@@ -617,7 +617,7 @@ MCP 冒烟（无需 Agent 客户端，直接走 stdio）：
 | 2026-11-12 | Qoder | 便携包内置传感器边车（K-27）：`package.ps1` 自包含发布边车到 `collector\sensors\` 并复制 `LICENSES\`；采集进程按子目录 → 同目录 → 开发树解析；边车单独发布 81MB、依赖齐全，整包待复验；补充 handoff 3.23 | `e0b8f1d` |
 | 2026-11-12 | Qoder | 包内说明文档：`package.ps1` 强制复制 `README.md` 与 `THIRD-PARTY-NOTICES.md`（缺失即失败），`LICENSE` 未定时改为警告；第三方声明许可路径改为包内相对路径；README 更新自动分析现状；新增 handoff 3.24 并把 K-30 标为已解决 | `cfd899c` |
 | 2026-11-12 | Qoder | 界面提示双语补齐（FR-013）：单实例提示、保存设置失败、未处理异常三处改用资源键 `AlreadyRunning` / `SettingsSaveFailed` / `UiUnhandledError`；脚本核对 216 个资源键与中英各 442 条完全对齐；UI Release 0 警告 0 错误；补充 handoff 3.25 | `65c84cc` |
-| 2026-11-12 | Qoder | 悬浮窗不透明度（FR-012 增强）：新增 `overlay.opacity`（30–100，默认 100）、`ApplyAppearance` 即时生效、设置页外观区滑杆与百分比；`SettingsServiceTests` 扩充默认值与夹紧断言，总数仍 213；Release 0 警告 0 错误；补充 handoff 3.26 | `待回填` |
+| 2026-11-12 | Qoder | 悬浮窗不透明度（FR-012 增强）：新增 `overlay.opacity`（30–100，默认 100）、`ApplyAppearance` 即时生效、设置页外观区滑杆与百分比；`SettingsServiceTests` 扩充默认值与夹紧断言，总数仍 213；Release 0 警告 0 错误；补充 handoff 3.26 | `42651af` |
 
 ## 10. 下次交接模板
 
