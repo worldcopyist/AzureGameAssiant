@@ -878,6 +878,15 @@ public partial class App : Application
             Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint,
         };
 
+        // The tray menu stays light regardless of the window theme, but its
+        // palette-bound sibling items would otherwise inherit dark text.
+        if (TryFindResource("TrayMenu") is Style trayMenuStyle &&
+            TryFindResource("TrayMenuItem") is Style trayItemStyle)
+        {
+            menu.Style = trayMenuStyle;
+            menu.Resources[typeof(MenuItem)] = trayItemStyle;
+        }
+
         menu.Items.Add(new MenuItem
         {
             Header = LocalizationService.Instance["OpenMain"],
@@ -983,7 +992,7 @@ public partial class App : Application
         _logger?.Info(
             $"检测到卡顿：评分 {stutterEvent.Score}，时长 {stutterEvent.DurationMs:F0} ms，原因 {stutterEvent.Cause}");
 
-        if (!_settings.Notifications || _tray is null)
+        if (!_settings.Detection.NotifyStutter || !_settings.Notifications || _tray is null)
         {
             return;
         }

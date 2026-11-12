@@ -258,6 +258,9 @@
   <data name="DetectionEnabled" xml:space="preserve">
     <value>Enable stutter detection</value>
   </data>
+  <data name="DetectionNotifyStutter" xml:space="preserve">
+    <value>Show a desktop notification when a stutter is detected (off by default)</value>
+  </data>
   <data name="DetectionHint" xml:space="preserve">
     <value>Changes apply immediately. Deep mode confirms on frame spikes alone; shallow mode needs two resource signals or a confirmed jitter. Automatic detection only runs while a game is in the foreground or frames are being captured; manual marks always work.</value>
   </data>

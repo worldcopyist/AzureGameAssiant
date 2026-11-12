@@ -28,18 +28,20 @@ internal enum FrameCaptureState
 internal sealed class PresentMonSupervisor : IDisposable
 {
     private const int BatchSize = 64;
-    private const int FailureLimit = 3;
     private const string SessionName = "AzureGameAssistant";
     private const int PollIntervalMs = 500;
     private static readonly TimeSpan FlushInterval = TimeSpan.FromMilliseconds(100);
     private static readonly TimeSpan FirstFrameTimeout = TimeSpan.FromSeconds(20);
     private static readonly TimeSpan StallTimeout = TimeSpan.FromSeconds(25);
+    private static readonly TimeSpan PermissionRetryDelay = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan SessionCleanupTimeout = TimeSpan.FromMilliseconds(800);
     private static readonly TimeSpan[] RetryDelays =
     [
         TimeSpan.FromMilliseconds(250),
         TimeSpan.FromSeconds(1),
         TimeSpan.FromSeconds(3),
+        TimeSpan.FromSeconds(5),
+        TimeSpan.FromSeconds(10),
     ];
 
     private readonly FileLogger _logger;
@@ -155,6 +157,7 @@ internal sealed class PresentMonSupervisor : IDisposable
     private async Task RunAsync(CancellationToken token)
     {
         int failures = 0;
+        int permissionFailures = 0;
 
         try
         {
@@ -187,12 +190,21 @@ internal sealed class PresentMonSupervisor : IDisposable
 
                 if (result.PermissionDenied)
                 {
+                    // Capture is resident: keep retrying at a low rate instead of
+                    // giving up, so elevation or a relaunched game recovers it.
+                    permissionFailures++;
                     _lastError = "需要管理员权限或 Performance Log Users";
                     _state = FrameCaptureState.PermissionDenied;
-                    _logger.Warn($"PresentMon 权限不足：{_lastError}");
-                    return;
+                    if (permissionFailures <= 2 || permissionFailures % 20 == 0)
+                    {
+                        _logger.Warn($"PresentMon 权限不足：{_lastError}，{PermissionRetryDelay.TotalSeconds:0}s 后重试");
+                    }
+
+                    await Task.Delay(PermissionRetryDelay, token).ConfigureAwait(false);
+                    continue;
                 }
 
+                permissionFailures = 0;
                 long produced = Interlocked.Read(ref _frameCount) - before;
                 if (!IsTargetAlive())
                 {
@@ -207,22 +219,25 @@ internal sealed class PresentMonSupervisor : IDisposable
                 // A target that never presents (still loading, minimised, or an
                 // API PresentMon cannot see) is not a broken session either, so
                 // it retries slowly instead of poisoning the failure budget.
+                // Every failure is retried forever: the capture must stay
+                // resident until the target process itself exits.
                 _emptyAttempts = result.NoFrames ? _emptyAttempts + 1 : 0;
                 failures = result.NoFrames || produced > 0 || result.Stalled ? 1 : failures + 1;
-                if (failures >= FailureLimit)
-                {
-                    _lastError = result.Error ?? $"PresentMon 连续 {failures} 次退出（代码 {result.ExitCode}）";
-                    _state = FrameCaptureState.Unavailable;
-                    _logger.Error(_lastError);
-                    return;
-                }
 
                 TimeSpan delay = result.NoFrames
                     ? TimeSpan.FromSeconds(Math.Min(15, _emptyAttempts * 2))
                     : RetryDelays[Math.Min(failures - 1, RetryDelays.Length - 1)];
                 _lastError = result.Error;
                 _state = FrameCaptureState.Starting;
-                if (!result.NoFrames || _emptyAttempts <= 2 || _emptyAttempts % 10 == 0)
+                if (result.NoFrames)
+                {
+                    if (_emptyAttempts <= 2 || _emptyAttempts % 10 == 0)
+                    {
+                        string detail = string.IsNullOrEmpty(result.Error) ? string.Empty : "：" + result.Error;
+                        _logger.Warn($"PresentMon 未产生帧{detail}，{delay.TotalSeconds:0.#}s 后重启");
+                    }
+                }
+                else if (failures <= 3 || failures % 10 == 0)
                 {
                     string detail = string.IsNullOrEmpty(result.Error) ? string.Empty : "：" + result.Error;
                     _logger.Warn(

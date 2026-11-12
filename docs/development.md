@@ -453,7 +453,7 @@ cpuPct = (ΔKernel + ΔUser) / (ΔWallSeconds × LogicalProcessorCount) × 100
   - `SHQueryUserNotificationState` 返回 `QUNS_RUNNING_D3D_FULL_SCREEN`，直接判定为游戏。
   - 或前台窗口矩形覆盖其所在显示器可用区域 ≥ 95%，且进程不在排除名单（桌面、任务栏、`explorer`、浏览器、视频播放器）。
 - 进入游戏模式后延迟 5 秒再切 200ms，避免加载瞬间误判；退出全屏后 10 秒恢复 1 秒。
-- 深模式进入游戏后启动帧采集；退出全屏后延迟 10 秒停止，确保事件窗口尾部完整。
+- 深模式进入游戏后启动帧采集；采集常驻到目标进程退出或用户手动停止，离开全屏不再停止。
 - 自动识别失败时，用户可在托盘/主窗口手动指定目标 PID；手动指定优先于自动识别。
 - 排除名单存于设置，默认包含常见浏览器与播放器；用户可增删。
 
@@ -526,8 +526,8 @@ PresentMon.exe --process_id <pid> --output_stdout --v2_metrics --session_name Az
 - 每 64 帧或 100ms 批量写入帧环形缓冲，避免逐帧加锁。
 - 解析失败行计数；连续 100 行失败或 20 秒无首帧（且目标活跃）→ 判定 PresentMon 异常，重启子进程。
 - 读取循环每 500ms 轮询一次：已出帧后连续 25 秒无新帧，且目标仍活跃（前台窗口或 GPU 占用 ≥ 5%）时，才判定 ETW 会话静默失效并重启；实测 PresentMon 静默 2–5 秒后会自行恢复，过早重启会把短暂抖动放大成十几秒空洞，因此只在长时间无帧时兜底。
-- 记录首帧延迟；启动后 20 秒仍无帧且目标活跃 → 降级并提示（常见原因：权限不足、进程无呈现、反作弊拦截）；目标不在前台且无 GPU 占用（最小化/暂停）时不重启、不超时。
-- 因停帧而重启时不计入“连续 3 次失败”，避免目标长时间暂停后直接进入 `Unavailable`。
+- 记录首帧延迟；启动后 20 秒仍无帧且目标活跃 → 记为无数据、按 2–15 秒退避重试并保持 `Starting`（常见原因：权限不足、进程无呈现、反作弊拦截）；目标不在前台且无 GPU 占用（最小化/暂停）时不重启、不超时。
+- 失败次数只影响下一次退避时长，不设停止上限：目标进程存活期间监督器始终重试，不会因连续失败进入 `Unavailable`。
 
 #### 6.6.4 监督与降级
 
@@ -539,18 +539,18 @@ PresentMon.exe --process_id <pid> --output_stdout --v2_metrics --session_name Az
 Stopped ──有目标 PID──► Starting ──首帧──► Capturing
    ▲                       │ 20s 无首帧/进程退出    │ 目标退出
    │                       ▼                      ▼
-   └──── PermissionDenied / Unavailable ◄── 连续 3 次失败
-                                    ▲
-                                    │ 25s 无新帧且目标活跃 → 重启会话
+   └──── 任意状态 ── 退避后重试（无限）       目标退出 → Stopped
+   权限不足 → PermissionDenied，30s 后重试
+   25s 无新帧且目标活跃 → 重启会话
 
-Starting 阶段首帧 20s 超时但目标存活 → 2–15s 退避后原地重试，不计入失败次数；
+Starting 阶段首帧 20s 超时但目标存活 → 2–15s 退避后原地重试；
 同一 PID 处于 Unavailable / Stopped 时再次 frames.start → 停止旧监督器并以新会话替换。
 ```
 
 - `Capturing` 期间若 25 秒没有新帧而目标仍活跃，读取循环主动结束本次尝试，走同一套退避重启；这覆盖“PresentMon 进程还活着但 ETW 会话已失效”的情况。25 秒内自行恢复的静默只记录 `帧数据中断 N 秒后自行恢复`，不重启。
 - 启动前清理同名 ETW 会话（`--terminate_existing_session`），避免残留会话污染新会话；只有上次是被强制结束或非零退出（可能漏掉自身 ETW 清理）时才做这一步，正常退出直接重启。
 
-- 重启退避 0.25s / 1s / 3s；连续 3 次失败停止，写能力位“帧不可用”，UI 显示原因；目标进程已退出时不再重启。
+- 重启退避 0.25s / 1s / 3s / 5s / 10s；不设失败上限，目标存活期间始终重试；权限不足（退出码 6 / access denied）进入 `PermissionDenied` 并每 30 秒重试，日志仅前两次与每 20 次。UI 显示最近错误，但采集不会自行结束；只有目标进程退出或用户手动停止才停止。
 - 无帧重试：首帧 20 秒超时但目标仍存活时记为 `NoFrames`，按 `min(15, 2 × 连续无帧次数)` 秒退避重试，且不累计失败次数；日志只在前 2 次和每第 10 次输出，避免静默目标刷屏。目标始终不出帧时状态保持 `Starting`（一旦出帧即转 `Capturing`），而不是进入 `Unavailable`。
 - 会话复活：`CollectorHost.StartFrames` 对同一 PID 仅在 `Starting` / `Capturing` 时直接返回成功；若现有监督器处于 `Unavailable` 或 `Stopped`，先停止再新建。否则一次失败会让该 PID 永久不可采集，只能换游戏或重启程序。
 - 可执行文件路径：设置中的相对路径按 `AppContext.BaseDirectory` 解析；采集项目把 `third_party/presentmon` 复制到输出与发布目录的 `presentmon\`。
@@ -917,7 +917,7 @@ diskScore   = clamp((diskLatencyMs - 50) / 100 * 100, 0, 100)
 
 - 检测到游戏立即进入游戏模式；切换游戏时目标 PID 更新。
 - 前台离开游戏后保留 10 秒宽限，覆盖加载、菜单、Alt+Tab；宽限内回到同一游戏不产生状态抖动。
-- 宽限到期返回一次 `ExitDue`，用于恢复采样间隔并停止自动帧采集。
+- 宽限到期返回一次 `ExitDue`，只用于恢复采样间隔；帧采集不随全屏退出停止。
 
 动态采样（不重启采集进程）：
 
@@ -925,13 +925,13 @@ diskScore   = clamp((diskLatencyMs - 50) / 100 * 100, 0, 100)
 - 采集循环每轮重新读取 `_intervalMs`（volatile）后 `Task.Delay`，切换后最迟在一个旧周期内生效；共享内存头 `SamplingIntervalMs` 同步更新，`status` 的 `gameMode` 反映当前状态。
 - 界面只在目标间隔与采集器实际间隔不一致时才发命令；断线后自动重发。
 - 进入游戏用 `Sampling.GameMs`（默认 200ms）；退出宽限后用 `Sampling.NormalMs`（默认 1000ms）。`GameDetection.Enabled=false` 时始终保持普通间隔。
-- 退出时只停止“自动检测启动”的帧采集；用户手动启动的采集不被强制关闭。
-- `frames.stop` 在采集端先把 `_presentMon` 摘除并 `Cancel()`，随后在后台任务中 `Dispose()`（等 PresentMon 退出最长 2 秒）并记录 `帧采集已停止：PID n`；控制管道立即返回 `stopped`，不会因为 PresentMon 退出慢而拖过客户端超时。客户端给该命令 6 秒超时（其余 2 秒）。
-- 界面把未确认的停止请求记为待办，每个刷新节拍重试，直到采集端确认或状态显示已停止；同时对被停掉的目标加抑制，避免自动采集在同一前台窗口上立刻重启。
+- 帧采集常驻：UI 不再在离开全屏时发送 `frames.stop`，也不保留“待确认停止 / 目标抑制”。一次采集只在目标进程退出或用户点击停止时结束。
+- `PresentMonSupervisor` 不设连续失败上限：目标存活期间异常退出按 0.25s / 1s / 3s / 5s / 10s 退避无限重启；权限不足每 30s 重试（日志前两次与每 20 次告警）；20 秒无首帧按无数据慢速重试；25 秒无帧判定为 ETW 停顿并重启。失败日志只记前三次与每十次。
+- `frames.stop`（仅手动）在采集端先把 `_presentMon` 摘除并 `Cancel()`，随后在后台任务中 `Dispose()`（等 PresentMon 退出最长 2 秒）并记录 `帧采集已停止：PID n`；控制管道立即返回 `stopped`，不会因为 PresentMon 退出慢而拖过客户端超时。客户端给该命令 6 秒超时（其余 2 秒）。
 
 开销：检测缓存把 `Process` 查询限制为最多每秒一次；前台 PID 未变化时不再打开进程。识别与采样切换都在界面进程内完成，采集器无额外线程。
 
-验证：`GameModeTests` 覆盖 95% 阈值、超出显示器、窗口化误判、进入/切换/10 秒宽限/中途返回/重置，共 14 个用例；总数 185。实机（2026-11-10）：星穹铁道全屏进入 200ms 并自动采集，切走 10 秒后回落 1000ms 且 `帧采集已停止`；无边框全屏探针窗口走同一路径通过。5 款主流游戏（DX11/DX12/无边框）识别率 ≥90% 仍需真机复验。
+验证：`GameModeTests` 覆盖 95% 阈值、超出显示器、窗口化误判、进入/切换/10 秒宽限/中途返回/重置，共 14 个用例。实机（2026-11-13）：星穹铁道全屏进入 200ms 并自动采集；无边框全屏探针窗口走同一路径通过。5 款主流游戏（DX11/DX12/无边框）识别率 ≥90% 仍需真机复验。
 
 ## 10. AI 分析模块
 
@@ -1336,7 +1336,8 @@ internal sealed record AiProviderProfile(
 - `LocalizationService` 暴露索引器与 `LanguageChanged` 事件；XAML 通过绑定服务实例取值，切换语言时刷新绑定。
 - 主题：`Themes/Light.xaml`、`Themes/Dark.xaml`；读取 `HKCU\...\Themes\Personalize\AppsUseLightTheme`，监听 `SystemEvents.UserPreferenceChanged`。
 - 设置支持 `Auto / Light / Dark`，默认 `Auto`。
-- 菜单与弹层：`Shared.xaml` 为 `ContextMenu` / `MenuItem` 提供基于调色板的隐式样式，避免弹出菜单回退到系统配色（系统深色 + 应用浅色时会出现深底深字）。
+- 菜单与弹层：`Shared.xaml` 为 `ContextMenu` / `MenuItem` 提供两套样式——应用内右键菜单用调色板隐式样式，托盘菜单用固定的 `TrayMenu` / `TrayMenuItem`（白底黑字），打开时不随主题变化，也不会回退到系统配色。
+- 卡顿通知：设置项 `detection.notifyStutter`（默认 `false`），与 `notifications` 总开关同时满足才弹出气泡；默认只记录事件、不打扰。
 - 标题栏：`WindowChromeTheme` 通过 `DwmSetWindowAttribute` 设置沉浸式深色标记（属性 20，旧系统回退 19）；Windows 11 另外把标题栏、边框与文字设为窗口背景/前景色，`Window.Loaded` 与 `ThemeService.ThemeChanged` 时重新应用。
 - 视觉极简：无阴影、无渐变、单一强调色（蓝天蓝）、等宽数字（`Consolas` / `Cascadia Mono` 回退）。
 
@@ -1354,6 +1355,8 @@ internal sealed record AiProviderProfile(
   "sampling": { "normalMs": 1000, "gameMs": 200 },
   "requestElevationOnStartup": true,
   "detection": {
+    "enabled": true,
+    "notifyStutter": false,
     "jitterSuspectMs": 50,
     "jitterConfirmMs": 100,
     "frameSpikeRatio": 2.5,

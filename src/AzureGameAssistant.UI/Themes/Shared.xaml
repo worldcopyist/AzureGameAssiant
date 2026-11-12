@@ -132,6 +132,25 @@
         <Setter Property="FontSize" Value="12" />
     </Style>
 
+    <!-- The tray menu opens above the desktop and the notification area, so it
+         keeps a fixed light surface instead of following the app palette. -->
+    <Style x:Key="TrayMenu" TargetType="ContextMenu">
+        <Setter Property="Background" Value="#FFFFFFFF" />
+        <Setter Property="Foreground" Value="#FF000000" />
+        <Setter Property="BorderBrush" Value="#FFC9D2DD" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="4" />
+        <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <Style x:Key="TrayMenuItem" TargetType="MenuItem">
+        <Setter Property="Foreground" Value="#FF000000" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Padding" Value="10,5" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
     <Style x:Key="FlatButton" TargetType="Button">
         <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />

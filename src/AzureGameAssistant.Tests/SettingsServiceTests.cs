@@ -40,6 +40,7 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.Equal(1_000, result.Settings.Sampling.NormalMs);
         Assert.Equal(200, result.Settings.Sampling.GameMs);
         Assert.False(result.Settings.Ai.Enabled);
+        Assert.False(result.Settings.Detection.NotifyStutter);
         Assert.True(result.Settings.Charts.Cpu);
         Assert.False(result.Settings.Charts.Separate);
         Assert.False(result.Settings.Diagnostics.LongRunRecord);

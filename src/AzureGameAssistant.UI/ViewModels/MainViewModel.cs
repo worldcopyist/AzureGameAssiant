@@ -73,8 +73,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private int? _autoCaptureBlockedPid;
     private int? _autoCaptureSuppressedPid;
     private int? _autoCaptureCandidatePid;
-    private int? _autoCaptureStartedPid;
-    private int? _autoCaptureStopPendingPid;
     private DateTime _autoCaptureCandidateSince = DateTime.MinValue;
     private int _samplingTargetMs;
     private int? _gameProbePid;
@@ -517,11 +515,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
             if (_connected)
             {
-                if (_autoCaptureStopPendingPid is int pendingPid)
-                {
-                    await StopAutoFramesAsync(pendingPid).ConfigureAwait(true);
-                }
-
                 await UpdateGameModeAsync().ConfigureAwait(true);
 
                 if (_statusTicks % 4 == 0)
@@ -619,8 +612,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _frameTargetPid = target.Pid;
         _frameError = null;
         _autoCaptureSuppressedPid = null;
-        _autoCaptureStartedPid = null;
-        _autoCaptureStopPendingPid = null;
         _settings.Frames.TargetPid = target.Pid;
         _settingsService.Save(_settings);
         UpdateFrameTexts();
@@ -658,8 +649,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _autoCaptureSuppressedPid = _frameTargetPid;
         _frameTargetPid = null;
         _frameError = null;
-        _autoCaptureStartedPid = null;
-        _autoCaptureStopPendingPid = null;
         _settings.Frames.TargetPid = null;
         _settingsService.Save(_settings);
         UpdateFrameTexts();
@@ -667,8 +656,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     /// <summary>
     /// Raises the sampler to the game interval while a fullscreen game owns the
-    /// foreground, and restores the normal interval (plus the auto-started
-    /// frame capture) after the exit delay. The collector is never restarted.
+    /// foreground and restores the normal interval after the exit delay. Frame
+    /// capture is never stopped here: losing fullscreen must not interrupt FPS.
+    /// The collector is never restarted.
     /// </summary>
     private async Task UpdateGameModeAsync()
     {
@@ -698,7 +688,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             int normalMs = Math.Clamp(_settings.Sampling.NormalMs, 100, 10_000);
             await ApplySamplingAsync(normalMs, gameMode: false).ConfigureAwait(true);
-            await StopAutoFramesAsync().ConfigureAwait(true);
         }
     }
 
@@ -717,48 +706,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         else
         {
             _samplingTargetMs = 0;
-        }
-    }
-
-    /// <summary>Stops only the capture that game detection started itself.</summary>
-    private async Task StopAutoFramesAsync()
-    {
-        if (_autoCaptureStartedPid is not int pid ||
-            _frameTargetPid != pid ||
-            _frameState is not ("capturing" or "starting"))
-        {
-            _autoCaptureStartedPid = null;
-            return;
-        }
-
-        _autoCaptureStartedPid = null;
-        // Leaving fullscreen must not let auto-capture pick the same target up
-        // again on the next tick while the player is still in that window.
-        _autoCaptureSuppressedPid = pid;
-        await StopAutoFramesAsync(pid).ConfigureAwait(true);
-    }
-
-    /// <summary>
-    /// Sends frames.stop for an auto-started capture and keeps the request
-    /// pending until the collector acknowledges it, so a single slow or lost
-    /// reply cannot leave PresentMon running after the game has exited.
-    /// </summary>
-    private async Task StopAutoFramesAsync(int pid)
-    {
-        _autoCaptureStopPendingPid = pid;
-        string? state = await _client.StopFramesAsync(_cts.Token).ConfigureAwait(true);
-        if (state is null)
-        {
-            return;
-        }
-
-        _autoCaptureStopPendingPid = null;
-        if (_frameTargetPid == pid)
-        {
-            _frameState = "stopped";
-            _frameTargetPid = null;
-            _frameError = null;
-            UpdateFrameTexts();
         }
     }
 
@@ -896,7 +843,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _frameState = state;
         _frameTargetPid = pid;
         _frameError = null;
-        _autoCaptureStartedPid = state is "capturing" or "starting" ? pid : null;
 
         if (state == "permissionDenied")
         {
@@ -1112,13 +1058,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (_frameState == "stopped")
         {
             _lastFrameAt = DateTime.MinValue;
-            _autoCaptureStartedPid = null;
-        }
-
-        if (_autoCaptureStopPendingPid is int pendingStop &&
-            (_frameState == "stopped" || status.FrameTargetPid != pendingStop))
-        {
-            _autoCaptureStopPendingPid = null;
         }
 
         if (!_helloDone || _appVersion.Length == 0)

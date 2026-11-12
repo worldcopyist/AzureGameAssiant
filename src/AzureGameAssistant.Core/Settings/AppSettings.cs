@@ -224,6 +224,7 @@ public sealed class SamplingSettings
 public sealed class DetectionSettings
 {
     public bool Enabled { get; set; } = true;
+    public bool NotifyStutter { get; set; }
     public int JitterSuspectMs { get; set; } = 50;
     public int JitterConfirmMs { get; set; } = 100;
     public double FrameSpikeRatio { get; set; } = 2.5;

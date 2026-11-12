@@ -55,6 +55,10 @@
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[DetectionHint]}" />
 
+                        <CheckBox Margin="0,0,0,10"
+                                  IsChecked="{Binding DetectionNotifyStutter, Mode=TwoWay}"
+                                  Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[DetectionNotifyStutter]}" />
+
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" MinWidth="140" />

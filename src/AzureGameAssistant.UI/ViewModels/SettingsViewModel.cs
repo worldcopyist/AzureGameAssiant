@@ -30,6 +30,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         GameMs = settings.Sampling.GameMs;
 
         DetectionEnabled = settings.Detection.Enabled;
+        DetectionNotifyStutter = settings.Detection.NotifyStutter;
         DetectionFrameSpikeRatio = settings.Detection.FrameSpikeRatio;
         DetectionFrameSpikeFloorMs = settings.Detection.FrameSpikeFloorMs;
         DetectionDisplayGapMs = settings.Detection.DisplayGapMs;
@@ -197,6 +198,9 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _detectionEnabled;
+
+    [ObservableProperty]
+    private bool _detectionNotifyStutter;
 
     [ObservableProperty]
     private double _detectionFrameSpikeRatio;
@@ -534,6 +538,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         settings.Sampling.GameMs = Math.Min(GameMs, NormalMs);
 
         settings.Detection.Enabled = DetectionEnabled;
+        settings.Detection.NotifyStutter = DetectionNotifyStutter;
         settings.Detection.FrameSpikeRatio = Clamp(DetectionFrameSpikeRatio, 1.2, 10, 2.5);
         settings.Detection.FrameSpikeFloorMs = Clamp(DetectionFrameSpikeFloorMs, 10, 500, 50);
         settings.Detection.DisplayGapMs = Clamp(DetectionDisplayGapMs, 20, 1000, 100);

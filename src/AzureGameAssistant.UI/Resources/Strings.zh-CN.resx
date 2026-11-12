@@ -258,6 +258,9 @@
   <data name="DetectionEnabled" xml:space="preserve">
     <value>启用卡顿检测</value>
   </data>
+  <data name="DetectionNotifyStutter" xml:space="preserve">
+    <value>检测到卡顿时弹出桌面通知（默认关闭）</value>
+  </data>
   <data name="DetectionHint" xml:space="preserve">
     <value>修改立即生效。深模式以帧尖峰单独确认；浅模式需要两个资源信号或已确认的抖动。自动识别只在游戏处于前台或正在采集帧时运行，手动标记始终可用。</value>
   </data>
