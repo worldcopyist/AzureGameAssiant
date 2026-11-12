@@ -143,6 +143,7 @@ public sealed class AppSettings
         Overlay.Color = NormalizeColor(Overlay.Color);
         Overlay.Opacity = Math.Clamp(Overlay.Opacity, 30, 100);
         Overlay.BackdropOpacity = Math.Clamp(Overlay.BackdropOpacity, 0, 80);
+        Overlay.Monitor = NormalizeMonitor(Overlay.Monitor);
         if (!Overlay.ShowFps &&
             !Overlay.ShowFrameTimes &&
             !Overlay.ShowCpu &&
@@ -199,6 +200,19 @@ public sealed class AppSettings
     }
 
     private static string NormalizeColor(string? value) => OverlayColor.Normalize(value);
+
+    private static string NormalizeMonitor(string? value)
+    {
+        string monitor = (value ?? string.Empty).Trim();
+        if (monitor.Equals("primary", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Primary";
+        }
+
+        return monitor.StartsWith(@"\\.\DISPLAY", StringComparison.OrdinalIgnoreCase)
+            ? monitor.ToUpperInvariant()
+            : "Follow";
+    }
 }
 
 public sealed class SamplingSettings
@@ -292,6 +306,7 @@ public sealed class OverlaySettings
     public string Color { get; set; } = "#FFFFFF";
     public int Opacity { get; set; } = 100;
     public int BackdropOpacity { get; set; }
+    public string Monitor { get; set; } = "Follow";
 }
 
 public sealed class SessionSettings

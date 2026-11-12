@@ -474,6 +474,18 @@
   <data name="OverlayPosition" xml:space="preserve">
     <value>显示位置</value>
   </data>
+  <data name="OverlayMonitor" xml:space="preserve">
+    <value>显示器</value>
+  </data>
+  <data name="OverlayMonitorFollow" xml:space="preserve">
+    <value>跟随主窗口</value>
+  </data>
+  <data name="OverlayMonitorPrimary" xml:space="preserve">
+    <value>主显示器</value>
+  </data>
+  <data name="MonitorFormat" xml:space="preserve">
+    <value>显示器 {0}</value>
+  </data>
   <data name="OverlayTopLeft" xml:space="preserve">
     <value>左上角</value>
   </data>

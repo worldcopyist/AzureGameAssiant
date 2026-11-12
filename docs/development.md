@@ -1309,7 +1309,7 @@ internal sealed record AiProviderProfile(
 
 - `OverlayWindow`：无边框、透明（`AllowsTransparency`）、`Topmost`、`ShowInTaskbar=false`、`ShowActivated=false`、`Focusable=false`；根元素为裸 `WrapPanel`，无背景面板与边框。
 - Win32 扩展样式追加 `WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE`：鼠标穿透、不进入 Alt+Tab、不抢焦点。
-- 位置：`MonitorWorkArea.TryGet` 取主窗口所在显示器的工作区（`MonitorFromWindow` + `GetMonitorInfo`），按窗口 DPI 缩放换算为 DIP 后交给 Core 的 `OverlayPlacement.Place` 计算四角 + 偏移；定位失败回退 `SystemParameters.WorkArea`；越界时夹紧到工作区。`SizeChanged`、显示与主窗口 `LocationChanged` 时重新定位。跨显示器位置记忆与拖动仍待后续。
+- 位置：`overlay.monitor` 取 `Follow`（默认，跟随主窗口）、`Primary` 或 `\\.\DISPLAYn`。`Follow` 时 `MonitorWorkArea.TryGet` 取主窗口所在显示器（`MonitorFromWindow` + `GetMonitorInfo`）；指定显示器由 `MonitorWorkArea.TryGetByDevice` 在 `Enumerate()`（`EnumDisplayMonitors` + `GetMonitorInfoW`/`MONITORINFOEX`）结果中查找；物理像素工作区按窗口 DPI 换算为 DIP 后交给 Core 的 `OverlayPlacement.Place` 计算四角 + 偏移。指定显示器缺失、枚举或定位失败时回退 `SystemParameters.WorkArea`；越界时夹紧到工作区。`Normalize()` 把非 `DISPLAYn` 的值收敛为 `Follow`。`SizeChanged`、显示与主窗口 `LocationChanged` 时重新定位。跨显示器位置记忆与拖动仍待后续。
 - 不透明度：`overlay.opacity` 取 30–100（默认 100），在 `Normalize()` 中夹紧；`ApplyAppearance()` 将其换算为窗口 `Opacity`，与配色一起即时生效，不引入背景面板。
 - 布局：每个数据项为“标签 + 数值”横向 `StackPanel`，整体从左到右排列；`MaxWidth = WorkArea.Width - 2 × OffsetX`（下限 240 DIP），放不下时按数据项自动换行，窗口高度随行数增长。
 - 可读性：文字使用 `DropShadowEffect`（BlurRadius 3、无偏移），不使用背景遮挡桌面。
@@ -1414,6 +1414,7 @@ internal sealed record AiProviderProfile(
   "overlay": {
     "enabled": true,
     "corner": "TopLeft",
+    "monitor": "Follow",
     "offsetX": 16,
     "offsetY": 16,
     "showFps": true,

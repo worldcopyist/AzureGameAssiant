@@ -474,6 +474,18 @@
   <data name="OverlayPosition" xml:space="preserve">
     <value>Position</value>
   </data>
+  <data name="OverlayMonitor" xml:space="preserve">
+    <value>Display</value>
+  </data>
+  <data name="OverlayMonitorFollow" xml:space="preserve">
+    <value>Follow main window</value>
+  </data>
+  <data name="OverlayMonitorPrimary" xml:space="preserve">
+    <value>Primary display</value>
+  </data>
+  <data name="MonitorFormat" xml:space="preserve">
+    <value>Display {0}</value>
+  </data>
   <data name="OverlayTopLeft" xml:space="preserve">
     <value>Top left</value>
   </data>

@@ -3,6 +3,7 @@ using System.Windows.Media;
 using AzureGameAssistant.Ai;
 using AzureGameAssistant.Core;
 using AzureGameAssistant.Core.Settings;
+using AzureGameAssistant.UI.Interop;
 using AzureGameAssistant.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using OverlayColorParser = AzureGameAssistant.Core.Overlay.OverlayColor;
@@ -68,6 +69,7 @@ public sealed partial class SettingsViewModel : ObservableObject
 
         OverlayEnabled = settings.Overlay.Enabled;
         OverlayCorner = settings.Overlay.Corner;
+        OverlayMonitor = settings.Overlay.Monitor;
         OverlayOffsetX = settings.Overlay.OffsetX;
         OverlayOffsetY = settings.Overlay.OffsetY;
         OverlayFps = settings.Overlay.ShowFps;
@@ -113,6 +115,24 @@ public sealed partial class SettingsViewModel : ObservableObject
             new SelectOption("Custom", loc["OverlayThemeCustom"]),
         ];
 
+        var monitorOptions = new List<SelectOption>
+        {
+            new("Follow", loc["OverlayMonitorFollow"]),
+            new("Primary", loc["OverlayMonitorPrimary"]),
+        };
+        foreach (MonitorEntry monitor in MonitorWorkArea.Enumerate())
+        {
+            monitorOptions.Add(new SelectOption(monitor.DeviceName, MonitorLabel(monitor, loc)));
+        }
+
+        if (OverlayMonitor.StartsWith(@"\\.\DISPLAY", StringComparison.OrdinalIgnoreCase) &&
+            monitorOptions.All(option => !string.Equals(option.Value, OverlayMonitor, StringComparison.OrdinalIgnoreCase)))
+        {
+            monitorOptions.Add(new SelectOption(OverlayMonitor, OverlayMonitor));
+        }
+
+        OverlayMonitorOptions = monitorOptions;
+
         CpuModeOptions =
         [
             new SelectOption("acpi", loc["CpuTempModeAcpi"]),
@@ -155,6 +175,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     public IReadOnlyList<SelectOption> OverlayCornerOptions { get; }
 
     public IReadOnlyList<SelectOption> OverlayThemeOptions { get; }
+
+    public IReadOnlyList<SelectOption> OverlayMonitorOptions { get; }
 
     public IReadOnlyList<SelectOption> CpuModeOptions { get; }
 
@@ -354,6 +376,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     private string _overlayCorner = "TopLeft";
 
     [ObservableProperty]
+    private string _overlayMonitor = "Follow";
+
+    [ObservableProperty]
     private int _overlayOffsetX;
 
     [ObservableProperty]
@@ -548,6 +573,7 @@ public sealed partial class SettingsViewModel : ObservableObject
 
         settings.Overlay.Enabled = OverlayEnabled;
         settings.Overlay.Corner = OverlayCorner;
+        settings.Overlay.Monitor = OverlayMonitor;
         settings.Overlay.OffsetX = OverlayOffsetX;
         settings.Overlay.OffsetY = OverlayOffsetY;
         settings.Overlay.ShowFps = OverlayFps;
@@ -583,6 +609,15 @@ public sealed partial class SettingsViewModel : ObservableObject
         bool RequiresKey,
         double InputPrice,
         double OutputPrice);
+
+    private static string MonitorLabel(MonitorEntry monitor, LocalizationService loc)
+    {
+        const string prefix = @"\\.\DISPLAY";
+        string number = monitor.DeviceName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+            ? monitor.DeviceName[prefix.Length..]
+            : monitor.DeviceName;
+        return string.Format(loc["MonitorFormat"], number);
+    }
 
     private static double Clamp(double value, double min, double max, double fallback) =>
         double.IsFinite(value) ? Math.Clamp(value, min, max) : fallback;

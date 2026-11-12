@@ -253,19 +253,34 @@ public partial class OverlayWindow : Window
     }
 
     /// <summary>
-    /// Uses the main window's monitor so the overlay follows the app across
-    /// displays; DIP conversion matches the system-DPI coordinate space WPF
+    /// A named display keeps the overlay pinned there; otherwise the main
+    /// window's monitor is used so the overlay follows the app across
+    /// displays. DIP conversion matches the system-DPI coordinate space WPF
     /// positions windows in. Any failure keeps the primary work area.
     /// </summary>
     private Rect TargetWorkArea()
     {
-        Window? main = Application.Current?.MainWindow;
-        IntPtr handle = main is null ? IntPtr.Zero : new WindowInteropHelper(main).Handle;
-        if (!MonitorWorkArea.TryGet(handle, out NativeMethods.Rect32 work))
+        if (string.Equals(_settings.Monitor, "Primary", StringComparison.OrdinalIgnoreCase))
         {
             return SystemParameters.WorkArea;
         }
 
+        if (_settings.Monitor.StartsWith(@"\\.\DISPLAY", StringComparison.OrdinalIgnoreCase))
+        {
+            return MonitorWorkArea.TryGetByDevice(_settings.Monitor, out NativeMethods.Rect32 pinned)
+                ? ToDips(pinned)
+                : SystemParameters.WorkArea;
+        }
+
+        Window? main = Application.Current?.MainWindow;
+        IntPtr handle = main is null ? IntPtr.Zero : new WindowInteropHelper(main).Handle;
+        return MonitorWorkArea.TryGet(handle, out NativeMethods.Rect32 work)
+            ? ToDips(work)
+            : SystemParameters.WorkArea;
+    }
+
+    private Rect ToDips(NativeMethods.Rect32 work)
+    {
         DpiScale dpi = VisualTreeHelper.GetDpi(this);
         double scaleX = dpi.DpiScaleX > 0 ? dpi.DpiScaleX : 1;
         double scaleY = dpi.DpiScaleY > 0 ? dpi.DpiScaleY : 1;

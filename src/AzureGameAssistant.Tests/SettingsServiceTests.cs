@@ -66,6 +66,7 @@ public sealed class SettingsServiceTests : IDisposable
         settings.GameDetection.Exclude.Add("obs.exe");
         settings.Overlay.Opacity = 65;
         settings.Overlay.BackdropOpacity = 35;
+        settings.Overlay.Monitor = @"\\.\DISPLAY2";
         settings.Charts.Detached.Left = -1200;
         settings.Charts.Detached.Top = 80;
         settings.Charts.Detached.Width = 640;
@@ -85,6 +86,7 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.Contains("obs.exe", result.Settings.GameDetection.Exclude);
         Assert.Equal(65, result.Settings.Overlay.Opacity);
         Assert.Equal(35, result.Settings.Overlay.BackdropOpacity);
+        Assert.Equal(@"\\.\DISPLAY2", result.Settings.Overlay.Monitor);
         Assert.Equal(-1200, result.Settings.Charts.Detached.Left);
         Assert.Equal(80, result.Settings.Charts.Detached.Top);
         Assert.Equal(640, result.Settings.Charts.Detached.Width);
@@ -281,5 +283,22 @@ public sealed class SettingsServiceTests : IDisposable
 
         Assert.Equal("Custom", settings.Overlay.Theme);
         Assert.Equal("#80AA00FF", settings.Overlay.Color);
+    }
+
+    [Theory]
+    [InlineData(" primary ", "Primary")]
+    [InlineData(@"\\.\display2", @"\\.\DISPLAY2")]
+    [InlineData("HDMI-1", "Follow")]
+    [InlineData("", "Follow")]
+    public void Normalize_MonitorAcceptsKnownValues(string input, string expected)
+    {
+        var settings = new AppSettings
+        {
+            Overlay = new OverlaySettings { Monitor = input },
+        };
+
+        settings.Normalize();
+
+        Assert.Equal(expected, settings.Overlay.Monitor);
     }
 }
