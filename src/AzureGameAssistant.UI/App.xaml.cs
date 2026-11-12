@@ -1009,38 +1009,17 @@ public partial class App : Application
         AiSettings ai = _settings.Ai;
         _ai ??= new AiAnalysisService();
 
-        SessionDocument document = SessionStore.Read(info.Path);
-        FactsInput input = SessionFactsFactory.FromSession(document, LocalizationService.Instance.CurrentLanguage);
-        FactsDocument facts = FactsBuilder.Build(input, ai.HideProcessNames);
-        AiPreparedRequest prepared = _ai.BuildRequest(_settings, facts, LocalizationService.Instance.CurrentLanguage);
-
-        AiReport? stored = AiReportStore.Read(info.Path);
-        bool alreadyAnalyzed = stored is not null &&
-                               AiReportStore.IsReusable(stored, prepared.Provider.Model, prepared.FactsHash);
-        string signature = AiAnalysisService.ConsentSignature(
-            prepared.Provider.Id,
-            prepared.Provider.BaseUrl,
-            prepared.Provider.Model,
-            ai.Redact,
-            ai.HideProcessNames);
-
-        AutoAnalysisDecision decision = AutoAnalysisPolicy.Evaluate(new AutoAnalysisInput(
-            ai.Enabled,
-            ai.AutoAnalyze,
-            info.Score,
-            ai.AutoAnalyzeMinScore,
-            ai.DailyBudget,
-            ai.MonthlyBudget,
-            string.Equals(ai.ConsentSignature, signature, StringComparison.Ordinal),
-            alreadyAnalyzed,
-            prepared.ConfigurationError,
-            prepared.Provider.RequiresKey,
-            prepared.KeyAvailable,
-            prepared.Budget.Allowed));
-
-        if (!decision.ShouldRun)
+        // 会话解压、事实构建与哈希计算都不轻，放到后台线程避免卡住界面节拍。
+        AutoAnalysisPreparation prep = await Task.Run(() => PrepareAutoAnalysis(info, ai));
+        if (_shuttingDown)
         {
-            _logger?.Info($"跳过自动分析：{decision.Reason}（事件 {info.EventId}，评分 {info.Score}）");
+            return;
+        }
+
+        AiPreparedRequest prepared = prep.Prepared;
+        if (!prep.Decision.ShouldRun)
+        {
+            _logger?.Info($"跳过自动分析：{prep.Decision.Reason}（事件 {info.EventId}，评分 {info.Score}）");
             return;
         }
 
@@ -1077,6 +1056,42 @@ public partial class App : Application
                 LocalizationService.Instance.Format("AiAutoBalloon", info.Score));
         }
     }
+
+    private AutoAnalysisPreparation PrepareAutoAnalysis(SessionInfo info, AiSettings ai)
+    {
+        SessionDocument document = SessionStore.Read(info.Path);
+        FactsInput input = SessionFactsFactory.FromSession(document, LocalizationService.Instance.CurrentLanguage);
+        FactsDocument facts = FactsBuilder.Build(input, ai.HideProcessNames);
+        AiPreparedRequest prepared = _ai!.BuildRequest(_settings, facts, LocalizationService.Instance.CurrentLanguage);
+
+        AiReport? stored = AiReportStore.Read(info.Path);
+        bool alreadyAnalyzed = stored is not null &&
+                               AiReportStore.IsReusable(stored, prepared.Provider.Model, prepared.FactsHash);
+        string signature = AiAnalysisService.ConsentSignature(
+            prepared.Provider.Id,
+            prepared.Provider.BaseUrl,
+            prepared.Provider.Model,
+            ai.Redact,
+            ai.HideProcessNames);
+
+        AutoAnalysisDecision decision = AutoAnalysisPolicy.Evaluate(new AutoAnalysisInput(
+            ai.Enabled,
+            ai.AutoAnalyze,
+            info.Score,
+            ai.AutoAnalyzeMinScore,
+            ai.DailyBudget,
+            ai.MonthlyBudget,
+            string.Equals(ai.ConsentSignature, signature, StringComparison.Ordinal),
+            alreadyAnalyzed,
+            prepared.ConfigurationError,
+            prepared.Provider.RequiresKey,
+            prepared.KeyAvailable,
+            prepared.Budget.Allowed));
+
+        return new AutoAnalysisPreparation(prepared, decision);
+    }
+
+    private sealed record AutoAnalysisPreparation(AiPreparedRequest Prepared, AutoAnalysisDecision Decision);
 
     private async Task ShutdownAsync()
     {
