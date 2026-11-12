@@ -22,7 +22,7 @@
 | 最新里程碑 | AI 报告合并进会话完成：会话窗口新增“AI 分析”，以选中会话（而非实时缓冲）重建事实层，`≥1000 ms` 采集断帧不参与；分析成功且非离线回退时写入 `<会话文件>.ai.json`，详情区显示摘要、主因/置信度、前 4 条证据与前 3 条建议，FR-015 导出自动附带。`SessionSchema.DiscontinuityFrameMs` 成为报告与 AI 共用的断帧阈值。新增 `AiReportStoreTests` 4 项，总数 198 项通过；Debug/Release 0 警告 0 错误。会话级点击验证待配置 API Key 后执行。 |
 | 可运行产物 | `build/run-dev.ps1` 可启动；`build/package.ps1` 默认 AOT 流程可生成便携 ZIP（含 PresentMon）；`build/publish-mcp.ps1` 生成 `artifacts/mcp/AzureGameAssistant.Mcp.exe`；二号屏桌面快捷方式指向 Release |
 | 代码分支 | `main`（`feat/m1-foundation` 已 squash 合入，分支保留） |
-| 当前提交 | `9bd36ef` |
+| 当前提交 | `14b685b` |
 | 未提交变更 | 无 |
 | 阻塞事项 | 帧率准确性需在用户真实游戏（原神 60 帧、三角洲行动）长测确认；AI 窗口与“测试连接”按钮待点击验证；掉帧/高负载标记需在真实游戏复现后核对事件与报告；3 款游戏 PresentMon 实测与反作弊评估待用户游戏环境（已测明日方舟、三角洲行动）；深模式内存/CPU 与 60 分钟连续性待专项测量；本机默认热键 `Ctrl+Alt+M` 被其他程序占用，需用户在设置页改键（实测 `Ctrl+Alt+F9` 可用）；卡顿判定召回率与误报需真实游戏长测；会话级 AI 分析（3.16）待配置 API Key 后点击验证 |
 
@@ -539,7 +539,7 @@ MCP 冒烟（无需 Agent 客户端，直接走 stdio）：
 | 2026-11-10 | Qoder | 会话实机闭环与修复：点击“标记卡顿”后 0.14 秒出现 `recording`、30 秒后 `complete`；发现 NaN/Infinity 使 JSON 写入中断并留下半截 `.tmp`，在写入边界统一清洗并在失败时返回异常类型；新增回归测试，总数 162 项通过，Release 0 警告 0 错误 | `fix(sessions): 清洗非有限数并诊断写入失败` |
 | 2026-11-10 | Qoder | FR-008 本地归因报告：7 类主因规则、温度阈值、断帧与尖峰分离、主因/帧证据一致性、可疑进程前 3、无数据兜底与中英报告；会话窗新增断帧数与一致性行，修正热降频标签与过时提示；新增 9 项报告测试，总数 171 项通过；实机会话报告 `gapCount 8 / spikeCount 0 / max 896.5ms / consistent true`；Release 0 警告 0 错误 | `4097d13` |
 | 2026-11-10 | Qoder | FR-010 游戏自动识别与动态采样：`SHQueryUserNotificationState` / 95% 覆盖 / GPU≥5% 三路判定 + 排除名单，`GameModeTracker` 10 秒宽限；控制管道新增 `sampling` 命令，200ms / 1000ms 切换不重启采集进程，共享内存头与状态同步；修复 `frames.stop` 阻塞管道导致离开全屏后采集残留（后台释放 PresentMon + 客户端 6 秒超时 + UI 待办重试与目标抑制）；新增 `GameModeTests` 14 项，总数 185 项通过；实机全屏探针与星穹铁道均验证 200ms→自动采集→回落 1000ms→帧采集已停止；Release 0 警告 0 错误 | `308d7c6` |
-| 2026-11-12 | Qoder | AI 报告合并进会话：`AiReportStore` 读写 `<会话>.ai.json`（原子写入、损坏静默忽略），`SessionFactsFactory` 从会话重建事实层并排除 ≥1000 ms 断帧；会话窗口新增“AI 分析”，成功后详情区显示摘要/主因/证据/建议，导出自动附带；离线回退不写入；`SessionSchema.DiscontinuityFrameMs` 统一阈值；新增 4 项测试，总数 198；Debug/Release 0 警告 0 错误 | 见下方提交 |
+| 2026-11-12 | Qoder | AI 报告合并进会话：`AiReportStore` 读写 `<会话>.ai.json`（原子写入、损坏静默忽略），`SessionFactsFactory` 从会话重建事实层并排除 ≥1000 ms 断帧；会话窗口新增“AI 分析”，成功后详情区显示摘要/主因/证据/建议，导出自动附带；离线回退不写入；`SessionSchema.DiscontinuityFrameMs` 统一阈值；新增 4 项测试，总数 198；Debug/Release 0 警告 0 错误 | `14b685b` |
 
 ## 10. 下次交接模板
 
