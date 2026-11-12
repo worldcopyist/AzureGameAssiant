@@ -90,8 +90,8 @@ public partial class App : Application
         if (!_ownsMutex)
         {
             MessageBox.Show(
-                "蓝天游戏助手已在运行。\nAzure Game Assistant is already running.",
-                "Azure Game Assistant",
+                LocalizationService.Instance["AlreadyRunning"],
+                LocalizationService.Instance["AppTitle"],
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
 
@@ -576,7 +576,7 @@ public partial class App : Application
         {
             _logger?.Error("保存设置失败", ex);
             MessageBox.Show(
-                "保存设置失败：\n" + ex.Message,
+                LocalizationService.Instance.Format("SettingsSaveFailed", ex.Message),
                 LocalizationService.Instance["SettingsTitle"],
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
@@ -586,7 +586,7 @@ public partial class App : Application
         {
             _logger?.Error("保存设置失败", ex);
             MessageBox.Show(
-                "保存设置失败：\n" + ex.Message,
+                LocalizationService.Instance.Format("SettingsSaveFailed", ex.Message),
                 LocalizationService.Instance["SettingsTitle"],
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
@@ -1175,8 +1175,8 @@ public partial class App : Application
     {
         _logger?.Error("界面未处理异常", e.Exception);
         MessageBox.Show(
-            "界面发生错误，已记录到日志。\n" + e.Exception.Message,
-            "Azure Game Assistant",
+            LocalizationService.Instance.Format("UiUnhandledError", e.Exception.Message),
+            LocalizationService.Instance["AppTitle"],
             MessageBoxButton.OK,
             MessageBoxImage.Warning);
 

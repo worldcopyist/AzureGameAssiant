@@ -1329,4 +1329,15 @@
   <data name="SessionRetentionHint" xml:space="preserve">
     <value>超过任一上限时按时间从旧到新淘汰；正在录制的会话是最新文件，不会优先被清理。</value>
   </data>
+  <data name="AlreadyRunning" xml:space="preserve">
+    <value>蓝天游戏助手已在运行。</value>
+  </data>
+  <data name="SettingsSaveFailed" xml:space="preserve">
+    <value>保存设置失败：
+{0}</value>
+  </data>
+  <data name="UiUnhandledError" xml:space="preserve">
+    <value>界面发生错误，已记录到日志。
+{0}</value>
+  </data>
 </root>

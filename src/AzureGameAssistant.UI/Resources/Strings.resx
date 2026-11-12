@@ -1329,4 +1329,15 @@
   <data name="SessionRetentionHint" xml:space="preserve">
     <value>The oldest sessions are removed first when either limit is exceeded. In-progress captures are kept as long as they are the newest file.</value>
   </data>
+  <data name="AlreadyRunning" xml:space="preserve">
+    <value>Azure Game Assistant is already running.</value>
+  </data>
+  <data name="SettingsSaveFailed" xml:space="preserve">
+    <value>Failed to save settings:
+{0}</value>
+  </data>
+  <data name="UiUnhandledError" xml:space="preserve">
+    <value>Something went wrong. Details were written to the log.
+{0}</value>
+  </data>
 </root>

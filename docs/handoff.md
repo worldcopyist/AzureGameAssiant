@@ -352,6 +352,12 @@
 - 实现：`package.ps1` 强制复制 `README.md` 与 `THIRD-PARTY-NOTICES.md`（缺失即失败），项目自身 `LICENSE` 未定（K-05）时改为输出警告而非静默跳过；第三方声明中的许可路径改为包内相对路径 `LICENSES\...` 与 `collector\presentmon\LICENSE.txt`；README 的 AI 段落更新为“可选严重事件自动分析，默认关闭”。
 - 验证：`package.ps1` 通过 pwsh 语法解析；README / 第三方声明路径与包结构逐条对照；整包 ZIP 仍需退出旧实例后复验。
 
+### 3.25 界面提示双语补齐（2026-11-12）
+
+- 缺口：FR-013 要求界面中英双语，但 `App` 里三处用户可见提示写死中文（或中英混排）：单实例重复启动、保存设置失败、未处理异常；英文界面下会直接显示中文。
+- 实现：新增 `AlreadyRunning`、`SettingsSaveFailed`、`UiUnhandledError` 三个资源键（中英各一份），改用 `LocalizationService` 读取；保存失败与异常提示用 `Format` 把原始异常信息接在后面，便于用户反馈。
+- 验证：脚本比对 UI 代码里全部 216 个资源键与两份 resx（各 442 条），无缺失键、中英集合完全一致；UI Release 构建 0 警告 0 错误。对话框文案需重启后肉眼看一次。
+
 ## 4. 进行中
 
 - **会话 AI 分析（3.16）**：按钮与写入链路已完成并通过单测；待配置 API Key 后在会话窗口点一次“AI 分析”，确认报告写入 `<会话>.ai.json`、详情区出现 AI 段、导出 Markdown 末尾附带 AI 章节。
@@ -603,6 +609,7 @@ MCP 冒烟（无需 Agent 客户端，直接走 stdio）：
 | 2026-11-12 | Qoder | 悬浮窗按显示器定位（K-16 部分）：主窗口所在显示器工作区 + DPI 换算 + 越界夹紧，定位失败回退主屏；新增 4 项定位单测，总数 213；Release 0 警告 0 错误；补充 handoff 3.22 | `0d4c4a3` |
 | 2026-11-12 | Qoder | 便携包内置传感器边车（K-27）：`package.ps1` 自包含发布边车到 `collector\sensors\` 并复制 `LICENSES\`；采集进程按子目录 → 同目录 → 开发树解析；边车单独发布 81MB、依赖齐全，整包待复验；补充 handoff 3.23 | `e0b8f1d` |
 | 2026-11-12 | Qoder | 包内说明文档：`package.ps1` 强制复制 `README.md` 与 `THIRD-PARTY-NOTICES.md`（缺失即失败），`LICENSE` 未定时改为警告；第三方声明许可路径改为包内相对路径；README 更新自动分析现状；新增 handoff 3.24 并把 K-30 标为已解决 | `cfd899c` |
+| 2026-11-12 | Qoder | 界面提示双语补齐（FR-013）：单实例提示、保存设置失败、未处理异常三处改用资源键 `AlreadyRunning` / `SettingsSaveFailed` / `UiUnhandledError`；脚本核对 216 个资源键与中英各 442 条完全对齐；UI Release 0 警告 0 错误；补充 handoff 3.25 | `待回填` |
 
 ## 10. 下次交接模板
 
