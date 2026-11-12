@@ -64,6 +64,11 @@ public sealed class SettingsServiceTests : IDisposable
         settings.Diagnostics.IntervalSeconds = 30;
         settings.GameDetection.Exclude.Add("obs.exe");
         settings.Overlay.Opacity = 65;
+        settings.Charts.Detached.Left = -1200;
+        settings.Charts.Detached.Top = 80;
+        settings.Charts.Detached.Width = 640;
+        settings.Charts.Detached.Height = 320;
+        settings.Charts.Detached.Topmost = true;
 
         service.Save(settings);
         SettingsLoadResult result = service.Load();
@@ -77,6 +82,11 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.Equal(30, result.Settings.Diagnostics.IntervalSeconds);
         Assert.Contains("obs.exe", result.Settings.GameDetection.Exclude);
         Assert.Equal(65, result.Settings.Overlay.Opacity);
+        Assert.Equal(-1200, result.Settings.Charts.Detached.Left);
+        Assert.Equal(80, result.Settings.Charts.Detached.Top);
+        Assert.Equal(640, result.Settings.Charts.Detached.Width);
+        Assert.Equal(320, result.Settings.Charts.Detached.Height);
+        Assert.True(result.Settings.Charts.Detached.Topmost);
     }
 
     [Fact]
@@ -132,6 +142,16 @@ public sealed class SettingsServiceTests : IDisposable
             Language = "fr",
             Frames = new FrameSettings { Mode = "weird", TargetPid = 0, AutoCapture = false },
             Sensors = new SensorSettings { CpuMode = "WINDOWS" },
+            Charts = new ChartSettings
+            {
+                Detached = new DetachedChartSettings
+                {
+                    Left = double.NaN,
+                    Top = 99_999,
+                    Width = 10,
+                    Height = 99_999,
+                },
+            },
         };
 
         settings.Normalize();
@@ -146,6 +166,10 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.Null(settings.Frames.TargetPid);
         Assert.False(settings.Frames.AutoCapture);
         Assert.Equal("acpi", settings.Sensors.CpuMode);
+        Assert.Null(settings.Charts.Detached.Left);
+        Assert.Equal(40_000, settings.Charts.Detached.Top);
+        Assert.Equal(360, settings.Charts.Detached.Width);
+        Assert.Equal(4_000, settings.Charts.Detached.Height);
         Assert.Equal("Default", settings.Overlay.Theme);
         Assert.Equal("#FFFFFF", settings.Overlay.Color);
     }

@@ -105,6 +105,12 @@ public sealed class AppSettings
             Charts.Cpu = true;
         }
 
+        Charts.Detached ??= new DetachedChartSettings();
+        Charts.Detached.Left = NormalizeCoordinate(Charts.Detached.Left, -40_000, 40_000);
+        Charts.Detached.Top = NormalizeCoordinate(Charts.Detached.Top, -40_000, 40_000);
+        Charts.Detached.Width = NormalizeCoordinate(Charts.Detached.Width, 360, 4_000);
+        Charts.Detached.Height = NormalizeCoordinate(Charts.Detached.Height, 200, 4_000);
+
         Diagnostics ??= new DiagnosticsSettings();
         Diagnostics.IntervalSeconds = Diagnostics.IntervalSeconds switch
         {
@@ -180,6 +186,16 @@ public sealed class AppSettings
         }
     }
 
+    private static double? NormalizeCoordinate(double? value, double min, double max)
+    {
+        if (value is not double number || !double.IsFinite(number))
+        {
+            return null;
+        }
+
+        return Math.Clamp(number, min, max);
+    }
+
     private static string NormalizeColor(string? value)
     {
         string text = (value ?? string.Empty).Trim().TrimStart('#');
@@ -242,6 +258,16 @@ public sealed class ChartSettings
     public bool Vram { get; set; } = true;
     public bool Disk { get; set; }
     public bool Frames { get; set; } = true;
+    public DetachedChartSettings Detached { get; set; } = new();
+}
+
+public sealed class DetachedChartSettings
+{
+    public bool Topmost { get; set; }
+    public double? Left { get; set; }
+    public double? Top { get; set; }
+    public double? Width { get; set; }
+    public double? Height { get; set; }
 }
 
 public sealed class DiagnosticsSettings

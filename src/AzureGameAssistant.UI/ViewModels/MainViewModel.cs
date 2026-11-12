@@ -629,6 +629,19 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void RestartElevated() => ElevationRequested?.Invoke(this, EventArgs.Empty);
 
+    public DetachedChartSettings DetachedChartPlacement => _settings.Charts.Detached;
+
+    public void SaveDetachedChartPlacement(double left, double top, double width, double height, bool topmost)
+    {
+        DetachedChartSettings target = _settings.Charts.Detached;
+        target.Left = left;
+        target.Top = top;
+        target.Width = width;
+        target.Height = height;
+        target.Topmost = topmost;
+        _settingsService.Save(_settings);
+    }
+
     [RelayCommand]
     private void OpenPermissionCheck() => PermissionCheckRequested?.Invoke(this, EventArgs.Empty);
 

@@ -456,6 +456,9 @@
   <data name="ChartRestore" xml:space="preserve">
     <value>Dock chart</value>
   </data>
+  <data name="ChartTopmost" xml:space="preserve">
+    <value>Pin window on top</value>
+  </data>
   <data name="ChartDesignMode" xml:space="preserve">
     <value>Layout design</value>
   </data>

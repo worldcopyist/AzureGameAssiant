@@ -1286,6 +1286,7 @@ internal sealed record AiProviderProfile(
 - 图表脱离：卡片头部的“↗”按钮把该 `TimelineChart` 从卡片 `Grid` 中移除，交给 `ChartWindow` 承载（不复制数据、不新建渲染器）；卡片原位显示本地化提示与“收回图表”按钮。
 - 同一指标只保留一个实例：脱离期间原按钮禁用；`ChartWindow.Closed` 时调用 `ReleaseChart()` 并删除占位、把图表插回卡片第 1 行，按钮恢复可用。
 - 脱离窗口标题为“指标名 · 蓝天游戏助手”，继承主窗口主题与当前语言；主窗口隐藏后，只要小窗可见，`App` 的 500ms 计时器继续运行并调用 `RefreshChart()`。
+- 脱离窗口位置、尺寸与置顶状态保存在 `charts.detached`（`left/top/width/height/topmost`，DIPs）：关闭或切换置顶时写回 `settings.json`；重新打开时 `ChartWindowPlacement.TryRestore` 以 `SystemParameters` 虚拟桌面为边界校验，完全不可见则回退居中，尺寸夹在 360×200 与虚拟桌面之间。多张图表共用一套几何，最后关闭的窗口生效。右键菜单“窗口置顶”勾选后 `Topmost=true` 并立即存盘。
 - 帧轨（M2）为独立图表卡（`Metric=Frame`），与其他指标共用横轴与缩放/平移状态；纵轴按窗口内最大值取 16.7 / 33.3 / 50 / 66.7 / 100ms 档位，超出时向上取整到 50ms 倍数。
 - 帧轨绘制每列 min/max 聚合的帧时间曲线，并在尖峰帧位置画红色圆点（上限 512 个，避免高密度时重绘过慢）；图例为“帧时间 (ms)”曲线色块 + “尖峰”圆点。
 - 帧轨悬停显示最近帧的“帧时间 · FPS”；无帧数据时图区显示空态，横轴仍取系统采样与帧时间戳的并集，避免两轨错位。
@@ -1394,12 +1395,20 @@ internal sealed record AiProviderProfile(
     ]
   },
   "charts": {
+    "separate": false,
     "cpu": true,
     "gpu": true,
     "memory": true,
     "vram": true,
     "disk": false,
-    "frames": true
+    "frames": true,
+    "detached": {
+      "topmost": false,
+      "left": null,
+      "top": null,
+      "width": null,
+      "height": null
+    }
   },
   "overlay": {
     "enabled": true,
@@ -1414,7 +1423,8 @@ internal sealed record AiProviderProfile(
     "showMemory": true,
     "showVram": false,
     "theme": "Default",
-    "color": "#FFFFFF"
+    "color": "#FFFFFF",
+    "opacity": 100
   }
 }
 ```

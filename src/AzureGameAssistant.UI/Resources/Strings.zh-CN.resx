@@ -456,6 +456,9 @@
   <data name="ChartRestore" xml:space="preserve">
     <value>收回图表</value>
   </data>
+  <data name="ChartTopmost" xml:space="preserve">
+    <value>窗口置顶</value>
+  </data>
   <data name="ChartDesignMode" xml:space="preserve">
     <value>布局设计</value>
   </data>

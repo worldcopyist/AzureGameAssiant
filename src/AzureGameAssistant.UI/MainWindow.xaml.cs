@@ -191,14 +191,24 @@ public partial class MainWindow : Window
 
         string title = LocalizationService.Instance[ChartLabelKey(metric)] + " · " +
                        LocalizationService.Instance["AppTitle"];
-        var window = new ChartWindow(chart, title);
+        var window = new ChartWindow(chart, title, _viewModel.DetachedChartPlacement);
         _detached[metric] = new DetachedChart(metric, window, parent, chart, placeholder, hint, dock, button);
         window.Closed += (_, _) => RestoreChart(metric);
+        window.Closing += (_, _) => SaveDetachedPlacement(window);
+        window.PlacementChanged += (_, _) => SaveDetachedPlacement(window);
         window.Show();
 
         button.IsEnabled = false;
         RefreshChart();
         UpdateChartColumns();
+    }
+
+    private void SaveDetachedPlacement(ChartWindow window)
+    {
+        Rect bounds = window.WindowState == WindowState.Normal
+            ? new Rect(window.Left, window.Top, window.Width, window.Height)
+            : window.RestoreBounds;
+        _viewModel.SaveDetachedChartPlacement(bounds.Left, bounds.Top, bounds.Width, bounds.Height, window.Topmost);
     }
 
     private void OnDesignModeChanged(object sender, RoutedEventArgs e)
