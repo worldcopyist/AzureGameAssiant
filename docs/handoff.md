@@ -602,7 +602,7 @@ MCP 冒烟（无需 Agent 客户端，直接走 stdio）：
 | 2026-11-12 | Qoder | 会话收尾补测：退出时 `FlushPending` 将未完成采集写成 `complete`，删除会话同时删除同名 `.ai.json`；新增 2 项测试，总数 209；Release 0 警告 0 错误 | `1b5685b` |
 | 2026-11-12 | Qoder | 悬浮窗按显示器定位（K-16 部分）：主窗口所在显示器工作区 + DPI 换算 + 越界夹紧，定位失败回退主屏；新增 4 项定位单测，总数 213；Release 0 警告 0 错误；补充 handoff 3.22 | `0d4c4a3` |
 | 2026-11-12 | Qoder | 便携包内置传感器边车（K-27）：`package.ps1` 自包含发布边车到 `collector\sensors\` 并复制 `LICENSES\`；采集进程按子目录 → 同目录 → 开发树解析；边车单独发布 81MB、依赖齐全，整包待复验；补充 handoff 3.23 | `e0b8f1d` |
-| 2026-11-12 | Qoder | 包内说明文档：`package.ps1` 强制复制 `README.md` 与 `THIRD-PARTY-NOTICES.md`（缺失即失败），`LICENSE` 未定时改为警告；第三方声明许可路径改为包内相对路径；README 更新自动分析现状；新增 handoff 3.24，K-30 标为已解决；补充 handoff 3.24 | `cfd899c` |
+| 2026-11-12 | Qoder | 包内说明文档：`package.ps1` 强制复制 `README.md` 与 `THIRD-PARTY-NOTICES.md`（缺失即失败），`LICENSE` 未定时改为警告；第三方声明许可路径改为包内相对路径；README 更新自动分析现状；新增 handoff 3.24 并把 K-30 标为已解决 | `cfd899c` |
 
 ## 10. 下次交接模板
 
