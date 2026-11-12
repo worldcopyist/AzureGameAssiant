@@ -22,7 +22,7 @@
 | 最新里程碑 | AI 报告合并进会话完成：会话窗口新增“AI 分析”，以选中会话（而非实时缓冲）重建事实层，`≥1000 ms` 采集断帧不参与；分析成功且非离线回退时写入 `<会话文件>.ai.json`，详情区显示摘要、主因/置信度、前 4 条证据与前 3 条建议，FR-015 导出自动附带。`SessionSchema.DiscontinuityFrameMs` 成为报告与 AI 共用的断帧阈值。报告同时记录模型与事实哈希，再次打开时命中即复用并提示“已复用”，按钮变“重新分析”，不再重复请求。FR-020 可选“严重事件自动分析”已落地：默认关闭，仅在完整会话落盘后、评分 / 预算 / 同意 / Key 全部满足时触发并写入同一 `.ai.json`。总数 232 项测试通过；Debug/Release 0 警告 0 错误。会话级点击验证待配置 API Key 后执行。整包已于 2026-11-12 重新生成并核对完整（3.34）。 |
 | 可运行产物 | `build/run-dev.ps1` 可启动；`build/package.ps1` 默认 AOT 流程可生成便携 ZIP（含 PresentMon）；`build/publish-mcp.ps1` 生成 `artifacts/mcp/AzureGameAssistant.Mcp.exe`；二号屏桌面快捷方式指向 Release |
 | 代码分支 | `main`（`feat/m1-foundation` 已 squash 合入，分支保留） |
-| 当前提交 | `faa8797` |
+| 当前提交 | `bc1aab7` |
 | 未提交变更 | 无 |
 | 阻塞事项 | 帧率准确性需在用户真实游戏（原神 60 帧、三角洲行动）长测确认；AI 窗口与“测试连接”按钮待点击验证；掉帧/高负载标记需在真实游戏复现后核对事件与报告；3 款游戏 PresentMon 实测与反作弊评估待用户游戏环境（已测明日方舟、三角洲行动）；深模式内存/CPU 与 60 分钟连续性待专项测量；本机默认热键 `Ctrl+Alt+M` 被其他程序占用，需用户在设置页改键（实测 `Ctrl+Alt+F9` 可用）；卡顿判定召回率与误报需真实游戏长测；会话级 AI 分析（3.16）待配置 API Key 后点击验证 |
 
@@ -706,6 +706,7 @@ MCP 冒烟（无需 Agent 客户端，直接走 stdio）：
 | 2026-11-12 | Qoder | 整包重建与 AOT 编译器安全升级：`Directory.Build.targets` 将 `KnownILCompilerPack` 固定 8.0.34（修复 NU1903 / GHSA-p3jp-9v83-76w9）；`package.ps1` 中文提示改英文以兼容 PowerShell 5.1；整包 250MB / ZIP 110MB，采集器 3.95MB，presentmon 与 sensors 齐全（K-49 关闭）；补充 handoff 3.34 | `50a9d57` |
 | 2026-11-12 | Qoder | 实机验证记录：重启后游戏模式 200ms 采样、帧采集与 139.5 FPS 正常；热键 Ctrl+Alt+M 被占用（1409），待用户改绑 | `ddb3cfa` |
 | 2026-11-12 | Qoder | 菜单与标题栏主题一致性（K-51）：`Shared.xaml` 为 `ContextMenu` / `MenuItem` 增加调色板隐式样式；新增 `WindowChromeTheme` 经 DWM 跟随主题，`Loaded` 与 `ThemeChanged` 时重刷；新增 handoff 3.35；文档补 FR-013 验收与 v1.17；Release 0 警告 0 错误、232 项测试通过；待用户浅色目视复核 | `faa8797` |
+| 2026-11-13 | Qoder | 托盘菜单固定白底黑字（不再绑定主题）、卡顿通知单独开关且默认关闭（`detection.notifyStutter`）、帧采集改为常驻（删除离开全屏的 `frames.stop` 与抑制，采集端去掉失败上限并按 0.25/1/3/5/10 秒无限退避，权限不足 30 秒重试）；文档 FR-010/011/013 与 v1.18；新增默认值断言，总数 232；Release 0 警告 0 错误；实机 143.9 FPS 采集正常；补充 handoff 3.36 / K-52 / K-53，待用户长局复核帧率连续性 | `bc1aab7` |
 
 ## 10. 下次交接模板
 
