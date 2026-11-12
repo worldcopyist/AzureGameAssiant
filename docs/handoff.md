@@ -312,6 +312,7 @@
 - 根因一：`MainViewModel._autoCaptureBlockedUntil` 只写不读，`StartFramesAsync` 返回空（管道错误或采集端拒绝）时直接返回，下一拍（2 秒）继续请求；`unavailable` 的前台分支还会清空冷却。
 - 根因二：`CollectorLauncher` 不监控子进程，采集端也没有父进程感知；界面被强杀或崩溃后采集端继续运行。
 - 修复：冷却按 PID 记录并在尝试前生效（`permissionDenied` 5 分钟 / `unavailable` 1 分钟 / 无应答 15 秒）；采集端新增 `--parent <界面 PID>`，每 2 秒检查父进程，父进程消失即自行停止。界面启动采集时自动传入该参数。
+- 打包防护：`build/package.ps1` 在清理 `artifacts` 前检查 `AzureGameAssistant` / `AzureGameAssistant.Collector` 进程，检测到运行中直接报错退出，避免像本轮一样在程序运行时清空目录、把正在使用的 PresentMon 删掉。
 - 验证：Debug/Release 0 警告 0 错误，198 项测试通过。重启后的实机验证待执行（当前运行中的旧版来自不完整的 artifacts 目录，缺 `presentmon` 子目录）。
 
 ## 4. 进行中

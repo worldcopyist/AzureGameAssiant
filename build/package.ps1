@@ -21,6 +21,13 @@ $artifacts = Join-Path $root "artifacts"
 $stage = Join-Path $artifacts $packageName
 $collectorOutput = Join-Path $artifacts "collector"
 
+$running = Get-Process -Name "AzureGameAssistant", "AzureGameAssistant.Collector" -ErrorAction SilentlyContinue
+if ($running) {
+    $ids = ($running | ForEach-Object { $_.Id }) -join ", "
+    Write-Error "程序正在运行（PID: $ids）。重复打包会清空正在使用的目录并删除 PresentMon，请先从托盘退出后再执行。"
+    exit 1
+}
+
 if (Test-Path $stage) {
     Remove-Item -Path $stage -Recurse -Force
 }
