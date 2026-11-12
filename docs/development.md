@@ -1571,10 +1571,16 @@ AzureGameAssistant-<version>-win-x64/
 ├─ AzureGameAssistant.Core.dll
 ├─ collector/
 │  ├─ AzureGameAssistant.Collector.exe
+│  ├─ sensors/
+│  │  ├─ AzureGameAssistant.Sensors.exe
+│  │  ├─ LibreHardwareMonitorLib.dll 等运行时依赖
+│  │  └─ LICENSES/LibreHardwareMonitorLib-MPL-2.0.txt
 │  └─ presentmon/
 │     ├─ PresentMon-2.6.0-x64.exe
 │     ├─ LICENSE.txt
 │     └─ SHA256SUMS
+├─ LICENSES/
+│  └─ LibreHardwareMonitorLib-MPL-2.0.txt
 ├─ *.dll / *.json
 ├─ LICENSE
 ├─ THIRD-PARTY-NOTICES.md
@@ -1584,7 +1590,7 @@ AzureGameAssistant-<version>-win-x64/
 - ZIP 根目录为版本化文件夹，解压即用，不写注册表（自启项由用户手动开启）。
 - 采集进程按 `AppContext.BaseDirectory` 解析 `presentMonPath`，因此 PresentMon 必须位于 `collector\presentmon\`，不能放在包根目录。
 - 打包脚本校验 PresentMon SHA256 与 LICENSE.txt，缺失或不匹配则构建失败。
-- `AzureGameAssistant.Sensors.exe` 与 `LICENSES/` 目录随 M3 传感器边车一并加入。
+- 边车以自包含方式发布到 `collector\sensors\`，采集进程先查该子目录、再查自身目录、最后回退开发树；缺少边车时深模式自动降级为无温度数据，不影响帧采集。`package.ps1` 同时把 `third_party\licenses` 复制到包根 `LICENSES\`。
 - 发布前运行 `build/measure.ps1`，结果附在交接文档。
 
 ## 15. 测试策略

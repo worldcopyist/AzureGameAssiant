@@ -340,6 +340,12 @@
 - 实现：新增 `MonitorWorkArea.TryGet`（`MonitorFromWindow` + `GetMonitorInfo`，复用既有 P/Invoke）取主窗口所在显示器工作区，按窗口 DPI 缩放到 DIP 后交给 Core 的 `OverlayPlacement.Place` 计算四角与偏移；定位失败回退 `SystemParameters.WorkArea`；超出工作区时夹紧，避免副屏偏移或窄屏把数据推出屏幕。主窗口 `LocationChanged`、悬浮窗显示与 `SizeChanged` 都会重新定位。
 - 验证：新增 `OverlayPlacementTests` 4 项（左上偏移、右下对齐、副屏负坐标、超大窗口夹紧），总数 213 项通过；Release 0 警告 0 错误。实机跨屏显示待重启后确认。
 
+### 3.23 便携包内置传感器边车（2026-11-12）
+
+- 缺口：K-27 记录便携包只带 PresentMon，没有 `AzureGameAssistant.Sensors.exe` 与 LHM 依赖，分发版本的 GPU / CPU 温度会显示“—”。
+- 实现：`build/package.ps1` 新增自包含发布边车到 `artifacts\sensors`，再复制到 `collector\sensors\`（跳过 pdb，保留 `LICENSES\`）；包根新增 `LICENSES\`（来自 `third_party\licenses`）。`CollectorHost.ResolveSensorsPath` 依次查找 `collector\sensors\`、采集进程同目录、开发树 `Release/Debug` 输出，找不到时深模式自动降级为无温度数据。
+- 验证：`dotnet publish` 边车成功，输出含 `AzureGameAssistant.Sensors.exe`、`LibreHardwareMonitorLib.dll`、`HidSharp.dll`、`LICENSES\`，共 81MB；采集进程 Release 构建 0 警告 0 错误；`package.ps1` 通过 pwsh 语法解析。整包 ZIP 与打包后边车启动待退出旧实例后复验。
+
 ## 4. 进行中
 
 - **会话 AI 分析（3.16）**：按钮与写入链路已完成并通过单测；待配置 API Key 后在会话窗口点一次“AI 分析”，确认报告写入 `<会话>.ai.json`、详情区出现 AI 段、导出 Markdown 末尾附带 AI 章节。
@@ -455,7 +461,7 @@
 | K-28 | 本机存在已停止的 `WinRing0_1_2_0` 服务（其他工具遗留），PawnIO 已安装并运行 | 装 PawnIO 后内核驱动数量增加，ACE 可能视为环境异常 | 用户已被告知并确认；PawnIO 为 `DEMAND_START`，游戏前可 `sc stop PawnIO`，或 `PawnIO_setup.exe -uninstall -silent` 卸载；边车仍会在检测到运行中的已知 Ring0 驱动时拒绝启动 |
 | K-25 | 传感器边车进程的专用工作集 / CPU 占用尚未单独测量 | 深模式整体预算未定论 | 下一轮专项测量；边车仅 1s 节拍、无 GUI，预计远低于 35MB 预算 |
 | K-26 | LHM 0.9.6 对本机 RTX 4060 不提供功耗传感器 | GPU 功耗为“—” | 不写 0；改用驱动 SDK 或新版 LHM 时再补，保持缺失语义 |
-| K-27 | 便携包尚未包含 `AzureGameAssistant.Sensors.exe` 与 LHM 依赖 | 分发版本的 GPU/CPU 温度不显示 | 开发态从同仓 Release 输出解析边车；M3 打包阶段把边车与 LICENSES 一并放入 `sensors\` 并校验 |
+| K-27 | ~~便携包尚未包含 `AzureGameAssistant.Sensors.exe` 与 LHM 依赖~~ | 已解决（待整包复验） | `package.ps1` 自包含发布边车到 `collector\sensors\`，并复制 `LICENSES\`；采集进程优先解析该子目录。边车发布与依赖清单已单独验证，整包 ZIP 需退出旧实例后复验 |
 | K-29 | `AiAnalysisWindow`（含新增“测试连接”、掉帧分析、高负载归因卡片）尚未做本机点击级验证 | UI 交互问题可能未被发现 | 本轮已停止旧实例、重建并重启 Release；下一步按第 5 节步骤点击验证。服务层已有 135 项测试覆盖 |
 | K-30 | FR-020“严重事件自动分析”未实现 | 与需求文档原描述存在差距 | 已在需求文档标注实现现状；不提供开关，避免后台请求。待事件评分源落地后实现 |
 | K-31 | MCP 以非管理员运行时 `get_collector_status` 为 `degraded` | 缺少运行时长与最近错误 | 属设计行为；快照/历史/帧统计/进程排行不受影响。需要完整状态时由用户以管理员身份运行 Agent |
@@ -588,6 +594,7 @@ MCP 冒烟（无需 Agent 客户端，直接走 stdio）：
 | 2026-11-12 | Qoder | 自动分析性能优化：会话解压、事实构建、哈希与门控判定移入 `Task.Run` 后台线程，界面线程只做日志 / 托盘提示 / 报告收尾；并发策略在开发文档中改为实际行为（忙时手动提示、自动跳过）；Release 0 警告 0 错误 | `381ce25` |
 | 2026-11-12 | Qoder | 会话收尾补测：退出时 `FlushPending` 将未完成采集写成 `complete`，删除会话同时删除同名 `.ai.json`；新增 2 项测试，总数 209；Release 0 警告 0 错误 | `1b5685b` |
 | 2026-11-12 | Qoder | 悬浮窗按显示器定位（K-16 部分）：主窗口所在显示器工作区 + DPI 换算 + 越界夹紧，定位失败回退主屏；新增 4 项定位单测，总数 213；Release 0 警告 0 错误；补充 handoff 3.22 | `0d4c4a3` |
+| 2026-11-12 | Qoder | 便携包内置传感器边车（K-27）：`package.ps1` 自包含发布边车到 `collector\sensors\` 并复制 `LICENSES\`；采集进程按子目录 → 同目录 → 开发树解析；边车单独发布 81MB、依赖齐全，整包待复验；补充 handoff 3.23 | `待回填` |
 
 ## 10. 下次交接模板
 

@@ -361,6 +361,15 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
 
     private static string ResolveSensorsPath()
     {
+        // Packaged builds keep the sidecar and its dependencies in a subfolder so
+        // the collector directory stays a single native executable plus licenses.
+        string nested = Path.Combine(
+            AppContext.BaseDirectory, "sensors", "AzureGameAssistant.Sensors.exe");
+        if (File.Exists(nested))
+        {
+            return nested;
+        }
+
         string local = Path.Combine(AppContext.BaseDirectory, "AzureGameAssistant.Sensors.exe");
         if (File.Exists(local))
         {

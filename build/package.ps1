@@ -73,6 +73,23 @@ if (-not (Test-Path $collectorExe)) {
     exit 1
 }
 
+Write-Host "Publishing sensors sidecar ($Configuration, self-contained)..."
+$sensorsOutput = Join-Path $artifacts "sensors"
+dotnet publish (Join-Path $root "src\AzureGameAssistant.Sensors\AzureGameAssistant.Sensors.csproj") `
+    -c $Configuration -r $runtime --self-contained true `
+    -p:PublishReadyToRun=true `
+    -o $sensorsOutput
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Sensors sidecar publish failed."
+    exit $LASTEXITCODE
+}
+
+$sensorsExe = Join-Path $sensorsOutput "AzureGameAssistant.Sensors.exe"
+if (-not (Test-Path $sensorsExe)) {
+    Write-Error "Sensors executable missing from $sensorsOutput"
+    exit 1
+}
+
 $collectorStage = Join-Path $stage "collector"
 if (Test-Path $collectorStage) {
     Remove-Item -Path $collectorStage -Recurse -Force
@@ -81,6 +98,17 @@ if (Test-Path $collectorStage) {
 New-Item -ItemType Directory -Path $collectorStage -Force | Out-Null
 Get-ChildItem -Path $collectorOutput -File | Where-Object { $_.Extension -ne ".pdb" } | ForEach-Object {
     Copy-Item $_.FullName -Destination $collectorStage -Force
+}
+
+$sensorsStage = Join-Path $collectorStage "sensors"
+New-Item -ItemType Directory -Path $sensorsStage -Force | Out-Null
+Get-ChildItem -Path $sensorsOutput -File | Where-Object { $_.Extension -ne ".pdb" } | ForEach-Object {
+    Copy-Item $_.FullName -Destination $sensorsStage -Force
+}
+
+$sensorsLicenses = Join-Path $sensorsOutput "LICENSES"
+if (Test-Path $sensorsLicenses) {
+    Copy-Item $sensorsLicenses -Destination (Join-Path $sensorsStage "LICENSES") -Recurse -Force
 }
 
 $presentMon = Join-Path $root "third_party\presentmon"
@@ -112,6 +140,11 @@ foreach ($license in $licenseFiles) {
         Copy-Item $candidate -Destination $stage -Force
         break
     }
+}
+
+$thirdPartyLicenses = Join-Path $root "third_party\licenses"
+if (Test-Path $thirdPartyLicenses) {
+    Copy-Item $thirdPartyLicenses -Destination (Join-Path $stage "LICENSES") -Recurse -Force
 }
 
 $zipPath = Join-Path $artifacts "$packageName.zip"
