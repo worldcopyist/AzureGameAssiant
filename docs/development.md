@@ -1167,12 +1167,13 @@ internal sealed record AiProviderProfile(
 
 - token 估算：`ceil(UTF8字节数 / 3)`，保守偏高；请求前显示估算值。
 - 费用 = 输入 token / 1e6 × 输入单价 + 输出 token / 1e6 × 输出单价；单价为 0 时只显示 token。
+- 单价：设置页 AI 分组按当前供应商填写输入 / 输出价格（美元 / 百万 Token），随供应商草稿一起保存；切换供应商时各自独立。
 - 预算：
   - 单次上限：输入 ≤ profile 的 `MaxInputTokens`，输出 ≤ `MaxOutputTokens`。
-  - 每日预算、每月预算（用户填写金额）；达到后硬停止，UI 显示原因。
-  - 自动分析默认关闭；开启后仅对评分 ≥ 80 的确认事件触发，且同一事件只自动分析一次。
+  - 每日预算、每月预算（用户填写美元金额）；达到后硬停止，UI 显示原因。
+  - 自动分析属 FR-020 规划项，当前未实现，不提供开关，也不会发起任何后台请求。
 - 并发：同一时间最多 1 个请求；新请求排队或取消旧请求由用户选择。
-- 缓存：同一会话 + 同一模型 + 同一事实哈希已有报告时，默认复用，提供“重新分析”。
+- 缓存：会话分析成功后写入 `<会话>.ai.json`；再次打开分析目前仍会重新请求，自动复用（同一模型 + 同一事实哈希）尚未实现。
 
 ### 10.10 安全
 
@@ -1209,7 +1210,7 @@ internal sealed record AiProviderProfile(
 | HTTP 客户端 | `OpenAiCompatibleClient.cs` | 完成：SSE 流式 + JSON 回落；60s 超时；429/5xx/超时重试 1 次；401/403 不重试；`ListModelsAsync` 读取 `/models`（20s 超时、Bearer、错误分类与脱敏）；`TestConnectionAsync` 发送一次最小探测请求 |
 | 预算与用量 | `AiBudget.cs` | 完成：UTF8/3 估算 token，日/月滚动，原子落盘 |
 | 本地兜底 | `LocalReportBuilder.cs` | 完成：同时生成掉帧原因与高负载进程归因 |
-| UI | `AiAnalysisWindow`、设置页 AI 分组、主界面“AI 分析” | 完成：分析窗新增“掉帧分析”“高负载归因”卡片；设置页新增“测试连接”；单元测试通过，点击级验证待重启后执行 |
+| UI | `AiAnalysisWindow`、设置页 AI 分组、主界面“AI 分析” | 完成：分析窗新增“掉帧分析”“高负载归因”卡片；设置页新增“测试连接”与输入 / 输出单价（美元 / 百万 Token，按供应商保存）；单元测试通过，点击级验证待重启后执行 |
 | 严重事件自动分析 | — | 未实现：当前没有写入评分事件的判定源；不提供开关，避免出现无效控件或后台请求 |
 
 - 报告目录：`%LOCALAPPDATA%\AzureGameAssistant\ai\reports\`；解析失败原文：`%LOCALAPPDATA%\AzureGameAssistant\logs\ai-parse-*.log`（不含 Key）。

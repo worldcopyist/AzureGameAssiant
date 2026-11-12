@@ -315,6 +315,12 @@
 - 打包防护：`build/package.ps1` 在清理 `artifacts` 前检查 `AzureGameAssistant` / `AzureGameAssistant.Collector` 进程，检测到运行中直接报错退出，避免像本轮一样在程序运行时清空目录、把正在使用的 PresentMon 删掉。
 - 验证：Debug/Release 0 警告 0 错误，198 项测试通过。重启后的实机验证待执行（当前运行中的旧版来自不完整的 artifacts 目录，缺 `presentmon` 子目录）。
 
+### 3.19 AI 单价设置与文档校正（2026-11-12）
+
+- 缺口：设置页只有每日 / 每月预算，没有 Token 单价输入，`AiProviderSettings.InputPricePerMillion` / `OutputPricePerMillion` 无处填写，导致请求前永远显示“未配置价格”、预算永远为 0 而不会硬停止。
+- 修复：设置页 AI 分组新增“输入价格 / 输出价格（美元 / 百万 Token）”，按供应商存入草稿并在保存时写入对应 `AiProviderSettings`；切换供应商各自独立，0 表示不估算。
+- 文档校正：§10.9 明确单价入口；把“自动分析默认关闭、评分 ≥ 80 触发”改为 FR-020 规划项（当前未实现）；把缓存改为“会话报告已落盘，自动复用尚未实现”。
+
 ## 4. 进行中
 
 - **会话 AI 分析（3.16）**：按钮与写入链路已完成并通过单测；待配置 API Key 后在会话窗口点一次“AI 分析”，确认报告写入 `<会话>.ai.json`、详情区出现 AI 段、导出 Markdown 末尾附带 AI 章节。
@@ -557,6 +563,7 @@ MCP 冒烟（无需 Agent 客户端，直接走 stdio）：
 | 2026-11-12 | Qoder | AI 报告合并进会话：`AiReportStore` 读写 `<会话>.ai.json`（原子写入、损坏静默忽略），`SessionFactsFactory` 从会话重建事实层并排除 ≥1000 ms 断帧；会话窗口新增“AI 分析”，成功后详情区显示摘要/主因/证据/建议，导出自动附带；离线回退不写入；`SessionSchema.DiscontinuityFrameMs` 统一阈值；新增 4 项测试，总数 198；Debug/Release 0 警告 0 错误 | `14b685b` |
 | 2026-11-12 | Qoder | 文档一致性修正：FR-006 与开发文档 §9 统一为“显存/热降频只作归因证据”；§10.12 更新为实时快照与会话事实层两个入口；补充 handoff 3.17 | `56baadb` |
 | 2026-11-12 | Qoder | 修复自动采集重试风暴与残留采集进程：冷却按 PID 真正生效（5 分钟 / 1 分钟 / 15 秒），采集端 `--parent` 父进程监控；`package.ps1` 运行中拒绝打包；补充 handoff 3.18 | `e45e270` |
+| 2026-11-12 | Qoder | AI 成本控制补全：设置页新增输入 / 输出单价（美元 / 百万 Token），按供应商保存；校正 §10.9 自动分析与缓存说明；补充 handoff 3.19 | `待回填` |
 
 ## 10. 下次交接模板
 

@@ -343,16 +343,28 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
                             <TextBlock VerticalAlignment="Center"
-                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiDailyBudgetLabel]}" />
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiInputPriceLabel]}" />
                             <TextBox Grid.Column="1" Width="90"
-                                     Text="{Binding AiDailyBudget, Mode=TwoWay}" />
+                                     Text="{Binding AiInputPricePerMillion, Mode=TwoWay}" />
 
                             <TextBlock Grid.Row="1" Margin="0,10,0,0" VerticalAlignment="Center"
-                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiMonthlyBudgetLabel]}" />
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiOutputPriceLabel]}" />
                             <TextBox Grid.Row="1" Grid.Column="1" Width="90" Margin="0,10,0,0"
+                                     Text="{Binding AiOutputPricePerMillion, Mode=TwoWay}" />
+
+                            <TextBlock Grid.Row="2" Margin="0,10,0,0" VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiDailyBudgetLabel]}" />
+                            <TextBox Grid.Row="2" Grid.Column="1" Width="90" Margin="0,10,0,0"
+                                     Text="{Binding AiDailyBudget, Mode=TwoWay}" />
+
+                            <TextBlock Grid.Row="3" Margin="0,10,0,0" VerticalAlignment="Center"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiMonthlyBudgetLabel]}" />
+                            <TextBox Grid.Row="3" Grid.Column="1" Width="90" Margin="0,10,0,0"
                                      Text="{Binding AiMonthlyBudget, Mode=TwoWay}" />
                         </Grid>
                         <TextBlock Margin="0,6,0,0" FontSize="11" TextWrapping="Wrap"

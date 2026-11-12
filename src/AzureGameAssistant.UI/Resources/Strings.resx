@@ -861,6 +861,12 @@
   <data name="AiBudgetSection" xml:space="preserve">
     <value>Cost guards</value>
   </data>
+  <data name="AiInputPriceLabel" xml:space="preserve">
+    <value>Input price (USD per 1M tokens, 0 = no estimate)</value>
+  </data>
+  <data name="AiOutputPriceLabel" xml:space="preserve">
+    <value>Output price (USD per 1M tokens, 0 = no estimate)</value>
+  </data>
   <data name="AiDailyBudgetLabel" xml:space="preserve">
     <value>Daily budget (USD, 0 = unlimited)</value>
   </data>

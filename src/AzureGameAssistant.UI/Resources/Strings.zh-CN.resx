@@ -861,6 +861,12 @@
   <data name="AiBudgetSection" xml:space="preserve">
     <value>费用限制</value>
   </data>
+  <data name="AiInputPriceLabel" xml:space="preserve">
+    <value>输入价格（美元 / 百万 Token，0 = 不估算）</value>
+  </data>
+  <data name="AiOutputPriceLabel" xml:space="preserve">
+    <value>输出价格（美元 / 百万 Token，0 = 不估算）</value>
+  </data>
   <data name="AiDailyBudgetLabel" xml:space="preserve">
     <value>每日预算（美元，0 = 不限）</value>
   </data>

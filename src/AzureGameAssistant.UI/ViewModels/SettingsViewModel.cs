@@ -248,6 +248,12 @@ public sealed partial class SettingsViewModel : ObservableObject
     private string _aiModel = string.Empty;
 
     [ObservableProperty]
+    private double _aiInputPricePerMillion;
+
+    [ObservableProperty]
+    private double _aiOutputPricePerMillion;
+
+    [ObservableProperty]
     private bool _aiRedact = true;
 
     [ObservableProperty]
@@ -426,6 +432,8 @@ public sealed partial class SettingsViewModel : ObservableObject
             AiBaseUrl = draft.BaseUrl;
             AiModel = draft.Model;
             AiRequiresKey = draft.RequiresKey;
+            AiInputPricePerMillion = draft.InputPrice;
+            AiOutputPricePerMillion = draft.OutputPrice;
             RefreshKeyStatus();
             return;
         }
@@ -436,6 +444,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         AiBaseUrl = !string.IsNullOrWhiteSpace(configured?.BaseUrl) ? configured!.BaseUrl : preset.BaseUrl;
         AiModel = !string.IsNullOrWhiteSpace(configured?.Model) ? configured!.Model : preset.SuggestedModel;
         AiRequiresKey = AiProviderPresets.IsKnown(key) ? preset.RequiresKey : configured?.RequiresKey ?? true;
+        AiInputPricePerMillion = configured?.InputPricePerMillion ?? 0;
+        AiOutputPricePerMillion = configured?.OutputPricePerMillion ?? 0;
         RefreshKeyStatus();
     }
 
@@ -448,7 +458,12 @@ public sealed partial class SettingsViewModel : ObservableObject
             return;
         }
 
-        _aiDrafts[key] = new AiProviderDraft(baseUrl, (AiModel ?? string.Empty).Trim(), AiRequiresKey);
+        _aiDrafts[key] = new AiProviderDraft(
+            baseUrl,
+            (AiModel ?? string.Empty).Trim(),
+            AiRequiresKey,
+            double.IsFinite(AiInputPricePerMillion) ? Math.Max(0, AiInputPricePerMillion) : 0,
+            double.IsFinite(AiOutputPricePerMillion) ? Math.Max(0, AiOutputPricePerMillion) : 0);
     }
 
     private void FlushAiProviders()
@@ -467,6 +482,8 @@ public sealed partial class SettingsViewModel : ObservableObject
             entry.BaseUrl = draft.BaseUrl;
             entry.Model = draft.Model;
             entry.RequiresKey = draft.RequiresKey;
+            entry.InputPricePerMillion = draft.InputPrice;
+            entry.OutputPricePerMillion = draft.OutputPrice;
         }
     }
 
@@ -538,7 +555,12 @@ public sealed partial class SettingsViewModel : ObservableObject
         FlushAiProviders();
     }
 
-    private readonly record struct AiProviderDraft(string BaseUrl, string Model, bool RequiresKey);
+    private readonly record struct AiProviderDraft(
+        string BaseUrl,
+        string Model,
+        bool RequiresKey,
+        double InputPrice,
+        double OutputPrice);
 
     private static double Clamp(double value, double min, double max, double fallback) =>
         double.IsFinite(value) ? Math.Clamp(value, min, max) : fallback;
