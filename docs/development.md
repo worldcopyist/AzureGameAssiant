@@ -1219,6 +1219,7 @@ internal sealed record AiProviderProfile(
 | UI | `AiAnalysisWindow`、设置页 AI 分组、主界面“AI 分析” | 完成：分析窗新增“掉帧分析”“高负载归因”卡片；设置页新增“测试连接”与输入 / 输出单价（美元 / 百万 Token，按供应商保存）；单元测试通过，点击级验证待重启后执行 |
 | 报告复用 | `AiReportStore.IsReusable`、`AiAnalysisService.ComputeFactsHash` | 完成：会话报告记录 `model` 与 `factsHash`；同一模型 + 同一事实时直接展示并提示“已复用”，按钮变“重新分析” |
 | 自动分析测试 | `AutoAnalysisPolicyTests` | 完成：评分边界、开关、预算缺失、同意、配置、Key、预算耗尽、本地模型无需 Key，共 6 项 |
+| 会话收尾测试 | `SessionStoreTests` | 完成：退出时 `FlushPending` 把未完成采集写成 `complete`；删除会话同时删除同名 `.ai.json`；共 2 项 |
 | 严重事件自动分析 | `AutoAnalysisPolicy.cs`、`App.OnSessionWritten`、设置页 AI 分组 | 完成（默认关闭）：完整会话写入后按评分、预算、同意、Key、配置与冷却统一判定；命中即复用检查，成功后写 `<会话>.ai.json`；忙时跳过，不回退不重试；设置页新增开关与最低评分 |
 
 - 报告目录：`%LOCALAPPDATA%\AzureGameAssistant\ai\reports\`；解析失败原文：`%LOCALAPPDATA%\AzureGameAssistant\logs\ai-parse-*.log`（不含 Key）。

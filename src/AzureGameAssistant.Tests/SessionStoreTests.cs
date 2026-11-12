@@ -210,6 +210,70 @@ public sealed class SessionStoreTests : IDisposable
             sample => Assert.True(float.IsFinite(sample.CpuUtilityPct) && float.IsFinite(sample.DiskLatencyMs)));
     }
 
+    [Fact]
+    public void FlushPendingCompletesCaptureOnShutdown()
+    {
+        SampleRecord[] samples = BuildSamples(T0);
+        FrameTimePoint[] frames = BuildFrames(T0);
+        var recorder = new SessionRecorder(_directory, 20, 500, ResolveName, () => "zh-CN");
+        StutterEvent evt = new(
+            15,
+            new DateTime(T0, DateTimeKind.Utc),
+            new DateTime(T0 + 100 * Ms, DateTimeKind.Utc),
+            100,
+            55,
+            StutterSignals.CpuSpike,
+            StutterCause.Cpu,
+            90,
+            42,
+            Manual: false);
+
+        Assert.NotNull(recorder.Begin(evt, Context(), samples, samples.Length, frames, frames.Length));
+        Assert.True(recorder.HasPending);
+
+        recorder.FlushPending(
+            new DateTime(T0 + 5 * TimeSpan.TicksPerSecond, DateTimeKind.Utc),
+            samples,
+            samples.Length,
+            frames,
+            frames.Length);
+
+        Assert.False(recorder.HasPending);
+        SessionInfo info = Assert.Single(SessionStore.Enumerate(_directory));
+        Assert.True(info.Complete);
+        SessionDocument document = SessionStore.Read(info.Path);
+        Assert.Equal(SessionSchema.CompleteState, document.Header.State);
+        Assert.True(document.Footer?.Complete);
+    }
+
+    [Fact]
+    public void DeleteRemovesSessionAndSiblingAiReport()
+    {
+        SampleRecord[] samples = BuildSamples(T0);
+        var recorder = new SessionRecorder(_directory, 20, 500, ResolveName, () => "zh-CN");
+        StutterEvent evt = new(
+            17,
+            new DateTime(T0, DateTimeKind.Utc),
+            new DateTime(T0 + 100 * Ms, DateTimeKind.Utc),
+            100,
+            75,
+            StutterSignals.FrameSpike,
+            StutterCause.FramePacing,
+            120,
+            42,
+            Manual: false);
+
+        SessionInfo partial = Assert.IsType<SessionInfo>(
+            recorder.Begin(evt, Context(), samples, samples.Length, [], 0));
+        string aiPath = partial.Path + ".ai.json";
+        File.WriteAllText(aiPath, "{}");
+
+        Assert.True(SessionStore.Delete(partial.Path));
+        Assert.False(File.Exists(partial.Path));
+        Assert.False(File.Exists(aiPath));
+        Assert.Empty(SessionStore.Enumerate(_directory));
+    }
+
     private static SampleRecord[] BuildSamples(long centerTicks)
     {
         var samples = new SampleRecord[65];
