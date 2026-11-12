@@ -879,6 +879,21 @@
   <data name="AiConsentHint" xml:space="preserve">
     <value>分析窗口中的预览就是会离开本机的全部内容。密钥只存放在 Windows 凭据管理器，不写入设置、日志或报告。</value>
   </data>
+  <data name="AiAutoAnalyzeLabel" xml:space="preserve">
+    <value>自动分析严重事件</value>
+  </data>
+  <data name="AiAutoAnalyzeScoreLabel" xml:space="preserve">
+    <value>最低评分</value>
+  </data>
+  <data name="AiAutoAnalyzeHint" xml:space="preserve">
+    <value>默认关闭。仅在会话落盘后触发，且必须已设置每日与每月预算、配置好供应商与 Key，并已对当前供应商勾选隐私同意；每个会话只分析一次。</value>
+  </data>
+  <data name="AiAutoTitle" xml:space="preserve">
+    <value>自动分析</value>
+  </data>
+  <data name="AiAutoBalloon" xml:space="preserve">
+    <value>事件（评分 {0}）的 AI 分析已完成。</value>
+  </data>
   <data name="AiWindowTitle" xml:space="preserve">
     <value>AI 分析</value>
   </data>
@@ -1043,6 +1058,9 @@
   </data>
   <data name="AiCancelled" xml:space="preserve">
     <value>已取消</value>
+  </data>
+  <data name="AiBusy" xml:space="preserve">
+    <value>另一个 AI 请求仍在进行，请等它结束后再试。</value>
   </data>
   <data name="AiAnalyzeButton" xml:space="preserve">
     <value>AI 分析</value>

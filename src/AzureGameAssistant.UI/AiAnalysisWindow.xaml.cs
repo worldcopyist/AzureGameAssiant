@@ -80,6 +80,12 @@ public partial class AiAnalysisWindow : Window
             }
         }
 
+        if (_ai.IsBusy)
+        {
+            _viewModel.ApplyError(LocalizationService.Instance["AiBusy"]);
+            return;
+        }
+
         _cancellation?.Dispose();
         _cancellation = new CancellationTokenSource();
         _viewModel.BeginRun();

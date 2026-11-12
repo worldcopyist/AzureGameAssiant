@@ -13,6 +13,7 @@ using AzureGameAssistant.Core.Diagnostics;
 using AzureGameAssistant.Core.Hardware;
 using AzureGameAssistant.Core.Logging;
 using AzureGameAssistant.Core.Models;
+using AzureGameAssistant.Core.Sessions;
 using AzureGameAssistant.Core.Settings;
 using AzureGameAssistant.UI.Services;
 using AzureGameAssistant.UI.ViewModels;
@@ -41,6 +42,8 @@ public partial class App : Application
     private AiAnalysisService? _ai;
     private AiAnalysisWindow? _aiWindow;
     private SessionsWindow? _sessionsWindow;
+    private CancellationTokenSource? _autoAnalysisCts;
+    private bool _autoAnalysisBusy;
     private DispatcherTimer? _timer;
     private LongRunRecorder? _recorder;
     private UiProcessProbe? _uiProbe;
@@ -158,6 +161,7 @@ public partial class App : Application
         _hotkey.Pressed += OnHotkeyPressed;
         RegisterHotkey(_settings.Hotkey, notifyConflict: true);
         _viewModel.StutterDetected += OnStutterDetected;
+        _viewModel.Sessions.SessionWritten += OnSessionWritten;
 
         LocalizationService.Instance.LanguageChanged += OnLanguageChanged;
 
@@ -960,6 +964,120 @@ public partial class App : Application
             LocalizationService.Instance.Format("StutterBalloon", stutterEvent.Score));
     }
 
+    /// <summary>
+    /// FR-020 optional background analysis. It only starts after the recorder
+    /// has written a complete session, so the fact layer and report point at
+    /// the same file a user sees; every gate is checked before any network use.
+    /// </summary>
+    private async void OnSessionWritten(object? sender, SessionInfo info)
+    {
+        if (!info.Complete || _autoAnalysisBusy || _shuttingDown)
+        {
+            return;
+        }
+
+        if (!_settings.Ai.Enabled || !_settings.Ai.AutoAnalyze)
+        {
+            return;
+        }
+
+        if (info.Score < _settings.Ai.AutoAnalyzeMinScore)
+        {
+            return;
+        }
+
+        _autoAnalysisBusy = true;
+        try
+        {
+            await RunAutoAnalysisAsync(info);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            _logger?.Warn($"自动分析异常：{ex.GetType().Name}");
+        }
+        finally
+        {
+            _autoAnalysisBusy = false;
+        }
+    }
+
+    private async Task RunAutoAnalysisAsync(SessionInfo info)
+    {
+        AiSettings ai = _settings.Ai;
+        _ai ??= new AiAnalysisService();
+
+        SessionDocument document = SessionStore.Read(info.Path);
+        FactsInput input = SessionFactsFactory.FromSession(document, LocalizationService.Instance.CurrentLanguage);
+        FactsDocument facts = FactsBuilder.Build(input, ai.HideProcessNames);
+        AiPreparedRequest prepared = _ai.BuildRequest(_settings, facts, LocalizationService.Instance.CurrentLanguage);
+
+        AiReport? stored = AiReportStore.Read(info.Path);
+        bool alreadyAnalyzed = stored is not null &&
+                               AiReportStore.IsReusable(stored, prepared.Provider.Model, prepared.FactsHash);
+        string signature = AiAnalysisService.ConsentSignature(
+            prepared.Provider.Id,
+            prepared.Provider.BaseUrl,
+            prepared.Provider.Model,
+            ai.Redact,
+            ai.HideProcessNames);
+
+        AutoAnalysisDecision decision = AutoAnalysisPolicy.Evaluate(new AutoAnalysisInput(
+            ai.Enabled,
+            ai.AutoAnalyze,
+            info.Score,
+            ai.AutoAnalyzeMinScore,
+            ai.DailyBudget,
+            ai.MonthlyBudget,
+            string.Equals(ai.ConsentSignature, signature, StringComparison.Ordinal),
+            alreadyAnalyzed,
+            prepared.ConfigurationError,
+            prepared.Provider.RequiresKey,
+            prepared.KeyAvailable,
+            prepared.Budget.Allowed));
+
+        if (!decision.ShouldRun)
+        {
+            _logger?.Info($"跳过自动分析：{decision.Reason}（事件 {info.EventId}，评分 {info.Score}）");
+            return;
+        }
+
+        if (_ai.IsBusy)
+        {
+            _logger?.Info($"跳过自动分析：manual-busy（事件 {info.EventId}）");
+            return;
+        }
+
+        _logger?.Info(
+            $"开始自动分析：事件 {info.EventId}，评分 {info.Score}，预计 ${prepared.EstimatedCost:F4}");
+        _autoAnalysisCts ??= new CancellationTokenSource();
+
+        AiAnalysisResult result = await _ai.AnalyzeAsync(prepared, null, _autoAnalysisCts.Token);
+        if (result.UsedLocalFallback || result.Report is not { } report)
+        {
+            _logger?.Warn($"自动分析回退本地报告：{result.Error}");
+            return;
+        }
+
+        report.Model = prepared.Provider.Model;
+        report.FactsHash = prepared.FactsHash;
+        if (!AiReportStore.Write(info.Path, report))
+        {
+            _logger?.Warn("自动分析报告写入失败");
+            return;
+        }
+
+        _logger?.Info($"自动分析完成：事件 {info.EventId}，报告已写入会话");
+        if (_settings.Notifications && _tray is not null)
+        {
+            _tray.ShowBalloon(
+                LocalizationService.Instance["AiAutoTitle"],
+                LocalizationService.Instance.Format("AiAutoBalloon", info.Score));
+        }
+    }
+
     private async Task ShutdownAsync()
     {
         if (_shuttingDown)
@@ -1011,6 +1129,9 @@ public partial class App : Application
 
         _aiWindow?.Close();
         _aiWindow = null;
+        _autoAnalysisCts?.Cancel();
+        _autoAnalysisCts?.Dispose();
+        _autoAnalysisCts = null;
         _ai?.Dispose();
         _viewModel?.Dispose();
         _client?.Dispose();

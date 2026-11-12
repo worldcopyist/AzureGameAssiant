@@ -1171,7 +1171,12 @@ internal sealed record AiProviderProfile(
 - 预算：
   - 单次上限：输入 ≤ profile 的 `MaxInputTokens`，输出 ≤ `MaxOutputTokens`。
   - 每日预算、每月预算（用户填写美元金额）；达到后硬停止，UI 显示原因。
-  - 自动分析属 FR-020 规划项，当前未实现，不提供开关，也不会发起任何后台请求。
+- 自动分析（FR-020 可选，默认关闭）：
+  - 触发点：`SessionRecorder.SessionWritten` 且 `Complete == true`，即事件前后窗口已写盘；此时用 `SessionFactsFactory.FromSession` 重建事实层，报告写入同一 `<会话>.ai.json`。
+  - 评分门槛：事件评分 ≥ `Ai.AutoAnalyzeMinScore`（默认 80）。
+  - 硬性前置：AI 已启用、每日与每月预算都 > 0、已对该供应商 / 地址 / 模型 / 脱敏选项同意过、Key 可用（无需 Key 的本地模型除外）、配置无错误、预算未耗尽。
+  - 每个会话最多一次：已有可复用报告时跳过；同一时间只允许一个自动请求，忙时直接跳过并在日志记录原因。
+  - 回退本地报告、解析失败或写入失败都不重试；成功且开启通知时弹一次托盘提示。
 - 并发：同一时间最多 1 个请求；新请求排队或取消旧请求由用户选择。
 - 复用：会话分析成功后写入 `<会话>.ai.json`，同时记录 `model` 与 `factsHash`（事实层去掉 `locale` 后序列化的 SHA-256，切换界面语言不会让报告失效）。再次打开分析时，若模型与事实哈希都一致，直接显示上次结果并提示“已复用”，按钮变为“重新分析”；不一致才需要重新请求。
 
@@ -1212,7 +1217,8 @@ internal sealed record AiProviderProfile(
 | 本地兜底 | `LocalReportBuilder.cs` | 完成：同时生成掉帧原因与高负载进程归因 |
 | UI | `AiAnalysisWindow`、设置页 AI 分组、主界面“AI 分析” | 完成：分析窗新增“掉帧分析”“高负载归因”卡片；设置页新增“测试连接”与输入 / 输出单价（美元 / 百万 Token，按供应商保存）；单元测试通过，点击级验证待重启后执行 |
 | 报告复用 | `AiReportStore.IsReusable`、`AiAnalysisService.ComputeFactsHash` | 完成：会话报告记录 `model` 与 `factsHash`；同一模型 + 同一事实时直接展示并提示“已复用”，按钮变“重新分析” |
-| 严重事件自动分析 | — | 未实现：当前没有写入评分事件的判定源；不提供开关，避免出现无效控件或后台请求 |
+| 自动分析测试 | `AutoAnalysisPolicyTests` | 完成：评分边界、开关、预算缺失、同意、配置、Key、预算耗尽、本地模型无需 Key，共 6 项 |
+| 严重事件自动分析 | `AutoAnalysisPolicy.cs`、`App.OnSessionWritten`、设置页 AI 分组 | 完成（默认关闭）：完整会话写入后按评分、预算、同意、Key、配置与冷却统一判定；命中即复用检查，成功后写 `<会话>.ai.json`；忙时跳过，不回退不重试；设置页新增开关与最低评分 |
 
 - 报告目录：`%LOCALAPPDATA%\AzureGameAssistant\ai\reports\`；解析失败原文：`%LOCALAPPDATA%\AzureGameAssistant\logs\ai-parse-*.log`（不含 Key）。
 - 两个入口共用同一分析窗：主界面“AI 分析”使用“采样环 + 最近 4096 帧”的实时快照；会话窗口“AI 分析”用 `SessionFactsFactory.FromSession` 从会话文件重建事实层（排除 ≥ `SessionSchema.DiscontinuityFrameMs` 的采集断帧），成功后再由 `AiReportStore` 写入 `<会话>.ai.json`。打开会话分析窗时，若已有报告的模型与事实哈希都匹配，直接复用并显示提示，不重复请求；按评分事件自动触发仍属 FR-020 的“严重事件自动分析”，当前不提供开关。

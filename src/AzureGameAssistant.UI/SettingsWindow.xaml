@@ -373,6 +373,19 @@
                         <TextBlock Margin="0,6,0,0" FontSize="11" TextWrapping="Wrap"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiConsentHint]}" />
+
+                        <CheckBox Margin="0,12,0,0" IsChecked="{Binding AiAutoAnalyze, Mode=TwoWay}"
+                                  Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiAutoAnalyzeLabel]}" />
+                        <StackPanel Margin="24,4,0,0" Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center" FontSize="11"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiAutoAnalyzeScoreLabel]}" />
+                            <TextBox Width="60" Margin="8,0,0,0"
+                                     Text="{Binding AiAutoAnalyzeMinScore, Mode=TwoWay}" />
+                        </StackPanel>
+                        <TextBlock Margin="24,4,0,0" FontSize="11" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiAutoAnalyzeHint]}" />
                     </StackPanel>
                 </Border>
 

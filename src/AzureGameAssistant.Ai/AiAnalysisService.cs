@@ -63,6 +63,7 @@ public sealed class AiAnalysisService : IDisposable
     private readonly Func<DateTimeOffset> _clock;
     private readonly string _reportsDirectory;
     private readonly string _logsDirectory;
+    private int _active;
 
     public AiAnalysisService(
         IAiCredentialStore? credentials = null,
@@ -83,6 +84,8 @@ public sealed class AiAnalysisService : IDisposable
             ? AppPaths.LogsDirectory
             : Path.Combine(dataDirectory, "logs");
     }
+
+    public bool IsBusy => Volatile.Read(ref _active) != 0;
 
     public AiPreparedRequest BuildRequest(
         AppSettings settings,
@@ -157,6 +160,22 @@ public sealed class AiAnalysisService : IDisposable
     }
 
     public async Task<AiAnalysisResult> AnalyzeAsync(
+        AiPreparedRequest prepared,
+        IProgress<int>? progress,
+        CancellationToken cancellationToken)
+    {
+        Interlocked.Increment(ref _active);
+        try
+        {
+            return await AnalyzeCoreAsync(prepared, progress, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            Interlocked.Decrement(ref _active);
+        }
+    }
+
+    private async Task<AiAnalysisResult> AnalyzeCoreAsync(
         AiPreparedRequest prepared,
         IProgress<int>? progress,
         CancellationToken cancellationToken)

@@ -124,6 +124,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         AiHideProcessNames = settings.Ai.HideProcessNames;
         AiDailyBudget = settings.Ai.DailyBudget;
         AiMonthlyBudget = settings.Ai.MonthlyBudget;
+        AiAutoAnalyze = settings.Ai.AutoAnalyze;
+        AiAutoAnalyzeMinScore = settings.Ai.AutoAnalyzeMinScore;
 
         var providerOptions = AiProviderPresets.All
             .Select(preset => new SelectOption(preset.Id, preset.DisplayName))
@@ -264,6 +266,12 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private double _aiMonthlyBudget;
+
+    [ObservableProperty]
+    private bool _aiAutoAnalyze;
+
+    [ObservableProperty]
+    private double _aiAutoAnalyzeMinScore = 80;
 
     [ObservableProperty]
     private bool _aiRequiresKey = true;
@@ -551,6 +559,10 @@ public sealed partial class SettingsViewModel : ObservableObject
         settings.Ai.HideProcessNames = AiHideProcessNames;
         settings.Ai.DailyBudget = double.IsFinite(AiDailyBudget) ? Math.Max(0, AiDailyBudget) : 0;
         settings.Ai.MonthlyBudget = double.IsFinite(AiMonthlyBudget) ? Math.Max(0, AiMonthlyBudget) : 0;
+        settings.Ai.AutoAnalyze = AiAutoAnalyze;
+        settings.Ai.AutoAnalyzeMinScore = double.IsFinite(AiAutoAnalyzeMinScore)
+            ? (int)Math.Clamp(Math.Round(AiAutoAnalyzeMinScore), 0, 100)
+            : 80;
         CaptureAiProvider(AiActiveProvider);
         FlushAiProviders();
     }
