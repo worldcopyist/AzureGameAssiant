@@ -1336,6 +1336,8 @@ internal sealed record AiProviderProfile(
 - `LocalizationService` 暴露索引器与 `LanguageChanged` 事件；XAML 通过绑定服务实例取值，切换语言时刷新绑定。
 - 主题：`Themes/Light.xaml`、`Themes/Dark.xaml`；读取 `HKCU\...\Themes\Personalize\AppsUseLightTheme`，监听 `SystemEvents.UserPreferenceChanged`。
 - 设置支持 `Auto / Light / Dark`，默认 `Auto`。
+- 菜单与弹层：`Shared.xaml` 为 `ContextMenu` / `MenuItem` 提供基于调色板的隐式样式，避免弹出菜单回退到系统配色（系统深色 + 应用浅色时会出现深底深字）。
+- 标题栏：`WindowChromeTheme` 通过 `DwmSetWindowAttribute` 设置沉浸式深色标记（属性 20，旧系统回退 19）；Windows 11 另外把标题栏、边框与文字设为窗口背景/前景色，`Window.Loaded` 与 `ThemeService.ThemeChanged` 时重新应用。
 - 视觉极简：无阴影、无渐变、单一强调色（蓝天蓝）、等宽数字（`Consolas` / `Cascadia Mono` 回退）。
 
 ### 11.7 设置

@@ -162,6 +162,9 @@ internal static partial class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool ShowWindow(IntPtr window, int command);
 
+    [LibraryImport("dwmapi.dll")]
+    public static partial int DwmSetWindowAttribute(IntPtr window, int attribute, ref int value, int size);
+
     public static unsafe void CopyString(char* destination, int capacity, string? value)
     {
         if (value is null)

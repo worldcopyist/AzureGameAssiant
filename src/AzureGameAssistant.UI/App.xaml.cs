@@ -133,6 +133,12 @@ public partial class App : Application
         LocalizationService.Instance.SetLanguage(_settings.Language);
         ThemeService.Apply(_settings.Theme);
 
+        EventManager.RegisterClassHandler(
+            typeof(Window),
+            FrameworkElement.LoadedEvent,
+            new RoutedEventHandler(OnWindowLoaded));
+        ThemeService.ThemeChanged += OnWindowThemeChanged;
+
         _client = new CollectorClient();
         _telemetry = new TelemetryService();
         _launcher = new CollectorLauncher(_logger);
@@ -836,6 +842,28 @@ public partial class App : Application
             latest.CpuUtilityPct.ToString("F0"),
             latest.GpuUtilPct.ToString("F0"),
             TelemetryMath.MemoryUsagePct(latest).ToString("F0")));
+    }
+
+    private static void OnWindowLoaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is Window window)
+        {
+            WindowChromeTheme.Apply(window);
+        }
+    }
+
+    private static void OnWindowThemeChanged(object? sender, EventArgs e)
+    {
+        Application? app = Application.Current;
+        if (app is null)
+        {
+            return;
+        }
+
+        foreach (Window window in app.Windows)
+        {
+            WindowChromeTheme.Apply(window);
+        }
     }
 
     private void OnTrayMenuRequested(object? sender, System.Windows.Point point)
