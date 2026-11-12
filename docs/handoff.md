@@ -300,6 +300,12 @@
 - `SessionSchema.DiscontinuityFrameMs = 1000` 统一断帧阈值，Markdown 报告与 AI 事实层共用。
 - 验证：新增 `AiReportStoreTests` 4 项（写入/读取、缺失、损坏、会话事实重建与断帧过滤），总数 198 项通过；Debug/Release 均 0 警告 0 错误。实机点击验证待配置 API Key 后执行。
 
+### 3.17 文档一致性修正（2026-11-12）
+
+- FR-006 实现现状：删去“显存压力与热降频留待 M3 接入”，改为“只作为归因证据，不进入信号表、不参与事件确认”，与实现一致（`LocalReportBuilder` 已输出 `Vram` / `Thermal` 主因）。
+- 开发文档 §9：显存压力与热降频两节由“规划项”改为“已接入归因”，写明 `LocalReportBuilder` 的实际判定条件（GPU 峰值 ≥ 40 且温度 ≥ 85°C / 热点 ≥ 95°C；CPU 峰值 ≥ 40 且温度 ≥ 90°C；显存占比峰值归因，`HighLoadTracker` 92% 记录高负载）。
+- 开发文档 §10.12：删去“UI 尚未绑定会话文件”，改为两个入口说明（主界面实时快照 / 会话窗口 `SessionFactsFactory` 重建），并标注按事件自动触发仍属 FR-020 未实现项。
+
 ## 4. 进行中
 
 - **会话 AI 分析（3.16）**：按钮与写入链路已完成并通过单测；待配置 API Key 后在会话窗口点一次“AI 分析”，确认报告写入 `<会话>.ai.json`、详情区出现 AI 段、导出 Markdown 末尾附带 AI 章节。
@@ -540,6 +546,7 @@ MCP 冒烟（无需 Agent 客户端，直接走 stdio）：
 | 2026-11-10 | Qoder | FR-008 本地归因报告：7 类主因规则、温度阈值、断帧与尖峰分离、主因/帧证据一致性、可疑进程前 3、无数据兜底与中英报告；会话窗新增断帧数与一致性行，修正热降频标签与过时提示；新增 9 项报告测试，总数 171 项通过；实机会话报告 `gapCount 8 / spikeCount 0 / max 896.5ms / consistent true`；Release 0 警告 0 错误 | `4097d13` |
 | 2026-11-10 | Qoder | FR-010 游戏自动识别与动态采样：`SHQueryUserNotificationState` / 95% 覆盖 / GPU≥5% 三路判定 + 排除名单，`GameModeTracker` 10 秒宽限；控制管道新增 `sampling` 命令，200ms / 1000ms 切换不重启采集进程，共享内存头与状态同步；修复 `frames.stop` 阻塞管道导致离开全屏后采集残留（后台释放 PresentMon + 客户端 6 秒超时 + UI 待办重试与目标抑制）；新增 `GameModeTests` 14 项，总数 185 项通过；实机全屏探针与星穹铁道均验证 200ms→自动采集→回落 1000ms→帧采集已停止；Release 0 警告 0 错误 | `308d7c6` |
 | 2026-11-12 | Qoder | AI 报告合并进会话：`AiReportStore` 读写 `<会话>.ai.json`（原子写入、损坏静默忽略），`SessionFactsFactory` 从会话重建事实层并排除 ≥1000 ms 断帧；会话窗口新增“AI 分析”，成功后详情区显示摘要/主因/证据/建议，导出自动附带；离线回退不写入；`SessionSchema.DiscontinuityFrameMs` 统一阈值；新增 4 项测试，总数 198；Debug/Release 0 警告 0 错误 | `14b685b` |
+| 2026-11-12 | Qoder | 文档一致性修正：FR-006 与开发文档 §9 统一为“显存/热降频只作归因证据”；§10.12 更新为实时快照与会话事实层两个入口；补充 handoff 3.17 | `待回填` |
 
 ## 10. 下次交接模板
 

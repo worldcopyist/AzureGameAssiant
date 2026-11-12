@@ -790,10 +790,10 @@ internal sealed record StutterEvent(
 - 命中条件：`gpuUtil >= 85 && gpuUtil - base >= 20`。
 - 专用显存占比只作为归因证据，当前不参与事件确认（见下方“显存压力”）。
 
-**显存压力（M3 归因阶段接入，当前不参与判定）**
+**显存压力（归因证据，不参与事件确认）**
 
-- 计划条件：专用显存使用率 ≥ 95%，或 30 秒内增长 ≥ 500MB 且剩余 < 10%。
-- 当前实现只用它辅助判断“GPU 算力瓶颈”还是“显存不足”，不新增事件信号；需求 FR-006 的信号表也不包含此项。
+- `LocalReportBuilder` 在事件窗口内取显存占用峰值（`VramUsedMb / VramTotalMb`），配合 GPU 峰值判断主因是“Vram（显存不足）”还是算力瓶颈；`HighLoadTracker` 另外在 92% 以上连续 3 个采样时记录一次高负载事件。
+- 不新增事件信号：需求 FR-006 的信号表不包含此项，显存压力只出现在归因报告与 AI 事实层的 `highLoads` 中。
 
 **内存压力**
 
@@ -805,10 +805,10 @@ internal sealed record StutterEvent(
 - `diskLatencyMs >= 50` 或 `diskBusyPct >= 95` 持续 2 秒。
 - 默认只参与评分，不单独确认事件，避免正常磁盘写入被记为卡顿。
 
-**热降频（M3 归因阶段，不单独确认事件）**
+**热降频（归因证据，不单独确认事件）**
 
-- 厂商传感器可用时：温度 ≥ 85°C 或功耗触顶，且核心频率较窗口基线下降 ≥ 15%。
-- 当前只作为归因证据的规划项，尚未接入判定引擎。
+- 已接入归因：`LocalReportBuilder` 在 GPU 峰值 ≥ 40% 且 GPU 温度 ≥ 85°C（或热点 ≥ 95°C）、CPU 峰值 ≥ 40% 且温度 ≥ 90°C 时给出 `Thermal` 主因，并在建议里提示检查温度与功耗墙。
+- 只作为归因证据，不进入判定引擎，也不单独确认事件；传感器缺失时该路径自动跳过。
 
 ### 9.2 事件状态机
 
@@ -1212,7 +1212,7 @@ internal sealed record AiProviderProfile(
 | 严重事件自动分析 | — | 未实现：当前没有写入评分事件的判定源；不提供开关，避免出现无效控件或后台请求 |
 
 - 报告目录：`%LOCALAPPDATA%\AzureGameAssistant\ai\reports\`；解析失败原文：`%LOCALAPPDATA%\AzureGameAssistant\logs\ai-parse-*.log`（不含 Key）。
-- 当前 UI 用“主窗口已有采样环 + 最近 4096 帧”构造 `FactsInput`，尚未绑定会话文件或具体卡顿事件；按事件分析需事件源落地后接入 FR-020。
+- 两个入口共用同一分析窗：主界面“AI 分析”使用“采样环 + 最近 4096 帧”的实时快照；会话窗口“AI 分析”用 `SessionFactsFactory.FromSession` 从会话文件重建事实层（排除 ≥ `SessionSchema.DiscontinuityFrameMs` 的采集断帧），成功后再由 `AiReportStore` 写入 `<会话>.ai.json`。按评分事件自动触发仍属 FR-020 的“严重事件自动分析”，当前不提供开关。
 
 ### 10.13 掉帧与高负载标记
 
