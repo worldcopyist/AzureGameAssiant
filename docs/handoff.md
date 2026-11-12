@@ -412,7 +412,7 @@
 
 - 缺口：旧 `artifacts` 包不完整（K-49）；重新打包时 NuGet 审计以 `NU1903` 阻断还原：SDK 9.0.100 为 net8.0 隐式解析的 `Microsoft.DotNet.ILCompiler 8.0.11` 落在 GHSA-p3jp-9v83-76w9 影响范围（8.0.33 修复）。
 - 实现：新增 `Directory.Build.targets`，在 `PublishAot=true` 且 `TargetFramework=net8.0` 时把 `KnownILCompilerPack` 版本覆盖为 8.0.34；采用官方 Known pack 覆盖而非显式 `PackageReference`，避免 ILCompiler 自带的“请删除显式引用”警告。`build/package.ps1` 两处中文提示改为英文，使 Windows PowerShell 5.1（按 GBK 读取无 BOM UTF-8）不再解析失败；之前必须用 `pwsh` 执行。
-- 验证：`dotnet restore` 审计通过；AOT 采集器 3.95MB（预算 30MB）；`package.ps1` 全流程成功，`artifacts/AzureGameAssistant-0.1.0-win-x64` 250MB / ZIP 110MB，根目录含 `README.md`、`THIRD-PARTY-NOTICES.md`、`LICENSES\`，`collector\` 含采集器、`presentmon\PresentMon-2.6.0-x64.exe` 与 `sensors\AzureGameAssistant.Sensors.exe`。已通过 D: 快捷方式启动新版并保持运行（PID 10344）。
+- 验证：`dotnet restore` 审计通过；AOT 采集器 3.95MB（预算 30MB）；`package.ps1` 全流程成功，`artifacts/AzureGameAssistant-0.1.0-win-x64` 250MB / ZIP 110MB，根目录含 `README.md`、`THIRD-PARTY-NOTICES.md`、`LICENSES\`，`collector\` 含采集器、`presentmon\PresentMon-2.6.0-x64.exe` 与 `sensors\AzureGameAssistant.Sensors.exe`；Windows PowerShell 5.1 执行 `package.ps1` 已能正常解析（触发“程序正在运行”门禁而非语法错误）。已通过 D: 快捷方式重启并保持运行（UI PID 27116、采集 PID 2288、传感器 PID 2748），重启后自动进入游戏模式 200ms 采样并开始帧采集，瞬时 139.5 FPS；问题日志仅剩已知的 `Ctrl+Alt+M` 热键占用（K 项），无采集错误。
 - **待用户审核**：采集器编译器由 8.0.11 升至 8.0.34 属供应链安全升级，不改变行为；如需回退，删除 `Directory.Build.targets` 并接受审计失败。
 
 ## 4. 进行中
