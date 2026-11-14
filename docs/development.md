@@ -1302,6 +1302,7 @@ internal sealed record AiProviderProfile(
 - 帧轨同样支持“↗”脱离到 `ChartWindow`，并受 `charts.frames` 开关控制。
 - 几何缓存：仅在数据或视口变化时重建 `StreamGeometry`；画笔/画刷静态冻结（`Freeze()`）。
 - 交互：滚轮缩放、左键拖动平移、悬停十字线与浮动提示、双击回到实时。
+- 阅读暂停：左键按下时 `PauseFlow()` 记录当前窗口末端 `_pausedEndTicks`，此后 `OnRender` 用该值作为右侧边界（新采样只进不出），图例右侧显示 `ChartPaused`（“已暂停”）；`SetSamples`/`SetFrames` 在暂停期间不触发重绘，省 CPU。`DispatcherTimer`（1.5s，`ResumeDelay`）在 `OnMouseLeave` 或拖拽结束且指针不在图上时启动，`ResumeAfterIdle` 校验 `_paused && !_dragging && !IsMouseOver` 后清除暂停；重新移入图表会停表，避免指针在图上时反复启停。无数据（末端 ticks ≤ 0）时点击不进入暂停，未加载时 `Unloaded` 停表。
 - 渲染节流：非交互状态最多 10fps；主窗口、悬浮窗与图表小窗全部隐藏/最小化时停止计时器。
 - 不引入第三方图表库，避免额外内存与依赖。
 
