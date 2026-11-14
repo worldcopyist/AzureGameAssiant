@@ -1390,6 +1390,18 @@ internal sealed record AiProviderProfile(
   "language": "zh-CN",
   "processMemoryPercent": true,
   "highLoadMode": true,
+  "highLoadPause": {
+    "charts": true,
+    "overlay": true,
+    "sessions": true,
+    "diagnostics": true,
+    "selfUsage": true,
+    "processView": true,
+    "trayTip": true,
+    "notifications": true,
+    "aiAnalysis": true,
+    "sensors": true
+  },
   "sessions": { "maxCount": 20, "maxTotalMb": 500 },
   "gameDetection": { "enabled": true, "exclude": ["chrome.exe", "msedge.exe", "firefox.exe", "vlc.exe"] },
   "ai": {
@@ -1478,13 +1490,19 @@ internal sealed record AiProviderProfile(
 
 ### 11.10 高占用模式（自动降载）
 
-- 位置：`Core/Performance/PerformanceMode.cs`；设置项 `highLoadMode`（默认 `true`，`AppSettings.HighLoadMode`），设置页“界面”分组提供开关。
-- 模块清单：`PerformanceModule` 枚举登记全部功能——采样、帧采集、卡顿标注为常驻；图表、悬浮窗、会话、诊断、自身占用、进程排行、托盘提示、通知、AI 分析为可挂起。`PerformanceMode.IsEnabled(module)` 统一裁决，`MainViewModel.IsFeatureEnabled` 供界面与 App 查询。新增功能必须先在枚举中登记、再在入口处做此判断，才能被降载覆盖。
+- 位置：`Core/Performance/PerformanceMode.cs`；设置项 `highLoadMode`（默认 `true`，`AppSettings.HighLoadMode`）与逐项暂停选择 `highLoadPause`（`AppSettings.HighLoadPause`，`HighLoadPauseSettings`），设置页单独的“高占用模式”卡片提供总开关与十个复选框（默认全部勾选）。
+- 模块清单：`PerformanceModule` 枚举登记全部功能——采样、帧采集、卡顿标注为常驻；图表、悬浮窗、会话、诊断、自身占用、进程排行、托盘提示、通知、AI 分析、传感器边车为可挂起。`PerformanceMode.IsEnabled(module)` 统一裁决：`!IsReduced || IsAlwaysOn(module) || !IsPaused(module)`；`IsPaused` 用 switch 把九个界面模块映射到 `HighLoadPauseSettings` 对应字段，`Sensors` 映射到 `Sensors`，未知模块按暂停处理（安全默认）。`MainViewModel.IsFeatureEnabled` 供界面与 App 查询。新增功能必须先在枚举中登记、再在入口处做此判断，才能被降载覆盖。
+- 立即生效：`MainViewModel.RefreshDisplaySettings` 先把 `_settings.HighLoadPause` 赋值给 `_performance.Pause`，再调用 `SetEnabled`；若已经处于降载且模式未变，主动触发一次 `PerformanceModeChanged`，让 App 立刻重新同步悬浮窗与传感器，无需退出再进入。
 - 判定：`MainViewModel.ObservePerformance` 从当前采样取出 P0–P4 槽位，跳过 PID 0 与本软件进程（`SelfUsageProbe.Contains`），换算为 `LoadSample`。任一进程 CPU ≥ 20%（整机逻辑处理器为分母）或 GPU ≥ 30%（整卡）即视为高占用，取 `max(cpu/20, gpu/30)` 最大者为触发进程；连续 3 秒进入降载，连续 12 秒无高占用后退出。采集进程无数据时用空样本推进，12 秒后退出，防止永久降载。
 - 焦点恢复：`App.OnRefreshTick` 每个刷新周期调用 `SetAppFocused(Application.Current.Windows.Any(w => w.IsActive))`，为 `true` 时立即 `Release()` 并清空计时。
-- 降载时的动作：`ApplyPerformanceState` 在进入时先 `Sessions.FlushPending` 闭合待写会话，再暂停各模块；`App.OnPerformanceModeChanged` 隐藏悬浮窗、`RecordLongRunSample` 直接返回、气泡与 AI 自动分析被跳过、托盘提示改为精简状态；退出时按设置重新显示悬浮窗并恢复提示。
-- 界面：主窗口状态区新增“运行模式”行，`ModeText` 显示 `全功能` / `降载中（进程名）` / `高占用模式已关闭`，托盘提示复用同一状态。降载期间时间轴停止刷新但帧率卡片与卡顿列表继续工作。
-- 可测性：`PerformanceMode` 不依赖 WPF，时间全部由调用方传入，`PerformanceModeTests` 用固定时间点覆盖进入延迟、GPU 阈值、短时抖动、空样本、焦点即时恢复、最差进程归因与关闭开关（11 项）。
+- 降载时的动作：`ApplyPerformanceState` 在进入时先 `Sessions.FlushPending` 闭合待写会话，再暂停各模块；`App.OnPerformanceModeChanged` 按 `IsFeatureEnabled` 隐藏悬浮窗、`RecordLongRunSample` 直接返回、气泡与 AI 自动分析被跳过、托盘提示改为精简状态；退出时按设置重新显示悬浮窗并恢复提示。图表刷新、进程排行、自身占用、会话观察、托盘提示在 `RefreshAsync` 内逐项判定，未启用的模块直接跳过，不再做无用的数据拷贝。
+- 传感器暂停：`SensorSupervisor.SetPaused(bool)` 在暂停时杀掉边车进程并让监督循环进入 500 ms 空转（不重启、不累加失败计数），恢复后正常拉起。App 通过 `SyncSensorPauseAsync` 计算 `pause = IsReducedMode && !IsFeatureEnabled(Sensors)`，用 `_sensorSyncBusy` 防止并发、用 `_sensorsPaused` 去重、失败后 10 秒内不重试，调用控制管道 `sensors` 命令。采集进程重启后重置状态并重新同步。
+- 工作集回收：进入降载 3 秒后执行一次，此后每 30 秒一次；`WorkingSetTrimmer.Trim()` 对界面进程做 `GC.Collect(2, Optimized, blocking:false)` + `psapi!EmptyWorkingSet`，并通过控制管道 `trim` 命令让采集进程做同样操作（`CollectorHost.TrimMemory` + `Interop/Psapi.cs`）。回收后读不到工作集时回退到 `Environment.WorkingSet`，日志不会出现 0 MB。停止降载或退出时取消计时器。
+- 刷新节拍：降载期间 `UpdateTimerState` 把刷新间隔固定为 1 秒（无论窗口是否可见），降低绘制与采样读取开销；退出后恢复 500 ms / 隐藏 2 秒。
+- 控制管道：新增 `sensors`（`{ "paused": true|false }` → `{ "paused": ... }`，边车未启用时返回失败与原因）与 `trim`（→ `{ "trimmed": bool }`）两个命令，`CollectorClient` 对应 `SetSensorsPausedAsync` / `TrimMemoryAsync`。
+- 界面：设置页“高占用模式”卡片含总开关、说明、十个暂停复选框和“采样、帧采集、卡顿标注始终运行”提示；主窗口状态区“运行模式”行显示 `全功能` / `降载中（进程名）` / `高占用模式已关闭`，托盘提示复用同一状态。降载期间时间轴停止刷新但帧率卡片与卡顿列表继续工作。
+- 实测（16 GB 机器，降载稳定后）：界面 + 采集 + 帧采集合计 67.6 MB（0.41%）；连同本会话内的其他进程总计 122 MB（0.75%），私有字节 106.3 MB（0.65%），满足 FR-028 的 1% 验收；恢复全功能后合计约 203 MB（1.24%），传感器边车重新占用约 68 MB。
+- 可测性：`PerformanceMode` 不依赖 WPF，时间全部由调用方传入，`PerformanceModeTests` 用固定时间点覆盖进入延迟、GPU 阈值、短时抖动、空样本、焦点即时恢复、最差进程归因、关闭开关、自定义暂停组合、降载中修改选择与未知模块（14 项）。
 
 ## 12. 性能预算与实现约束
 
@@ -1502,6 +1520,7 @@ internal sealed record AiProviderProfile(
 | 空闲磁盘 | ≤ 10KB/min | 仅启动与错误日志；无心跳写盘 |
 | 自身占用展示 | 每拍 ≤ 0.02ms CPU | 复用已打开的 `Process` 句柄；只在采样刷新时读取，不另起线程 |
 | 隐藏后回收 | 隐藏 8s / 68s 各一次 | `EmptyWorkingSet` 仅在全部窗口隐藏时执行，不做全量阻塞 GC |
+| 降载总占用 | < 物理内存 1%（16 GB 约 163 MB） | 暂停可选模块与传感器边车；进入后 3 s 起每 30 s 回收界面与采集工作集；降载刷新降到 1 s |
 
 ### 12.2 热路径规则
 
