@@ -1302,7 +1302,8 @@ internal sealed record AiProviderProfile(
 - 帧轨同样支持“↗”脱离到 `ChartWindow`，并受 `charts.frames` 开关控制。
 - 几何缓存：仅在数据或视口变化时重建 `StreamGeometry`；画笔/画刷静态冻结（`Freeze()`）。
 - 交互：滚轮缩放、左键拖动平移、悬停十字线与浮动提示、双击回到实时。
-- 阅读暂停：左键按下时 `PauseFlow()` 记录当前窗口末端 `_pausedEndTicks`，此后 `OnRender` 用该值作为右侧边界（新采样只进不出），图例右侧显示 `ChartPaused`（“已暂停”）；`SetSamples`/`SetFrames` 在暂停期间不触发重绘，省 CPU。`DispatcherTimer`（1.5s，`ResumeDelay`）在 `OnMouseLeave` 或拖拽结束且指针不在图上时启动，`ResumeAfterIdle` 校验 `_paused && !_dragging && !IsMouseOver` 后清除暂停；重新移入图表会停表，避免指针在图上时反复启停。无数据（末端 ticks ≤ 0）时点击不进入暂停，未加载时 `Unloaded` 停表。
+- 阅读暂停：左键按下时 `PauseFlow()` 通过 `ChartViewport.Pause()` 记录当前窗口末端 `PausedEndTicks`，此后 `OnRender` 用 `ResolveEndTicks()` 作为右侧边界（新采样只进不出），图例右侧显示 `ChartPaused`（“已暂停”）；`SetSamples`/`SetFrames` 在暂停期间不触发重绘，省 CPU。`DispatcherTimer`（1.5s，`ResumeDelay`）在 `OnMouseLeave` 或拖拽结束且指针不在图上时启动，`ResumeAfterIdle` 校验 `IsPaused && !_dragging && !IsMouseOver` 后清除暂停；重新移入图表会停表，避免指针在图上时反复启停。无数据（末端 ticks ≤ 0）时点击不进入暂停，未加载时 `Unloaded` 停表。
+- 可测性拆分：`Core/Charts/ChartViewport`（窗口秒数、平移、暂停/恢复状态机，含缩放上下限 10–1800s、按可用时长收缩窗口、暂停时数据回退到更早区间自动取最新值）与 `Core/Charts/ChartAggregation`（每列 min/max、帧尖峰与窗口最大值、右侧 ms 档位、双轨末端取并集）均不含 WPF 类型；`TimelineChart` 只保留绘制与输入转发。`ChartViewportTests`（12 项）与 `ChartAggregationTests`（16 项）覆盖暂停恢复、无数据、数据回退、平移夹取、缩放边界、空列 NaN、窗口外样本、负值归零、尖峰与档位。
 - 渲染节流：非交互状态最多 10fps；主窗口、悬浮窗与图表小窗全部隐藏/最小化时停止计时器。
 - 不引入第三方图表库，避免额外内存与依赖。
 

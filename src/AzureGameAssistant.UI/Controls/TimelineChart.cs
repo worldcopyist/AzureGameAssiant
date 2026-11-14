@@ -4,6 +4,7 @@ using System.Windows.Automation;
 using System.Windows.Automation.Peers;
 using System.Windows.Media;
 using System.Windows.Threading;
+using AzureGameAssistant.Core.Charts;
 using AzureGameAssistant.Core.Frames;
 using AzureGameAssistant.Core.Models;
 using AzureGameAssistant.UI.Services;
@@ -45,8 +46,6 @@ public sealed class TimelineChart : FrameworkElement
     private const double TopMargin = 22;
     private const double BottomMargin = 16;
     private const double TrackGap = 8;
-    private const double MinWindowSeconds = 10;
-    private const double MaxWindowSeconds = 1800;
     private const int SpikeMarkLimit = 512;
     private static readonly TimeSpan ResumeDelay = TimeSpan.FromSeconds(1.5);
 
@@ -92,8 +91,7 @@ public sealed class TimelineChart : FrameworkElement
     private ChartMetric _metric = ChartMetric.Combined;
     private ChartSeries _series = ChartSeries.Cpu | ChartSeries.Gpu | ChartSeries.Memory |
                                   ChartSeries.Vram | ChartSeries.Disk | ChartSeries.Frame;
-    private double _windowSeconds = 60;
-    private double _panSeconds;
+    private readonly ChartViewport _viewport = new();
     private long _eventStartUtc;
     private long _eventEndUtc;
     private int _version;
@@ -107,8 +105,6 @@ public sealed class TimelineChart : FrameworkElement
     private double _dragStartPan;
     private DateTime _lastHoverPaint = DateTime.MinValue;
 
-    private bool _paused;
-    private double _pausedEndTicks;
     private readonly DispatcherTimer _resumeTimer;
 
     public TimelineChart()
@@ -155,24 +151,19 @@ public sealed class TimelineChart : FrameworkElement
 
     public double WindowSeconds
     {
-        get => _windowSeconds;
+        get => _viewport.WindowSeconds;
         set
         {
-            double clamped = Math.Clamp(value, MinWindowSeconds, MaxWindowSeconds);
-            if (Math.Abs(clamped - _windowSeconds) < 0.01)
+            if (_viewport.SetWindowSeconds(value, AvailableSpanSeconds()))
             {
-                return;
+                InvalidateVisual();
             }
-
-            _windowSeconds = clamped;
-            ClampPan();
-            InvalidateVisual();
         }
     }
 
-    public bool IsPanned => _panSeconds > 0.5;
+    public bool IsPanned => _viewport.IsPanned;
 
-    public bool IsPaused => _paused;
+    public bool IsPaused => _viewport.IsPaused;
 
     protected override AutomationPeer OnCreateAutomationPeer() => new TimelineChartPeer(this);
 
@@ -181,7 +172,7 @@ public sealed class TimelineChart : FrameworkElement
         _samples = samples;
         _count = Math.Clamp(count, 0, samples.Length);
         _version++;
-        if (!_paused)
+        if (!_viewport.IsPaused)
         {
             InvalidateVisual();
         }
@@ -192,7 +183,7 @@ public sealed class TimelineChart : FrameworkElement
         _frames = frames;
         _frameCount = Math.Clamp(count, 0, frames.Length);
         _frameVersion++;
-        if (!_paused)
+        if (!_viewport.IsPaused)
         {
             InvalidateVisual();
         }
@@ -200,13 +191,10 @@ public sealed class TimelineChart : FrameworkElement
 
     public void ResetPan()
     {
-        if (_panSeconds == 0)
+        if (_viewport.ResetPan())
         {
-            return;
+            InvalidateVisual();
         }
-
-        _panSeconds = 0;
-        InvalidateVisual();
     }
 
     /// <summary>
@@ -253,18 +241,16 @@ public sealed class TimelineChart : FrameworkElement
         }
 
         double latestEndTicks = LatestEndTicks();
-        double baseEndTicks = _paused && _pausedEndTicks > 0 && latestEndTicks >= _pausedEndTicks
-            ? _pausedEndTicks
-            : latestEndTicks;
+        double baseEndTicks = _viewport.ResolveEndTicks(latestEndTicks);
 
-        double endTicks = baseEndTicks - (_panSeconds * TimeSpan.TicksPerSecond);
-        double startTicks = endTicks - (_windowSeconds * TimeSpan.TicksPerSecond);
+        double endTicks = baseEndTicks - (_viewport.PanSeconds * TimeSpan.TicksPerSecond);
+        double startTicks = endTicks - (_viewport.WindowSeconds * TimeSpan.TicksPerSecond);
 
         var key = new RenderKey(
             (int)_plot.Width,
             (int)_plot.Height,
-            _windowSeconds,
-            _panSeconds,
+            _viewport.WindowSeconds,
+            _viewport.PanSeconds,
             _version,
             _frameVersion,
             _metric,
@@ -295,19 +281,21 @@ public sealed class TimelineChart : FrameworkElement
 
     private double LatestEndTicks()
     {
-        double end = _count > 0
-            ? _samples[_count - 1].UtcTicks
-            : _frameCount > 0 ? _frames[_frameCount - 1].UtcTicks : 0;
-
         bool showsFrames = _metric == ChartMetric.Frame ||
             (_metric == ChartMetric.Combined && HasSeries(ChartSeries.Frame));
-        if (showsFrames && _frameCount > 0)
-        {
-            end = Math.Max(end, _frames[_frameCount - 1].UtcTicks);
-        }
-
-        return end;
+        return ChartAggregation.LatestEndTicks(
+            _count > 0 ? _samples[_count - 1].UtcTicks : 0,
+            _count,
+            _frameCount > 0 ? _frames[_frameCount - 1].UtcTicks : 0,
+            _frameCount,
+            showsFrames);
     }
+
+    private double AvailableSpanSeconds() =>
+        ChartAggregation.SpanSeconds(
+            _count > 1 ? _samples[0].UtcTicks : 0,
+            _count > 1 ? _samples[_count - 1].UtcTicks : 0,
+            _count);
 
     private Rect TrackRect(int index, int count)
     {
@@ -322,7 +310,6 @@ public sealed class TimelineChart : FrameworkElement
 
     private void Rebuild(RenderKey key, double startTicks, double endTicks)
     {
-        double span = Math.Max(1, endTicks - startTicks);
         int width = Math.Max(1, key.Width - 1);
         EnsureBuffers(width);
 
@@ -332,22 +319,22 @@ public sealed class TimelineChart : FrameworkElement
             {
                 if (HasSeries(SeriesForIndex(index)))
                 {
-                    BuildMetric(index, _plot, startTicks, endTicks, span, width, normalizeVram: true);
+                    BuildMetric(index, _plot, startTicks, endTicks, width, normalizeVram: true);
                 }
             }
 
             if (HasSeries(ChartSeries.Frame))
             {
-                BuildFrameTrack(_plot, startTicks, endTicks, span, width);
+                BuildFrameTrack(_plot, startTicks, endTicks, width);
             }
         }
         else if (_metric == ChartMetric.Frame)
         {
-            BuildFrameTrack(TrackRect(0, 1), startTicks, endTicks, span, width);
+            BuildFrameTrack(TrackRect(0, 1), startTicks, endTicks, width);
         }
         else
         {
-            BuildMetric(MetricIndex(_metric), TrackRect(0, 1), startTicks, endTicks, span, width);
+            BuildMetric(MetricIndex(_metric), TrackRect(0, 1), startTicks, endTicks, width);
         }
     }
 
@@ -356,7 +343,6 @@ public sealed class TimelineChart : FrameworkElement
         Rect rect,
         double startTicks,
         double endTicks,
-        double span,
         int width,
         bool normalizeVram = false)
     {
@@ -364,13 +350,13 @@ public sealed class TimelineChart : FrameworkElement
         {
             case 0:
                 _seriesMax[0] = 100;
-                _lines[0] = BuildSeries(rect, startTicks, span, width, static s => s.CpuUtilityPct, 100, out Geometry cpuBand);
+                _lines[0] = BuildSeries(rect, startTicks, endTicks, width, static s => s.CpuUtilityPct, 100, out Geometry cpuBand);
                 _bands[0] = cpuBand;
                 break;
 
             case 1:
                 _seriesMax[1] = 100;
-                _lines[1] = BuildSeries(rect, startTicks, span, width, static s => s.GpuUtilPct, 100, out Geometry gpuBand);
+                _lines[1] = BuildSeries(rect, startTicks, endTicks, width, static s => s.GpuUtilPct, 100, out Geometry gpuBand);
                 _bands[1] = gpuBand;
                 break;
 
@@ -379,7 +365,7 @@ public sealed class TimelineChart : FrameworkElement
                 _lines[2] = BuildSeries(
                     rect,
                     startTicks,
-                    span,
+                    endTicks,
                     width,
                     static s => TelemetryMath.MemoryUsagePct(s),
                     100,
@@ -394,7 +380,7 @@ public sealed class TimelineChart : FrameworkElement
                     _lines[3] = BuildSeries(
                         rect,
                         startTicks,
-                        span,
+                        endTicks,
                         width,
                         static s => VramUsagePct(s),
                         100,
@@ -407,13 +393,13 @@ public sealed class TimelineChart : FrameworkElement
                     256,
                     Math.Ceiling(WindowMaximum(startTicks, endTicks, static s => s.GpuDedicatedMb) / 256.0) * 256);
                 _seriesMax[3] = vramMax;
-                _lines[3] = BuildSeries(rect, startTicks, span, width, static s => s.GpuDedicatedMb, vramMax, out Geometry vramBand);
+                _lines[3] = BuildSeries(rect, startTicks, endTicks, width, static s => s.GpuDedicatedMb, vramMax, out Geometry vramBand);
                 _bands[3] = vramBand;
                 break;
 
             default:
                 _seriesMax[4] = 100;
-                _lines[4] = BuildSeries(rect, startTicks, span, width, static s => s.DiskBusyPct, 100, out Geometry diskBand);
+                _lines[4] = BuildSeries(rect, startTicks, endTicks, width, static s => s.DiskBusyPct, 100, out Geometry diskBand);
                 _bands[4] = diskBand;
                 break;
         }
@@ -422,45 +408,22 @@ public sealed class TimelineChart : FrameworkElement
     private Geometry BuildSeries(
         Rect plot,
         double startTicks,
-        double span,
+        double endTicks,
         int width,
         Func<SampleRecord, double> selector,
         double maxValue,
         out Geometry band)
     {
-        if (_minValues.Length < width)
-        {
-            _minValues = new float[width];
-            _maxValues = new float[width];
-        }
-
-        Array.Fill(_minValues, float.NaN, 0, width);
-        Array.Fill(_maxValues, float.NaN, 0, width);
-
-        for (int i = 0; i < _count; i++)
-        {
-            SampleRecord sample = _samples[i];
-            double offset = (sample.UtcTicks - startTicks) / span;
-            if (offset < 0 || offset > 1)
-            {
-                continue;
-            }
-
-            int x = Math.Clamp((int)(offset * width), 0, width - 1);
-            float value = (float)Math.Max(0, selector(sample));
-
-            float currentMin = _minValues[x];
-            if (float.IsNaN(currentMin) || value < currentMin)
-            {
-                _minValues[x] = value;
-            }
-
-            float currentMax = _maxValues[x];
-            if (float.IsNaN(currentMax) || value > currentMax)
-            {
-                _maxValues[x] = value;
-            }
-        }
+        EnsureBuffers(width);
+        ChartAggregation.AggregateSamples(
+            _samples,
+            _count,
+            selector,
+            startTicks,
+            endTicks,
+            width,
+            _minValues,
+            _maxValues);
 
         return CreateSeriesGeometry(plot, width, maxValue, out band);
     }
@@ -554,7 +517,7 @@ public sealed class TimelineChart : FrameworkElement
         return line;
     }
 
-    private void BuildFrameTrack(Rect rect, double startTicks, double endTicks, double span, int width)
+    private void BuildFrameTrack(Rect rect, double startTicks, double endTicks, int width)
     {
         if (_minValues.Length < width || _spikeValues.Length < width)
         {
@@ -563,46 +526,17 @@ public sealed class TimelineChart : FrameworkElement
             _spikeValues = new float[width];
         }
 
-        Array.Fill(_minValues, float.NaN, 0, width);
-        Array.Fill(_maxValues, float.NaN, 0, width);
-        Array.Fill(_spikeValues, float.NaN, 0, width);
+        double windowMax = ChartAggregation.AggregateFrames(
+            _frames,
+            _frameCount,
+            startTicks,
+            endTicks,
+            width,
+            _minValues,
+            _maxValues,
+            _spikeValues);
 
-        double windowMax = 0;
-        for (int i = 0; i < _frameCount; i++)
-        {
-            FrameTimePoint frame = _frames[i];
-            double offset = (frame.UtcTicks - startTicks) / span;
-            if (offset < 0 || offset > 1)
-            {
-                continue;
-            }
-
-            float value = frame.FrameTimeMs;
-            if (!(value > 0))
-            {
-                continue;
-            }
-
-            int x = Math.Clamp((int)(offset * width), 0, width - 1);
-            if (float.IsNaN(_minValues[x]) || value < _minValues[x])
-            {
-                _minValues[x] = value;
-            }
-
-            if (float.IsNaN(_maxValues[x]) || value > _maxValues[x])
-            {
-                _maxValues[x] = value;
-            }
-
-            if (frame.Spike && (float.IsNaN(_spikeValues[x]) || value > _spikeValues[x]))
-            {
-                _spikeValues[x] = value;
-            }
-
-            windowMax = Math.Max(windowMax, value);
-        }
-
-        _frameScaleMax = FrameScaleMax(windowMax);
+        _frameScaleMax = ChartAggregation.FrameScaleMax(windowMax);
         _frameLine = CreateSeriesGeometry(rect, width, _frameScaleMax, out Geometry band);
         _frameBand = band;
 
@@ -620,16 +554,6 @@ public sealed class TimelineChart : FrameworkElement
             _spikePoints.Add(new Point(rect.Left + x, y));
         }
     }
-
-    private static double FrameScaleMax(double max) => max switch
-    {
-        <= 16.7 => 16.7,
-        <= 33.3 => 33.3,
-        <= 50 => 50,
-        <= 66.7 => 66.7,
-        <= 100 => 100,
-        _ => Math.Ceiling(max / 50.0) * 50.0,
-    };
 
     private double WindowMaximum(double startTicks, double endTicks, Func<SampleRecord, double> selector)
     {
@@ -801,10 +725,10 @@ public sealed class TimelineChart : FrameworkElement
             DrawLegendItem(dc, x, y, loc[LegendKey(index)], GetBrush(BrushKey(index), Fallback(index)));
         }
 
-        string? state = _paused
+        string? state = _viewport.IsPaused
             ? loc["ChartPaused"]
             : null;
-        if (_panSeconds > 0.5)
+        if (_viewport.IsPanned)
         {
             state = state is null ? loc["History"] : state + " · " + loc["History"];
         }
@@ -1080,10 +1004,12 @@ public sealed class TimelineChart : FrameworkElement
         {
             Point position = e.GetPosition(this);
             double deltaX = _dragStart.X - position.X;
-            double seconds = (deltaX / Math.Max(1, _plot.Width)) * _windowSeconds;
-            _panSeconds = Math.Max(0, _dragStartPan + seconds);
-            ClampPan();
-            InvalidateVisual();
+            double seconds = (deltaX / Math.Max(1, _plot.Width)) * _viewport.WindowSeconds;
+            if (_viewport.SetPan(_dragStartPan + seconds, AvailableSpanSeconds()))
+            {
+                InvalidateVisual();
+            }
+
             return;
         }
 
@@ -1100,7 +1026,7 @@ public sealed class TimelineChart : FrameworkElement
     {
         base.OnMouseLeave(e);
         _hoverPoint = null;
-        if (_paused && !_dragging)
+        if (_viewport.IsPaused && !_dragging)
         {
             _resumeTimer.Stop();
             _resumeTimer.Start();
@@ -1124,7 +1050,7 @@ public sealed class TimelineChart : FrameworkElement
 
         _dragging = true;
         _dragStart = e.GetPosition(this);
-        _dragStartPan = _panSeconds;
+        _dragStartPan = _viewport.PanSeconds;
         CaptureMouse();
         e.Handled = true;
     }
@@ -1135,7 +1061,7 @@ public sealed class TimelineChart : FrameworkElement
         _dragging = false;
         ReleaseMouseCapture();
 
-        if (_paused && !IsMouseOver)
+        if (_viewport.IsPaused && !IsMouseOver)
         {
             _resumeTimer.Stop();
             _resumeTimer.Start();
@@ -1150,59 +1076,36 @@ public sealed class TimelineChart : FrameworkElement
     private void PauseFlow()
     {
         _resumeTimer.Stop();
-        if (_paused)
+        if (_viewport.Pause(LatestEndTicks()))
         {
-            return;
+            InvalidateVisual();
         }
-
-        double end = LatestEndTicks();
-        if (end <= 0)
-        {
-            return;
-        }
-
-        _paused = true;
-        _pausedEndTicks = end;
-        InvalidateVisual();
     }
 
     private void ResumeAfterIdle()
     {
         _resumeTimer.Stop();
-        if (!_paused || _dragging || IsMouseOver)
+        if (!_viewport.IsPaused || _dragging || IsMouseOver)
         {
             return;
         }
 
-        _paused = false;
-        _pausedEndTicks = 0;
-        InvalidateVisual();
+        if (_viewport.Resume())
+        {
+            InvalidateVisual();
+        }
     }
 
     protected override void OnMouseWheel(System.Windows.Input.MouseWheelEventArgs e)
     {
         base.OnMouseWheel(e);
         double factor = e.Delta > 0 ? 1.25 : 0.8;
-        double maxSpan = Math.Max(MinWindowSeconds, _count > 1
-            ? (_samples[_count - 1].UtcTicks - _samples[0].UtcTicks) / (double)TimeSpan.TicksPerSecond
-            : MaxWindowSeconds);
+        if (_viewport.Zoom(factor, AvailableSpanSeconds()))
+        {
+            InvalidateVisual();
+        }
 
-        double maxWindow = Math.Max(
-            MinWindowSeconds,
-            Math.Min(MaxWindowSeconds, maxSpan));
-
-        WindowSeconds = Math.Clamp(_windowSeconds * factor, MinWindowSeconds, maxWindow);
         e.Handled = true;
-    }
-
-    private void ClampPan()
-    {
-        double span = _count > 1
-            ? (_samples[_count - 1].UtcTicks - _samples[0].UtcTicks) / (double)TimeSpan.TicksPerSecond
-            : 0;
-
-        double maxPan = Math.Max(0, span - _windowSeconds);
-        _panSeconds = Math.Clamp(_panSeconds, 0, maxPan);
     }
 
     private void EnsureBuffers(int width)
@@ -1402,7 +1305,7 @@ public sealed class TimelineChart : FrameworkElement
         protected override string GetHelpTextCore()
         {
             var chart = (TimelineChart)Owner;
-            string state = chart._paused ? "Paused" : "Live";
+            string state = chart._viewport.IsPaused ? "Paused" : "Live";
             return $"{state};points={chart._count};frames={chart._frameCount}";
         }
     }
