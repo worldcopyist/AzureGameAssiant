@@ -458,7 +458,7 @@
   - 设置页“界面”分组新增复选框“进程内存以物理内存百分比显示”，中英文资源同步，提示说明作用于排行与本软件行。
   - `MainViewModel.FormatProcessMemory()`：开启时用 `SystemMemory.TotalPhysicalMb`（`GlobalMemoryStatusEx` 缓存）做分母输出两位小数百分比；关闭时输出整数 MB；总量不可读时回退 MB。进程排行与“本软件”固定行共用该方法。
   - `ProcessRow.Update` 改为接收已格式化的内存字符串，`RefreshDisplaySettings()` 结尾重新执行 `UpdateProcesses()` 与 `UpdateSelfUsage()`，切换开关后立刻按新单位重绘，无需重启。
-- 验证：`-p:BaseOutputPath=artifacts/verify/bin/` 下 Release 全解决方案 0 警告 0 错误，232 项测试通过（新增默认值与往返断言）；正常运行目录因提权实例锁定未覆盖，待重启后实机核对百分比与 MB 两种显示。
+- 验证：`-p:BaseOutputPath=artifacts/verify/bin/` 下 Release 全解决方案 0 警告 0 错误，232 项测试通过（新增默认值与往返断言）；随后结束旧实例、正常输出重建并重启，截图确认进程排行与本软件行均显示百分比（本软件 1.61%、界面进程 0.89%、douyin 0.88% 等）。设置页开关的点击切换因提权实例禁止非管理员会话输入注入（K-56）无法自动化，待用户点按复核 MB 显示。
 
 ## 4. 进行中
 
@@ -738,7 +738,7 @@ MCP 冒烟（无需 Agent 客户端，直接走 stdio）：
 | 2026-11-12 | Qoder | 菜单与标题栏主题一致性（K-51）：`Shared.xaml` 为 `ContextMenu` / `MenuItem` 增加调色板隐式样式；新增 `WindowChromeTheme` 经 DWM 跟随主题，`Loaded` 与 `ThemeChanged` 时重刷；新增 handoff 3.35；文档补 FR-013 验收与 v1.17；Release 0 警告 0 错误、232 项测试通过；待用户浅色目视复核 | `faa8797` |
 | 2026-11-13 | Qoder | 托盘菜单固定白底黑字（不再绑定主题）、卡顿通知单独开关且默认关闭（`detection.notifyStutter`）、帧采集改为常驻（删除离开全屏的 `frames.stop` 与抑制，采集端去掉失败上限并按 0.25/1/3/5/10 秒无限退避，权限不足 30 秒重试）；文档 FR-010/011/013 与 v1.18；新增默认值断言，总数 232；Release 0 警告 0 错误；实机 143.9 FPS 采集正常；补充 handoff 3.36 / K-52 / K-53，待用户长局复核帧率连续性 | `bc1aab7` |
 | 2026-11-14 | Qoder | 主界面整页滚动（FR-027）、进程区“本软件”固定行（`SelfUsageProbe`）、滚动条调色板自绘；隐藏后 8s/68s 工作集回收与传感器初始化内存回收；文档 FR-004/005/013/027、NFR-P-12/13 与 v1.19；实测 UI 52.8MB / 采集 14.5MB / 传感器 30.3MB / PresentMon 11.6MB，合计 CPU 约 0.4%；232 项测试通过；补充 handoff 3.37 / K-54–K-56，待用户复核滚动与浅色主题 | `2a05b1c` |
-| 2026-11-14 | Qoder | 进程内存默认按物理内存百分比显示，设置页可切回 MB（`processMemoryPercent`，默认开启）；`FormatProcessMemory` 统一格式化排行与本软件行，保存设置后立即重绘；文档 FR-004/FR-014 与 v1.20；新增默认值与往返断言，232 项测试通过，Release 0 警告 0 错误；补充 handoff 3.38 / K-57，待重启后实机核对百分比与 MB 两种显示 | `47574a6` |
+| 2026-11-14 | Qoder | 进程内存默认按物理内存百分比显示，设置页可切回 MB（`processMemoryPercent`，默认开启）；`FormatProcessMemory` 统一格式化排行与本软件行，保存设置后立即重绘；文档 FR-004/FR-014 与 v1.20；新增默认值与往返断言，232 项测试通过，Release 0 警告 0 错误；重启后截图确认两种行均为百分比（本软件 1.61%、界面进程 0.89%）；补充 handoff 3.38 / K-57，MB 切换待用户点按复核 | `47574a6` |
 
 ## 10. 下次交接模板
 
