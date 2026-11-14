@@ -128,20 +128,22 @@ public sealed partial class SettingsViewModel : ObservableObject
             new SelectOption("Custom", loc["OverlayThemeCustom"]),
         ];
 
-        var monitorOptions = new List<SelectOption>
-        {
-            new("Follow", loc["OverlayMonitorFollow"]),
-            new("Primary", loc["OverlayMonitorPrimary"]),
-        };
-        foreach (MonitorEntry monitor in MonitorWorkArea.Enumerate())
+        var monitorOptions = new List<SelectOption>();
+        foreach (MonitorEntry monitor in MonitorWorkArea.Enumerate()
+                     .OrderBy(monitor => MonitorSortKey(monitor.DeviceName)))
         {
             monitorOptions.Add(new SelectOption(monitor.DeviceName, MonitorLabel(monitor, loc)));
         }
 
+        monitorOptions.Add(new SelectOption("Follow", loc["OverlayMonitorFollow"]));
+        monitorOptions.Add(new SelectOption("Primary", loc["OverlayMonitorPrimary"]));
+
         if (OverlayMonitor.StartsWith(@"\\.\DISPLAY", StringComparison.OrdinalIgnoreCase) &&
             monitorOptions.All(option => !string.Equals(option.Value, OverlayMonitor, StringComparison.OrdinalIgnoreCase)))
         {
-            monitorOptions.Add(new SelectOption(OverlayMonitor, OverlayMonitor));
+            monitorOptions.Add(new SelectOption(
+                OverlayMonitor,
+                string.Format(loc["MonitorFormatMissing"], DisplayNumber(OverlayMonitor))));
         }
 
         OverlayMonitorOptions = monitorOptions;
@@ -428,7 +430,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private string _overlayCorner = "TopLeft";
 
     [ObservableProperty]
-    private string _overlayMonitor = "Follow";
+    private string _overlayMonitor = @"\\.\DISPLAY1";
 
     [ObservableProperty]
     private int _overlayOffsetX;
@@ -675,14 +677,21 @@ public sealed partial class SettingsViewModel : ObservableObject
         double InputPrice,
         double OutputPrice);
 
-    private static string MonitorLabel(MonitorEntry monitor, LocalizationService loc)
+    private static string MonitorLabel(MonitorEntry monitor, LocalizationService loc) =>
+        string.Format(
+            loc[monitor.Primary ? "MonitorFormatPrimary" : "MonitorFormat"],
+            DisplayNumber(monitor.DeviceName));
+
+    private static string DisplayNumber(string deviceName)
     {
         const string prefix = @"\\.\DISPLAY";
-        string number = monitor.DeviceName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
-            ? monitor.DeviceName[prefix.Length..]
-            : monitor.DeviceName;
-        return string.Format(loc["MonitorFormat"], number);
+        return deviceName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+            ? deviceName[prefix.Length..]
+            : deviceName;
     }
+
+    private static int MonitorSortKey(string deviceName) =>
+        int.TryParse(DisplayNumber(deviceName), out int number) ? number : int.MaxValue;
 
     private static double Clamp(double value, double min, double max, double fallback) =>
         double.IsFinite(value) ? Math.Clamp(value, min, max) : fallback;

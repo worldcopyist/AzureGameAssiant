@@ -5,7 +5,7 @@ namespace AzureGameAssistant.Core.Settings;
 
 public sealed class AppSettings
 {
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
     public SamplingSettings Sampling { get; set; } = new();
@@ -213,9 +213,16 @@ public sealed class AppSettings
             return "Primary";
         }
 
+        if (monitor.Equals("follow", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Follow";
+        }
+
+        // Display 1 is the default; a missing or unknown device name must not
+        // silently fall back to following the main window.
         return monitor.StartsWith(@"\\.\DISPLAY", StringComparison.OrdinalIgnoreCase)
             ? monitor.ToUpperInvariant()
-            : "Follow";
+            : @"\\.\DISPLAY1";
     }
 }
 
@@ -331,7 +338,7 @@ public sealed class OverlaySettings
     public string Color { get; set; } = "#FFFFFF";
     public int Opacity { get; set; } = 100;
     public int BackdropOpacity { get; set; }
-    public string Monitor { get; set; } = "Follow";
+    public string Monitor { get; set; } = @"\\.\DISPLAY1";
 }
 
 public sealed class SessionSettings

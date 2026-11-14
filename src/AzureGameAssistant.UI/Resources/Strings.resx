@@ -564,6 +564,12 @@
   <data name="MonitorFormat" xml:space="preserve">
     <value>Display {0}</value>
   </data>
+  <data name="MonitorFormatPrimary" xml:space="preserve">
+    <value>Display {0} (Primary)</value>
+  </data>
+  <data name="MonitorFormatMissing" xml:space="preserve">
+    <value>Display {0} (Not connected)</value>
+  </data>
   <data name="OverlayTopLeft" xml:space="preserve">
     <value>Top left</value>
   </data>

@@ -564,6 +564,12 @@
   <data name="MonitorFormat" xml:space="preserve">
     <value>显示器 {0}</value>
   </data>
+  <data name="MonitorFormatPrimary" xml:space="preserve">
+    <value>显示器 {0}（主显示器）</value>
+  </data>
+  <data name="MonitorFormatMissing" xml:space="preserve">
+    <value>显示器 {0}（未连接）</value>
+  </data>
   <data name="OverlayTopLeft" xml:space="preserve">
     <value>左上角</value>
   </data>

@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using AzureGameAssistant.Core.Settings;
 
 namespace AzureGameAssistant.Tests;
@@ -59,6 +60,7 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.Equal(5, result.Settings.Diagnostics.IntervalSeconds);
         Assert.True(result.Settings.Overlay.Enabled);
         Assert.Equal("TopLeft", result.Settings.Overlay.Corner);
+        Assert.Equal(@"\\.\DISPLAY1", result.Settings.Overlay.Monitor);
         Assert.Equal("Default", result.Settings.Overlay.Theme);
         Assert.Equal("#FFFFFF", result.Settings.Overlay.Color);
         Assert.Equal(100, result.Settings.Overlay.Opacity);
@@ -308,10 +310,32 @@ public sealed class SettingsServiceTests : IDisposable
     }
 
     [Theory]
+    [InlineData(3, "Follow", @"\\.\DISPLAY1")]
+    [InlineData(3, "primary", "Primary")]
+    [InlineData(3, @"\\.\DISPLAY2", @"\\.\DISPLAY2")]
+    [InlineData(AppSettings.CurrentSchemaVersion, "Follow", "Follow")]
+    public void Load_MigratesLegacyFollowToDisplayOne(int schemaVersion, string monitor, string expected)
+    {
+        var root = new JsonObject
+        {
+            ["schemaVersion"] = schemaVersion,
+            ["overlay"] = new JsonObject { ["monitor"] = monitor },
+        };
+        File.WriteAllText(SettingsPath, root.ToJsonString());
+        var service = new SettingsService(SettingsPath);
+
+        SettingsLoadResult result = service.Load();
+
+        Assert.False(result.Recovered);
+        Assert.Equal(expected, result.Settings.Overlay.Monitor);
+    }
+
+    [Theory]
     [InlineData(" primary ", "Primary")]
+    [InlineData("follow", "Follow")]
     [InlineData(@"\\.\display2", @"\\.\DISPLAY2")]
-    [InlineData("HDMI-1", "Follow")]
-    [InlineData("", "Follow")]
+    [InlineData("HDMI-1", @"\\.\DISPLAY1")]
+    [InlineData("", @"\\.\DISPLAY1")]
     public void Normalize_MonitorAcceptsKnownValues(string input, string expected)
     {
         var settings = new AppSettings

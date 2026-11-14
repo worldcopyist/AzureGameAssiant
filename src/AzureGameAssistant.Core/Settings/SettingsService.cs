@@ -45,11 +45,22 @@ public sealed class SettingsService
                 }
 
                 bool enableSensors = settings.SchemaVersion < 3;
+                // Up to schema 3 "Follow" was the overlay default; the overlay
+                // now starts pinned to display 1, so migrate old defaults while
+                // keeping explicit displays and the primary-screen choice.
+                OverlaySettings overlay = settings.Overlay ??= new OverlaySettings();
+                bool moveOverlayToDisplay1 = settings.SchemaVersion < 4 &&
+                    string.Equals(overlay.Monitor, "Follow", StringComparison.OrdinalIgnoreCase);
                 settings.Normalize();
 
                 if (enableSensors)
                 {
                     settings.Sensors.Enabled = true;
+                }
+
+                if (moveOverlayToDisplay1)
+                {
+                    overlay.Monitor = @"\\.\DISPLAY1";
                 }
 
                 return new SettingsLoadResult(settings, false, null);
