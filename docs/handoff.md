@@ -19,10 +19,10 @@
 | 项 | 值 |
 | --- | --- |
 | 产品阶段 | M1（v0.1）完成；M2（帧级真相）完成核心闭环；M3-1 权限与自动采集闭环完成；M3 的 AI 手动分析与 MCP 只读服务已落地；界面与采集稳定性进入收尾 |
-| 最新里程碑 | 时间轴阅读暂停：点击折线图即冻结视口并显示“已暂停”，鼠标移出图表 1.5 秒后自动恢复跟随最新采样；暂停期间跳过重绘，不影响缩放、平移与悬停。Release 0 警告 0 错误，251 项测试通过。 |
+| 最新里程碑 | 自验工具链落地：`build/ui-smoke.ps1` 以非提权实例 + UI Automation + 鼠标注入验证界面，图表经 AutomationPeer 暴露 `Live/Paused;points=N` 状态；已实测通过点击暂停、移出 1.5 秒恢复与设置窗开关。Release 0 警告 0 错误，251 项测试通过。 |
 | 可运行产物 | `build/run-dev.ps1` 可启动；`build/package.ps1` 默认 AOT 流程可生成便携 ZIP（含 PresentMon）；`build/publish-mcp.ps1` 生成 `artifacts/mcp/AzureGameAssistant.Mcp.exe`；二号屏桌面快捷方式指向 Release |
 | 代码分支 | `main`（`feat/m1-foundation` 已 squash 合入，分支保留） |
-| 当前提交 | `080c2b4` |
+| 当前提交 | `908e23c` |
 | 未提交变更 | 无 |
 | 阻塞事项 | 帧率准确性需在用户真实游戏（原神 60 帧、三角洲行动）长测确认；AI 窗口与“测试连接”按钮待点击验证；掉帧/高负载标记需在真实游戏复现后核对事件与报告；3 款游戏 PresentMon 实测与反作弊评估待用户游戏环境（已测明日方舟、三角洲行动）；深模式内存/CPU 与 60 分钟连续性待专项测量；本机默认热键 `Ctrl+Alt+M` 被其他程序占用，需用户在设置页改键（实测 `Ctrl+Alt+F9` 可用）；卡顿判定召回率与误报需真实游戏长测；会话级 AI 分析（3.16）待配置 API Key 后点击验证 |
 
@@ -509,6 +509,16 @@
 - 验证：Release 全解决方案 0 警告 0 错误，251 项测试通过。提权窗口的输入注入被 UIPI 拦截，PrintWindow 对 WPF 主窗口返回空白，暂停/恢复的观感需用户在运行中的界面上点按确认。
 - **待用户审核**：点击合并图或任一独立图表卡后，曲线应停在点击瞬间并出现“已暂停”；鼠标移到图表外 1.5 秒后自动恢复滚动，移回图表内不会提前恢复；若 1.5 秒手感过长或过短，可调整 `ResumeDelay`。
 
+### 3.43 非提权 UI 冒烟通道（2026-11-15）
+
+- 目的：提权实例的输入注入被 UIPI 拦截、`PrintWindow` 对 WPF 返回空白，界面改动长期只能人工点按；本轮建立我自己可复跑的验收通道。
+- 实现：
+  - `build/ui-smoke.ps1`：`--no-elevate` 启动 Release，UI Automation 定位 AutomationId，`SetCursorPos` + `mouse_event` 点按，`CopyFromScreen` 截图到 `artifacts/ui-smoke/`；进程设置为 Per-Monitor V2 DPI 感知，缩放屏截图不再裁偏。
+  - 主窗口 AI / 暂停 / 设置按钮，设置窗取消 / 保存按钮补充 `AutomationProperties.AutomationId`。
+  - `TimelineChart` 新增 `AutomationPeer`：名称取指标名，HelpText 输出 `Live|Paused;points=N;frames=N`，冒烟脚本据此断言暂停/恢复，不依赖像素比对。
+- 验证：脚本 RESULT PASS，12 项检查全过（主窗口、三个按钮、合并图、采样到达、点击暂停、移出 1.5 秒恢复、两张截图、设置窗开关、主窗口存活）；Release 0 警告 0 错误，251 项测试通过。
+- 限制：脚本结束用 `Stop-Process`（主窗口关闭语义是隐藏到托盘），采集进程由父进程监控退出；运行前必须退出已运行实例。
+
 ## 4. 进行中
 
 - **会话 AI 分析（3.16）**：按钮与写入链路已完成并通过单测；待配置 API Key 后在会话窗口点一次“AI 分析”，确认报告写入 `<会话>.ai.json`、详情区出现 AI 段、导出 Markdown 末尾附带 AI 章节。
@@ -672,6 +682,7 @@ git status
 dotnet build AzureGameAssistant.sln
 dotnet test AzureGameAssistant.sln
 powershell -File build/run-dev.ps1        # 启动界面与采集进程
+powershell -File build/ui-smoke.ps1       # 非提权 UI 冒烟（先退出已运行实例）
 powershell -File build/measure.ps1 -DurationMinutes 1
 powershell -File build/measure.ps1 -DurationMinutes 30 -OutputPath artifacts/measurements/soak.csv
 powershell -File build/package.ps1          # 默认 NativeAOT 便携包
@@ -833,3 +844,4 @@ MCP 冒烟（无需 Agent 客户端，直接走 stdio）：
 - [ ] 新增限制写入第 7 节
 - [ ] 交接日志追加一行
 - [ ] 按提交规范提交，footer 含 `Agent: <名称>`
+| 2026-11-15 | Qoder | 非提权 UI 冒烟通道：`build/ui-smoke.ps1` 用 UIA + 鼠标注入验证主窗口、合并图、点击暂停/1.5 秒恢复与设置窗开关，截图输出到 `artifacts/ui-smoke/`；`TimelineChart` 增加 AutomationPeer 状态输出；脚本 12 项检查全过，251 项测试通过，Release 0 警告 0 错误；补充 handoff 3.43 | `908e23c` |
