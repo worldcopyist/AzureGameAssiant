@@ -10,6 +10,7 @@ using AzureGameAssistant.Core.Diagnostics;
 using AzureGameAssistant.Core.Frames;
 using AzureGameAssistant.Core.Hardware;
 using AzureGameAssistant.Core.Models;
+using AzureGameAssistant.Core.Performance;
 using AzureGameAssistant.Core.Settings;
 using AzureGameAssistant.Core.Sessions;
 using AzureGameAssistant.UI.Controls;
@@ -43,6 +44,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly DetectionEngine _detector;
     private readonly SessionRecorder _sessions;
     private readonly GameModeTracker _gameMode = new();
+    private readonly PerformanceMode _performance;
 
     private const int StutterEventCapacity = 50;
     private const string PresentMonVersion = "2.6.0";
@@ -79,6 +81,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private int? _gameProbePid;
     private uint _gameProbeForeground;
     private DateTime _gameProbeAt = DateTime.MinValue;
+    private bool _appFocused = true;
+    private string _modeTriggerName = string.Empty;
 
     private static readonly HashSet<string> AutoCaptureExcluded = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -170,6 +174,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _loc = loc;
         _settings = settings;
         _settingsService = settingsService;
+        _performance = new PerformanceMode(settings.HighLoadMode);
         _detector = new DetectionEngine(_settings.Detection);
         _sessions = new SessionRecorder(
             AppPaths.SessionsDirectory,
@@ -188,6 +193,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _samplingTargetMs = Math.Clamp(settings.Sampling.NormalMs, 100, 10_000);
         PauseText = _loc["Pause"];
         SelfUsageName = _loc["SelfUsageName"];
+        UpdateModeText();
         UpdateCollectorTexts();
         UpdateFrameTexts();
         UpdateFooter();
@@ -209,6 +215,18 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public event EventHandler<StutterEvent>? StutterDetected;
 
     public event EventHandler? SessionsChanged;
+
+    /// <summary>Raised when the reduced profile is entered or left.</summary>
+    public event EventHandler? PerformanceModeChanged;
+
+    public bool IsReducedMode => _performance.IsReduced;
+
+    public string ModeTriggerName => _modeTriggerName;
+
+    public bool IsFeatureEnabled(PerformanceModule module) => _performance.IsEnabled(module);
+
+    [ObservableProperty]
+    private string _modeText = string.Empty;
 
     public SessionRecorder Sessions => _sessions;
 
@@ -508,23 +526,48 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             bool open = _telemetry.Refresh();
             if (open)
             {
-                UpdateMetrics();
-                UpdateProcesses();
+                SampleRecord sample = _telemetry.Latest;
+
+                // Decide the profile first: entering it on this tick must skip
+                // the display work below instead of one tick later.
+                ObservePerformance(sample);
+                bool reduced = _performance.IsReduced;
+
+                if (!reduced)
+                {
+                    UpdateMetrics();
+                    UpdateProcesses();
+                }
+
                 TimelineCount = _telemetry.CopyTo(_timeline);
-                TrackHighLoad();
+                if (!reduced)
+                {
+                    TrackHighLoad();
+                }
+
                 _detector.DeepMode = IsFrameDataFresh;
                 UpdateFrames();
                 TrackStutter();
                 DrainStutterEvents();
-                int sessionFrames = CopyFrameTimeline();
-                _sessions.Observe(DateTime.UtcNow, _timeline, TimelineCount, _frameTimelineBuffer, sessionFrames);
+                if (!reduced)
+                {
+                    int sessionFrames = CopyFrameTimeline();
+                    _sessions.Observe(DateTime.UtcNow, _timeline, TimelineCount, _frameTimelineBuffer, sessionFrames);
+                }
             }
             else
             {
                 _highLoadTracker.Suspend();
+
+                // No samples means load is unknown; an empty tick counts as calm
+                // so a dead collector cannot keep the reduced profile forever.
+                ObservePerformance(default);
             }
 
-            UpdateSelfUsage();
+            if (!_performance.IsReduced)
+            {
+                UpdateSelfUsage();
+            }
 
             _statusTicks++;
             if (!_connected || _statusTicks % 4 == 0)
@@ -542,12 +585,120 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 }
             }
 
-            UpdateFooter();
-            TelemetryUpdated?.Invoke(this, EventArgs.Empty);
+            if (!_performance.IsReduced)
+            {
+                UpdateFooter();
+                TelemetryUpdated?.Invoke(this, EventArgs.Empty);
+            }
         }
         finally
         {
             Volatile.Write(ref _refreshing, 0);
+        }
+    }
+
+    /// <summary>
+    /// Called by the host once per tick with whether any assistant window is
+    /// active. Focusing the assistant always restores the full profile.
+    /// </summary>
+    public void SetAppFocused(bool focused)
+    {
+        if (_appFocused == focused)
+        {
+            return;
+        }
+
+        _appFocused = focused;
+        ApplyPerformanceState(_performance.Observe(DateTime.UtcNow, [], focused));
+    }
+
+    private void ObservePerformance(in SampleRecord sample)
+    {
+        Span<ProcessSlot> slots = stackalloc ProcessSlot[5];
+        slots[0] = sample.P0;
+        slots[1] = sample.P1;
+        slots[2] = sample.P2;
+        slots[3] = sample.P3;
+        slots[4] = sample.P4;
+
+        Span<LoadSample> loads = stackalloc LoadSample[slots.Length];
+        int count = 0;
+        foreach (ProcessSlot slot in slots)
+        {
+            if (slot.Pid == 0 || _selfUsage.Contains(slot.Pid))
+            {
+                continue;
+            }
+
+            loads[count++] = new LoadSample(slot.Pid, slot.CpuPct, slot.GpuPct);
+        }
+
+        uint triggerBefore = _performance.TriggerPid;
+        bool changed = _performance.Observe(DateTime.UtcNow, loads[..count], _appFocused);
+        if (!changed && _performance.IsReduced && _performance.TriggerPid != triggerBefore)
+        {
+            _modeTriggerName = ResolveProcessName(_performance.TriggerPid);
+            UpdateModeText();
+        }
+
+        ApplyPerformanceState(changed);
+    }
+
+    private void ApplyPerformanceState(bool changed)
+    {
+        if (!changed)
+        {
+            return;
+        }
+
+        if (_performance.IsReduced)
+        {
+            // Finish any in-flight session now; while shed we stop feeding the
+            // recorder, and a half-open window would otherwise wait for resume.
+            if (_sessions.HasPending)
+            {
+                int frameCount = CopyFrameTimeline();
+                _sessions.FlushPending(
+                    DateTime.UtcNow, _timeline, TimelineCount, _frameTimelineBuffer, frameCount);
+            }
+
+            _modeTriggerName = ResolveProcessName(_performance.TriggerPid);
+        }
+        else
+        {
+            _modeTriggerName = string.Empty;
+        }
+
+        UpdateModeText();
+        PerformanceModeChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private string ResolveProcessName(uint pid)
+    {
+        if (pid == 0)
+        {
+            return string.Empty;
+        }
+
+        string name = _names.GetName(pid);
+        return string.IsNullOrEmpty(name) ? _loc["Unknown"] : name;
+    }
+
+    private void UpdateModeText()
+    {
+        if (!_settings.HighLoadMode)
+        {
+            ModeText = _loc["ModeOff"];
+        }
+        else if (!_performance.IsReduced)
+        {
+            ModeText = _loc["ModeFull"];
+        }
+        else
+        {
+            ModeText = _modeTriggerName.Length > 0
+                ? _loc.Format("ModeReducedWithApp", _modeTriggerName)
+                : _loc["ModeReduced"];
         }
     }
 
@@ -1275,6 +1426,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         StutterEventCount++;
         StutterDetected?.Invoke(this, stutterEvent);
 
+        if (!_performance.IsEnabled(PerformanceModule.Sessions))
+        {
+            return;
+        }
+
         int frameCount = CopyFrameTimeline();
         _sessions.Begin(
             stutterEvent,
@@ -1644,6 +1800,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
 
         UpdateSelfUsage();
+
+        ApplyPerformanceState(_performance.SetEnabled(_settings.HighLoadMode));
+        UpdateModeText();
     }
 
     private static string FormatMegabytes(double megabytes) => megabytes >= 1024
@@ -1662,6 +1821,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         PauseText = IsPaused ? _loc["Resume"] : _loc["Pause"];
         SelfUsageName = _loc["SelfUsageName"];
+        UpdateModeText();
         OnPropertyChanged(nameof(StutterSummaryText));
         foreach (StutterEventRow row in StutterEvents)
         {

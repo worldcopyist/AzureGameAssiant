@@ -570,6 +570,7 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
                         <TextBlock Grid.Row="0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"
@@ -592,6 +593,12 @@
                         <TextBlock Grid.Row="4" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"
                                    Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[HeartbeatLabel]}" />
                         <TextBlock Grid.Row="4" Grid.Column="1" Style="{StaticResource MonoText}" Text="{Binding HeartbeatText}" />
+
+                        <TextBlock Grid.Row="5" Margin="0,4,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ModeLabel]}" />
+                        <TextBlock Grid.Row="5" Grid.Column="1" Margin="0,4,0,0" Style="{StaticResource MonoText}"
+                                   Text="{Binding ModeText}"
+                                   ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ModeHint]}" />
                     </Grid>
 
                     <Separator Margin="0,12,0,10" Background="{DynamicResource BorderBrush}" />

@@ -170,6 +170,7 @@ public partial class App : Application
         _hotkey.Pressed += OnHotkeyPressed;
         RegisterHotkey(_settings.Hotkey, notifyConflict: true);
         _viewModel.StutterDetected += OnStutterDetected;
+        _viewModel.PerformanceModeChanged += OnPerformanceModeChanged;
         _viewModel.Sessions.SessionWritten += OnSessionWritten;
 
         LocalizationService.Instance.LanguageChanged += OnLanguageChanged;
@@ -205,16 +206,56 @@ public partial class App : Application
             return;
         }
 
+        _viewModel.SetAppFocused(IsAnyAppWindowActive());
         await _viewModel.RefreshAsync();
 
-        _window?.RefreshChart();
-        if (_overlay?.IsVisible == true)
+        if (!_viewModel.IsReducedMode)
         {
-            _overlay.Update(_viewModel.GetOverlayData());
+            _window?.RefreshChart();
+            if (_overlay?.IsVisible == true)
+            {
+                _overlay.Update(_viewModel.GetOverlayData());
+            }
         }
 
         RecordLongRunSample();
         RecordRuntimeLog();
+        UpdateTimerState();
+    }
+
+    private static bool IsAnyAppWindowActive() =>
+        Application.Current?.Windows.OfType<Window>().Any(window => window.IsActive) == true;
+
+    private void OnPerformanceModeChanged(object? sender, EventArgs e)
+    {
+        if (_viewModel is null)
+        {
+            return;
+        }
+
+        if (_viewModel.IsReducedMode)
+        {
+            string trigger = _viewModel.ModeTriggerName;
+            _logger?.Info(
+                $"高占用模式：检测到 {trigger}，暂停图表、悬浮窗、会话与诊断记录，保留采样、帧率与卡顿标注");
+
+            if (_overlay?.IsVisible == true)
+            {
+                _overlay.Hide();
+            }
+        }
+        else
+        {
+            _logger?.Info("高占用模式：恢复全部功能");
+            if (_settings.Overlay.Enabled && _overlay is not null && !_overlay.IsVisible)
+            {
+                _overlay.ApplySettings(_settings.Overlay);
+                _overlay.ShowOverlay();
+            }
+
+            RefreshTrayTip();
+        }
+
         UpdateTimerState();
     }
 
@@ -278,6 +319,11 @@ public partial class App : Application
     private void RecordLongRunSample()
     {
         if (_recorder is null || _uiProbe is null || _viewModel is null)
+        {
+            return;
+        }
+
+        if (_viewModel.IsReducedMode)
         {
             return;
         }
@@ -1049,7 +1095,8 @@ public partial class App : Application
         _logger?.Info(
             $"检测到卡顿：评分 {stutterEvent.Score}，时长 {stutterEvent.DurationMs:F0} ms，原因 {stutterEvent.Cause}");
 
-        if (!_settings.Detection.NotifyStutter || !_settings.Notifications || _tray is null)
+        if (!_settings.Detection.NotifyStutter || !_settings.Notifications || _tray is null ||
+            _viewModel?.IsReducedMode == true)
         {
             return;
         }
@@ -1066,7 +1113,7 @@ public partial class App : Application
     /// </summary>
     private async void OnSessionWritten(object? sender, SessionInfo info)
     {
-        if (!info.Complete || _autoAnalysisBusy || _shuttingDown)
+        if (!info.Complete || _autoAnalysisBusy || _shuttingDown || _viewModel?.IsReducedMode == true)
         {
             return;
         }

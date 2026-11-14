@@ -159,6 +159,30 @@
   <data name="ProcessMemoryPercentHint" xml:space="preserve">
     <value>作用于进程排行与本软件行；关闭后改为显示 MB。</value>
   </data>
+  <data name="HighLoadModeLabel" xml:space="preserve">
+    <value>高占用模式（自动降载）</value>
+  </data>
+  <data name="HighLoadModeHint" xml:space="preserve">
+    <value>推荐开启。检测到其他程序大量占用 CPU/GPU 时，自动暂停图表、悬浮窗、会话与诊断记录，只保留占用检测、帧率与卡顿标注；点击本软件任意窗口即可恢复全部功能。</value>
+  </data>
+  <data name="ModeLabel" xml:space="preserve">
+    <value>运行模式</value>
+  </data>
+  <data name="ModeFull" xml:space="preserve">
+    <value>全功能</value>
+  </data>
+  <data name="ModeReduced" xml:space="preserve">
+    <value>降载中</value>
+  </data>
+  <data name="ModeReducedWithApp" xml:space="preserve">
+    <value>降载中（{0}）</value>
+  </data>
+  <data name="ModeOff" xml:space="preserve">
+    <value>高占用模式已关闭</value>
+  </data>
+  <data name="ModeHint" xml:space="preserve">
+    <value>降载期间暂停图表、悬浮窗、会话与诊断记录，只保留占用检测、帧率与卡顿标注；点击本软件任意窗口即可恢复。</value>
+  </data>
   <data name="MarkStutterHint" xml:space="preserve">
     <value>把当前时刻手动记为一次卡顿，AI 分析时会读取该标记。</value>
   </data>

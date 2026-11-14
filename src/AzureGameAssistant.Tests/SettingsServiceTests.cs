@@ -42,6 +42,7 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.False(result.Settings.Ai.Enabled);
         Assert.False(result.Settings.Detection.NotifyStutter);
         Assert.True(result.Settings.ProcessMemoryPercent);
+        Assert.True(result.Settings.HighLoadMode);
         Assert.True(result.Settings.Charts.Cpu);
         Assert.False(result.Settings.Charts.Separate);
         Assert.False(result.Settings.Diagnostics.LongRunRecord);
@@ -75,6 +76,7 @@ public sealed class SettingsServiceTests : IDisposable
         settings.Charts.Detached.Height = 320;
         settings.Charts.Detached.Topmost = true;
         settings.ProcessMemoryPercent = false;
+        settings.HighLoadMode = false;
 
         service.Save(settings);
         SettingsLoadResult result = service.Load();
@@ -96,6 +98,7 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.Equal(320, result.Settings.Charts.Detached.Height);
         Assert.True(result.Settings.Charts.Detached.Topmost);
         Assert.False(result.Settings.ProcessMemoryPercent);
+        Assert.False(result.Settings.HighLoadMode);
     }
 
     [Fact]

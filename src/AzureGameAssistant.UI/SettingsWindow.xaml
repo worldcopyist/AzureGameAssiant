@@ -182,6 +182,8 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
                         <TextBlock VerticalAlignment="Center"
@@ -215,6 +217,13 @@
                                   IsChecked="{Binding ProcessMemoryPercent, Mode=TwoWay}"
                                   Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ProcessMemoryPercentLabel]}"
                                   ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ProcessMemoryPercentHint]}" />
+
+                        <CheckBox Grid.Row="7" Grid.ColumnSpan="2" Margin="0,14,0,0"
+                                  IsChecked="{Binding HighLoadMode, Mode=TwoWay}"
+                                  Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[HighLoadModeLabel]}" />
+                        <TextBlock Grid.Row="8" Grid.ColumnSpan="2" Margin="24,2,0,0" FontSize="11"
+                                   TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[HighLoadModeHint]}" />
                     </Grid>
                 </Border>
 

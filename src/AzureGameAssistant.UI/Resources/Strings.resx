@@ -159,6 +159,30 @@
   <data name="ProcessMemoryPercentHint" xml:space="preserve">
     <value>Applies to the ranking rows and the pinned "this app" row. Turn off to show megabytes instead.</value>
   </data>
+  <data name="HighLoadModeLabel" xml:space="preserve">
+    <value>High-load mode (automatic load shedding)</value>
+  </data>
+  <data name="HighLoadModeHint" xml:space="preserve">
+    <value>Recommended. When another program uses a lot of CPU or GPU, pause charts, overlay, session recording and diagnostics; keep load sampling, FPS and stutter marking. Clicking any assistant window restores every feature.</value>
+  </data>
+  <data name="ModeLabel" xml:space="preserve">
+    <value>Mode</value>
+  </data>
+  <data name="ModeFull" xml:space="preserve">
+    <value>Full</value>
+  </data>
+  <data name="ModeReduced" xml:space="preserve">
+    <value>Reduced</value>
+  </data>
+  <data name="ModeReducedWithApp" xml:space="preserve">
+    <value>Reduced · {0}</value>
+  </data>
+  <data name="ModeOff" xml:space="preserve">
+    <value>High-load mode off</value>
+  </data>
+  <data name="ModeHint" xml:space="preserve">
+    <value>Reduced mode pauses charts, overlay, sessions and diagnostics while another program uses the CPU or GPU. Click any assistant window to restore everything.</value>
+  </data>
   <data name="MarkStutterHint" xml:space="preserve">
     <value>Record the current moment as a manual stutter marker for AI analysis.</value>
   </data>

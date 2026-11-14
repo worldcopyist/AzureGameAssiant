@@ -117,6 +117,39 @@ public sealed class SelfUsageProbe : IDisposable
             _memoryMb[SensorIndex]);
     }
 
+    /// <summary>
+    /// True when <paramref name="pid"/> belongs to the assistant itself. Used to
+    /// keep the load-shedding detector from reacting to our own processes.
+    /// </summary>
+    public bool Contains(uint pid)
+    {
+        if (pid == (uint)_ui.Id)
+        {
+            return true;
+        }
+
+        foreach (Process? part in _parts)
+        {
+            if (part is null)
+            {
+                continue;
+            }
+
+            try
+            {
+                if (part.Id == (int)pid)
+                {
+                    return true;
+                }
+            }
+            catch (InvalidOperationException)
+            {
+            }
+        }
+
+        return false;
+    }
+
     private void Bind(int index, Process? process)
     {
         if (ReferenceEquals(process, _ui) == false)
