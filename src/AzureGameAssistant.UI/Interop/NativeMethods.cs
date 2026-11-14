@@ -137,6 +137,12 @@ internal static partial class NativeMethods
     public static partial IntPtr SetWindowLongPtrW(IntPtr window, int index, IntPtr value);
 
     [LibraryImport("user32.dll")]
+    public static partial IntPtr GetForegroundWindow();
+
+    [LibraryImport("user32.dll")]
+    public static partial uint GetWindowThreadProcessId(IntPtr window, out uint processId);
+
+    [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool GetCursorPos(out Point32 point);
 

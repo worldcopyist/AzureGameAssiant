@@ -16,6 +16,7 @@ using AzureGameAssistant.Core.Models;
 using AzureGameAssistant.Core.Performance;
 using AzureGameAssistant.Core.Sessions;
 using AzureGameAssistant.Core.Settings;
+using AzureGameAssistant.UI.Interop;
 using AzureGameAssistant.UI.Services;
 using AzureGameAssistant.UI.ViewModels;
 using CommunityToolkit.Mvvm.Input;
@@ -236,8 +237,21 @@ public partial class App : Application
         UpdateTimerState();
     }
 
-    private static bool IsAnyAppWindowActive() =>
-        Application.Current?.Windows.OfType<Window>().Any(window => window.IsActive) == true;
+    private static bool IsAnyAppWindowActive()
+    {
+        // Window.IsActive can stay true after the window is minimized or
+        // covered from another process; only the system foreground window is
+        // authoritative. Any window of this process counts, so dialogs and the
+        // overlay also restore the full profile.
+        IntPtr foreground = NativeMethods.GetForegroundWindow();
+        if (foreground == IntPtr.Zero)
+        {
+            return false;
+        }
+
+        NativeMethods.GetWindowThreadProcessId(foreground, out uint pid);
+        return pid == (uint)Environment.ProcessId;
+    }
 
     private void OnPerformanceModeChanged(object? sender, EventArgs e)
     {

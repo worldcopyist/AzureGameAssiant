@@ -44,7 +44,8 @@ internal static class WorkingSetTrimmer
             long bytes = process.WorkingSet64;
             if (bytes > 0)
             {
-                return bytes / 1048576;
+                // A trimmed process can briefly sit below 1 MB; never log 0 MB.
+                return Math.Max(1, bytes / 1048576);
             }
         }
         catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or NotSupportedException)
