@@ -1304,6 +1304,10 @@ internal sealed record AiProviderProfile(
 - 交互：滚轮缩放、左键拖动平移、悬停十字线与浮动提示、双击回到实时。
 - 阅读暂停：左键按下时 `PauseFlow()` 通过 `ChartViewport.Pause()` 记录当前窗口末端 `PausedEndTicks`，此后 `OnRender` 用 `ResolveEndTicks()` 作为右侧边界（新采样只进不出），图例右侧显示 `ChartPaused`（“已暂停”）；`SetSamples`/`SetFrames` 在暂停期间不触发重绘，省 CPU。`DispatcherTimer`（1.5s，`ResumeDelay`）在 `OnMouseLeave` 或拖拽结束且指针不在图上时启动，`ResumeAfterIdle` 校验 `IsPaused && !_dragging && !IsMouseOver` 后清除暂停；重新移入图表会停表，避免指针在图上时反复启停。无数据（末端 ticks ≤ 0）时点击不进入暂停，未加载时 `Unloaded` 停表。
 - 可测性拆分：`Core/Charts/ChartViewport`（窗口秒数、平移、暂停/恢复状态机，含缩放上下限 10–1800s、按可用时长收缩窗口、暂停时数据回退到更早区间自动取最新值）与 `Core/Charts/ChartAggregation`（每列 min/max、帧尖峰与窗口最大值、右侧 ms 档位、双轨末端取并集）均不含 WPF 类型；`TimelineChart` 只保留绘制与输入转发。`ChartViewportTests`（12 项）与 `ChartAggregationTests`（16 项）覆盖暂停恢复、无数据、数据回退、平移夹取、缩放边界、空列 NaN、窗口外样本、负值归零、尖峰与档位。
+- 交互深化（2026-11-15）：
+  - 键盘：`TimelineChart.Focusable=true`，左键按下即聚焦；←/→ 按窗口宽度 10% 平移，↑/↓ 或 +/- 缩放，Home 复位平移，空格暂停/恢复，E 调用 `FocusEventWindow()`（暂停并把卡顿标记中心移到可视区中部）。
+  - 图例开关：合并图图例按 `_series` 配置全部绘制，点击命中矩形（`_legendHits`）切换 `_hiddenSeries` 位掩码；隐藏项以 35% 不透明度显示，绘图与悬停统一经 `HasSeries()` 过滤。隐藏仅影响本图实例，不写回设置。
+  - 视口导出：`VisibleRange()` 复用 `ResolveEndTicks`/平移/窗口秒数计算可视起止；`BuildVisibleCsv()` 调用 Core `ChartExport.BuildVisibleCsv` 输出 ISO-8601 UTC 时间与不变区域小数点（列：CPU/GPU/内存、提交量、磁盘、显存、最近帧时间与尖峰）；`ExportPng()` 用 `RenderTargetBitmap` 2 倍渲染当前图表（含暂停/平移状态）。两按钮位于图表工具栏，默认保存到图片/文档目录。
 - 渲染节流：非交互状态最多 10fps；主窗口、悬浮窗与图表小窗全部隐藏/最小化时停止计时器。
 - 不引入第三方图表库，避免额外内存与依赖。
 
@@ -1505,6 +1509,23 @@ internal sealed record AiProviderProfile(
 - 界面：设置页“高占用模式”卡片含总开关、说明、十个暂停复选框和“采样、帧采集、卡顿标注始终运行”提示；主窗口状态区“运行模式”行显示 `全功能` / `降载中（进程名）` / `高占用模式已关闭`，托盘提示复用同一状态。降载期间时间轴停止刷新但帧率卡片与卡顿列表继续工作。
 - 实测（16 GB 机器，降载稳定后）：界面 + 采集 + 帧采集合计 67.6 MB（0.41%）；连同本会话内的其他进程总计 122 MB（0.75%），私有字节 106.3 MB（0.65%），满足 FR-028 的 1% 验收；恢复全功能后合计约 203 MB（1.24%），传感器边车重新占用约 68 MB。
 - 可测性：`PerformanceMode` 不依赖 WPF，时间全部由调用方传入，`PerformanceModeTests` 用固定时间点覆盖进入延迟、GPU 阈值、短时抖动、空样本、焦点即时恢复、最差进程归因、关闭开关、自定义暂停组合、降载中修改选择与未知模块（14 项）。
+
+### 11.11 反作弊安全模式（`--safe-mode`）
+
+- 入口：`AzureGameAssistant.exe --safe-mode` 与 `AzureGameAssistant.Collector.exe --safe-mode`（`CollectorOptions.SafeMode`）。界面启动时解析参数后不做提权，`CollectorLauncher.Start(safeMode)` 把 `--safe-mode` 传给采集进程。
+- 采集端：`CollectorHost` 在创建 PresentMon 与传感器边车之前检查 `options.SafeMode`，为真时两者都不启动——不创建 ETW/点采样会话、不加载内核驱动的传感器边车，只保留 PDH/进程/GPU 利用率等用户态采样。
+- 界面端：`App._safeMode` 门控自动提权、自动帧采集与 `SyncSensorPauseAsync`；`MainViewModel.ApplySafeMode()` 关闭提权按钮并刷新帧状态文案；开始帧采集直接返回 `SafeModeFramesOff`。会话模式与诊断 `mode` 强制记为 `shallow`，不会把“无帧”误判为丢帧。
+- 自检面板：主窗口标题区 `SafeModePanel` 显示 `SafeModeTitle` 与三行保证（未提权、无 PresentMon/ETW、无传感器边车），便于用户在启动游戏前确认。
+- 测试：`CollectorOptions` 参数解析与 `DataQuality` 的 shallow 标记单测覆盖；安全模式的启动路径在非提权冒烟脚本中按 `--safe-mode` 复核。
+
+### 11.12 运行诊断、数据质量与成本明细
+
+- 句柄增长定位：`LongRunRecorder` 每 30 秒追加 `resources.csv`（`time_utc,process,pid,handles,gdi,user,threads,private_mb`），分别记录界面进程与采集进程；`ProcessResourceProbe` 用 `GetProcessHandleCount` + `GetGuiResources` + `Process.Threads` 读取，读数失败时跳过该行而不阻塞会话。1 小时压测后按进程比较首末行即可区分句柄、GDI/USER 与线程泄漏。
+- 资源预算断言：`build/measure.ps1` 新增 `-Mode auto|tray|main|deep|highload|none`，按模式建立预算（托盘/主窗/深采集/高占用合计 1% 物理内存），汇总中输出 `PASS/FAIL/SKIP` 行；进程缺样本退出 2，超预算退出 1，全部通过退出 0，可直接在 CI 或交接脚本中断言。
+- 一键脱敏诊断包：`Core/Diagnostics/DiagnosticBundle.Create` 读取 `diagnostics/`、`logs/issues/` 与 `settings.json`，对密钥、令牌、用户名与绝对路径做脱敏后打包 ZIP；设置页“运行诊断”卡片新增 `ExportDiagnosticBundle` 按钮，默认保存到 `diagnostic-bundles/`，完成后提示条目数、脱敏文件数与路径。`DiagnosticBundleTests` 覆盖脱敏与打包内容。
+- 数据质量标记：`DataQuality.Evaluate` 根据实际浅/深模式、帧数据新鲜度（>10 秒视为中断）、采集连接与丢弃计数生成 `DataQualityFlags`；主窗口标题区显示质量徽标（`QualityComplete/Shallow/FrameGap/CollectorGap`），会话 Markdown 导出在“数据缺口”下追加“数据质量”行，浅模式与帧中断不会再被当成完整数据解读。
+- NVML 功耗补源：`Core/Sensors/NvmlPowerReader` 在边车打开后尝试 `nvmlInit_v2` / `nvmlDeviceGetHandleByIndex_v2`，`Read()` 仅在驱动未给出功耗时回退；`GpuPowerMath` 拒绝 0、≥2000W 与错误码（3 = NOT_SUPPORTED），笔记本 RTX 4060 在本机返回不支持时保持“—”。`GpuPowerMathTests` 覆盖换算与拒绝分支。
+- AI 成本明细：`AiAnalysisResult.UsageEstimated` 标记服务端是否返回 `usage`；`AiAnalysisViewModel.ApplyUsage` 显示实际输入/输出 token、按用户单价计算的总额与拆分，并附“服务端上报 / 本地估算 / 缓存复用”来源徽标；无单价时显示“未知”且不编造金额。`AiAnalysisServiceTests` 覆盖有/无 usage 两条路径。
 
 ## 12. 性能预算与实现约束
 
