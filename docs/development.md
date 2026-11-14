@@ -1263,7 +1263,7 @@ internal sealed record AiProviderProfile(
 ### 11.1 结构
 
 - `App.xaml`：资源、主题、全局异常处理。
-- `MainWindow`：六张概览卡片（CPU / GPU / 内存 / 显存 / 磁盘 / 定时抖动）、可开关的分指标折线图、Top-5 进程、采集状态、最近 50 条卡顿事件列表；M2 增加事件列表与详情面板。
+- `MainWindow`：六张概览卡片（CPU / GPU / 内存 / 显存 / 磁盘 / 定时抖动）、可开关的分指标折线图、Top-5 进程、采集状态、最近 50 条卡顿事件列表；M2 增加事件列表与详情面板。整页放在一个 `ScrollViewer` 内（`PageScroll`），窗口偏矮时可滚动到卡顿列表与帧采集卡片；进程排行顶部固定一行“本软件”，实时显示界面进程 PID / CPU / 内存合计，悬浮提示给出四个子进程的工作集明细。
 - `ChartWindow`：单张折线图的脱离小窗；复用同一 `TimelineChart` 实例，关闭后图表归还主窗口卡片。默认只有主窗口，所有图表都在主窗口的“实时时间轴”网格中；只有勾选“布局设计”后才显示脱离按钮，取消勾选会自动关闭所有小窗并合并回主窗口。
 - `OverlayWindow`：桌面悬浮数据窗（M1 基础版）；置顶、鼠标穿透、四角定位、内容项开关、文字配色主题。
 - `EventDetailView`：本地报告 / AI 报告两个页签；帧证据区（M2）。
@@ -1277,6 +1277,7 @@ internal sealed record AiProviderProfile(
 - ViewModel 不直接引用 `System.Windows` 类型；服务通过构造函数注入（手写轻量容器，不引入 DI 框架）。
 - 采样刷新由 `App` 持有的 `DispatcherTimer`（500ms）驱动；主窗口、悬浮窗或任一图表小窗可见时运行，三者都隐藏时停止。
 - 所有 UI 更新合并到一次 `PropertyChanged` 批次，避免每字段刷新。
+- 自身占用：`SelfUsageProbe` 持有界面、采集、PresentMon 与传感器四个 `Process` 句柄，`Sample()` 读取 `WorkingSet64` 与 `TotalProcessorTime` 增量（按 `Environment.ProcessorCount` 归一，与采集进程口径一致），30 秒或子进程退出时重新绑定 PID；`MainViewModel.UpdateSelfUsage()` 在每次采样刷新时调用（未连接采集进程也运行），结果写入进程排行顶部的固定行，`SelfUsageDetail` 作为悬浮提示给出四进程明细。
 - AI 请求通过 `CancellationTokenSource` 支持取消；结果通过 `Dispatcher` 回到 UI 线程。
 
 ### 11.3 时间轴绘制
@@ -1286,7 +1287,8 @@ internal sealed record AiProviderProfile(
 - `ChartMetric` 枚举（Combined / Cpu / Gpu / Memory / Vram / Disk / Frame）：单指标模式只画一条全高曲线；Combined 模式默认启用，把所有指标叠加在同一坐标系内。
 - `ChartSeries` 标志枚举（CPU/GPU/Memory/Vram/Disk/Frame）由 `charts` 节点映射到 `CombinedSeries`，控制合并图渲染哪些线条；`Separate=false` 时只显示合并卡片，`Separate=true` 时切换为独立卡片并显示对应开关（旧设置文件缺省 false，自然落到合并模式）。
 - 合并图纵轴：CPU/GPU/内存/磁盘/显存统一为 0–100%（显存按 `专用显存 / 总显存` 归一化）；帧时间单独使用右侧副轴（`FrameGutter=44`），顶部/底部标注最大值与 0，避免与百分比混淆。线条颜色：CPU 蓝、GPU 绿、内存橙、显存紫、磁盘青、帧时间洋红（深色主题另有回退色）。
-- 主窗口使用 `UniformGrid` 承载图表卡；合并模式只有一张卡片，自动单列占满。合并图卡片直接放在“实时时间轴”卡片第 1 行并拉伸铺满（不进入 `ScrollViewer`），随窗口高度自适应；`ScrollViewer` 只在“分开显示图表卡片”模式下显示，避免合并图因滚动视口测量时序导致高度异常或坐标轴被裁切。
+- 图表卡使用 `UniformGrid` 承载：合并模式只有一张卡片，自动单列占满；分开卡片模式按勾选的指标数排布。
+- 主窗口整页滚动（2026-11-14 起）：根元素为 `ScrollViewer x:Name="PageScroll"`（`VerticalScrollBarVisibility=Auto`、`HorizontalScrollBarVisibility=Disabled`、`PanningMode=VerticalOnly`），所有卡片与列表同属一个滚动区域，不再嵌套第二层滚动容器。`ScrollViewer` 的测量是无限的，星号行会塌缩，因此图表行改为代码定量：`MainWindow.SizeChanged` 里取 `Math.Clamp(ActualHeight * 0.36, 240, 480)` 写入 `ChartRow.Height`，窗口偏矮时图表仍有 240px 可读高度，窗口放大后图表随之变高。
 - 竖轴口径：CPU/GPU/磁盘固定 0–100%；内存为物理内存使用率 0–100%（`(总物理内存 − Available MBytes) / 总物理内存`，总量来自 `SystemMemory`，提交上限只用于压力判定）；显存在合并模式为容量百分比，在独立卡片模式按 MB 自动取整（256MB 粒度，最小 256MB）。
 - 每个独立图表卡头部显示指标名与当前值；合并图例只列出启用的指标；悬停提示按指标显示百分比或“已用 / 总量”，合并图额外附带最近帧时间。
 - 图表开关由 `settings.json` 的 `charts` 节点控制，设置保存后调用 `RefreshChart()` 重新绑定可见性并重排。
@@ -1339,6 +1341,8 @@ internal sealed record AiProviderProfile(
 - 菜单与弹层：`Shared.xaml` 为 `ContextMenu` / `MenuItem` 提供两套样式——应用内右键菜单用调色板隐式样式，托盘菜单用固定的 `TrayMenu` / `TrayMenuItem`（白底黑字），打开时不随主题变化，也不会回退到系统配色。
 - 卡顿通知：设置项 `detection.notifyStutter`（默认 `false`），与 `notifications` 总开关同时满足才弹出气泡；默认只记录事件、不打扰。
 - 标题栏：`WindowChromeTheme` 通过 `DwmSetWindowAttribute` 设置沉浸式深色标记（属性 20，旧系统回退 19）；Windows 11 另外把标题栏、边框与文字设为窗口背景/前景色，`Window.Loaded` 与 `ThemeService.ThemeChanged` 时重新应用。
+- 滚动条：`Shared.xaml` 用自定义 `ScrollBar` 模板替换系统样式——宽/高 10px、透明轨道、`Track` 内两个不可见 `RepeatButton` 承载 `PageUp/PageDown`（横向为 `PageLeft/PageRight`）翻页命令，滑块为圆角 4px 的 `Thumb`（键 `ScrollBarThumb`），悬停与拖动时切到 `ScrollThumbHoverBrush`；两种颜色分别定义在 `Light.xaml`（#C3CCD8 / #93A2B5）与 `Dark.xaml`（#3C4757 / #5A6A80），因此深浅主题都不会露出系统亮色轨道或箭头。
+- 工作集回收：界面进程在全部窗口隐藏后由 `App.UpdateIdleTrim()` 调度一次回收（隐藏 8 秒与 68 秒各执行一次 `WorkingSetTrimmer.Trim()`：`GC.Collect(2, Optimized, blocking:false)` + `psapi!EmptyWorkingSet`），窗口重新可见时取消；传感器边车在完成第 30 个采样后执行一次同样的回收，避免 LibreHardwareMonitor 枚举期间占住的页面长期驻留。
 - 视觉极简：无阴影、无渐变、单一强调色（蓝天蓝）、等宽数字（`Consolas` / `Cascadia Mono` 回退）。
 
 ### 11.7 设置
@@ -1483,6 +1487,8 @@ internal sealed record AiProviderProfile(
 | AI 内存增量 | ≤ 20MB | 流式读取；事实层上限 8k token；响应上限 2k token |
 | 会话写盘 | 仅事件时 | 内存缓冲；gzip；原子写；帧批次 |
 | 空闲磁盘 | ≤ 10KB/min | 仅启动与错误日志；无心跳写盘 |
+| 自身占用展示 | 每拍 ≤ 0.02ms CPU | 复用已打开的 `Process` 句柄；只在采样刷新时读取，不另起线程 |
+| 隐藏后回收 | 隐藏 8s / 68s 各一次 | `EmptyWorkingSet` 仅在全部窗口隐藏时执行，不做全量阻塞 GC |
 
 ### 12.2 热路径规则
 
@@ -1503,6 +1509,7 @@ internal sealed record AiProviderProfile(
   - 10 分钟窗口，输出 CSV 与中位数。
   - 深模式额外记录 PresentMon 子进程与边车进程。
 - UI 内存用任务管理器“专用工作集”交叉验证。
+- 2026-11-14 实测（Release，12 逻辑处理器，界面在主窗口、帧采集常驻、传感器开启）：界面专用工作集 52.8MB（任务管理器工作集约 148MB 含共享页）、采集进程 14.5MB、传感器边车 30.3MB、PresentMon 11.6MB；30 秒窗口内 CPU 界面 0.234%、采集 0.078%、传感器 0.069%、PresentMon 0.017%（合计约整机 0.4%），GPU 占用 0.00%。自身占用行的合计值与任务管理器四进程之和一致（示例 217MB）。
 - 每个 PR 涉及采集/UI 热路径时，必须在 PR 描述中附测量结果。
 
 ## 13. 目录结构
