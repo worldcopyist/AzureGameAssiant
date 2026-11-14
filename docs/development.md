@@ -1389,6 +1389,7 @@ internal sealed record AiProviderProfile(
   "theme": "Auto",
   "language": "zh-CN",
   "processMemoryPercent": true,
+  "highLoadMode": true,
   "sessions": { "maxCount": 20, "maxTotalMb": 500 },
   "gameDetection": { "enabled": true, "exclude": ["chrome.exe", "msedge.exe", "firefox.exe", "vlc.exe"] },
   "ai": {
@@ -1474,6 +1475,16 @@ internal sealed record AiProviderProfile(
 - `MainViewModel.CopyFrameTimeline()` 把环内数据拷到预分配缓冲，`MainWindow.RefreshChart()` 交给 `FrameChart.SetFrames(buffer, count)`，避免每拍分配数组。
 - 目标进程选择：主窗口状态卡提供下拉框，展开时枚举进程（带窗口的排在前面，名称/标题与 PID 同时显示，最多 200 项，排除助手自身）；默认选中当前前台进程。开始采集成功后写入 `settings.frames.targetPid` 并保存，下次启动由采集进程自动接管；停止时清空。
 - 帧状态文本由 `status` 轮询驱动（约 1 秒一次），与下拉框、开始/停止按钮一起构成闭环；`permissionDenied` 时详情显示采集进程给出的错误原因，提示以管理员身份运行或加入 Performance Log Users。
+
+### 11.10 高占用模式（自动降载）
+
+- 位置：`Core/Performance/PerformanceMode.cs`；设置项 `highLoadMode`（默认 `true`，`AppSettings.HighLoadMode`），设置页“界面”分组提供开关。
+- 模块清单：`PerformanceModule` 枚举登记全部功能——采样、帧采集、卡顿标注为常驻；图表、悬浮窗、会话、诊断、自身占用、进程排行、托盘提示、通知、AI 分析为可挂起。`PerformanceMode.IsEnabled(module)` 统一裁决，`MainViewModel.IsFeatureEnabled` 供界面与 App 查询。新增功能必须先在枚举中登记、再在入口处做此判断，才能被降载覆盖。
+- 判定：`MainViewModel.ObservePerformance` 从当前采样取出 P0–P4 槽位，跳过 PID 0 与本软件进程（`SelfUsageProbe.Contains`），换算为 `LoadSample`。任一进程 CPU ≥ 20%（整机逻辑处理器为分母）或 GPU ≥ 30%（整卡）即视为高占用，取 `max(cpu/20, gpu/30)` 最大者为触发进程；连续 3 秒进入降载，连续 12 秒无高占用后退出。采集进程无数据时用空样本推进，12 秒后退出，防止永久降载。
+- 焦点恢复：`App.OnRefreshTick` 每个刷新周期调用 `SetAppFocused(Application.Current.Windows.Any(w => w.IsActive))`，为 `true` 时立即 `Release()` 并清空计时。
+- 降载时的动作：`ApplyPerformanceState` 在进入时先 `Sessions.FlushPending` 闭合待写会话，再暂停各模块；`App.OnPerformanceModeChanged` 隐藏悬浮窗、`RecordLongRunSample` 直接返回、气泡与 AI 自动分析被跳过、托盘提示改为精简状态；退出时按设置重新显示悬浮窗并恢复提示。
+- 界面：主窗口状态区新增“运行模式”行，`ModeText` 显示 `全功能` / `降载中（进程名）` / `高占用模式已关闭`，托盘提示复用同一状态。降载期间时间轴停止刷新但帧率卡片与卡顿列表继续工作。
+- 可测性：`PerformanceMode` 不依赖 WPF，时间全部由调用方传入，`PerformanceModeTests` 用固定时间点覆盖进入延迟、GPU 阈值、短时抖动、空样本、焦点即时恢复、最差进程归因与关闭开关（11 项）。
 
 ## 12. 性能预算与实现约束
 
