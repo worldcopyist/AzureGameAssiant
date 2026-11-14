@@ -24,6 +24,27 @@
   <data name="StatusConnected" xml:space="preserve">
     <value>Collector connected</value>
   </data>
+  <data name="QualityComplete" xml:space="preserve">
+    <value>Data complete</value>
+  </data>
+  <data name="QualityShallow" xml:space="preserve">
+    <value>Shallow mode (no frame timeline)</value>
+  </data>
+  <data name="QualityFrameGap" xml:space="preserve">
+    <value>Frame data interrupted</value>
+  </data>
+  <data name="QualityCollectorGap" xml:space="preserve">
+    <value>Collector data interrupted</value>
+  </data>
+  <data name="SafeModeTitle" xml:space="preserve">
+    <value>Safe mode self-check</value>
+  </data>
+  <data name="SafeModeChecks" xml:space="preserve">
+    <value>No elevation · frame capture off (no PresentMon/ETW) · sensors not loaded · local diagnostics only</value>
+  </data>
+  <data name="SafeModeFramesOff" xml:space="preserve">
+    <value>Frame capture is disabled in safe mode</value>
+  </data>
   <data name="StatusDisconnected" xml:space="preserve">
     <value>Collector not running</value>
   </data>
@@ -452,6 +473,16 @@
   </data>
   <data name="OpenDiagnosticsFolder" xml:space="preserve">
     <value>Open record folder</value>
+  </data>
+  <data name="ExportDiagnosticBundle" xml:space="preserve">
+    <value>Export diagnostic bundle</value>
+  </data>
+  <data name="DiagnosticBundleDone" xml:space="preserve">
+    <value>Diagnostic bundle saved ({0} files, {1} redacted).
+{2}</value>
+  </data>
+  <data name="DiagnosticBundleFailed" xml:space="preserve">
+    <value>Could not create the diagnostic bundle: {0}</value>
   </data>
   <data name="AboutSection" xml:space="preserve">
     <value>About</value>
@@ -1185,6 +1216,30 @@
   <data name="AiCostUnknown" xml:space="preserve">
     <value>Pricing not configured</value>
   </data>
+  <data name="AiTokenActual" xml:space="preserve">
+    <value>Input {0:N0} / output {1:N0} tokens</value>
+  </data>
+  <data name="AiCostActual" xml:space="preserve">
+    <value>This run {0}</value>
+  </data>
+  <data name="AiCostBreakdown" xml:space="preserve">
+    <value>input {0:N0} × ${1}/M · output {2:N0} × ${3}/M</value>
+  </data>
+  <data name="AiCostSourceEstimate" xml:space="preserve">
+    <value>upper estimate</value>
+  </data>
+  <data name="AiCostSourceReported" xml:space="preserve">
+    <value>server usage</value>
+  </data>
+  <data name="AiCostSourceEstimated" xml:space="preserve">
+    <value>local estimate</value>
+  </data>
+  <data name="AiCostSourceCached" xml:space="preserve">
+    <value>cached report</value>
+  </data>
+  <data name="AiCostCachedZero" xml:space="preserve">
+    <value>No model call this time, cost $0.0000</value>
+  </data>
   <data name="AiBudgetLine" xml:space="preserve">
     <value>today {0} / {1} · this month {2} / {3}</value>
   </data>
@@ -1450,5 +1505,30 @@
   </data>
   <data name="OverlayOpacity" xml:space="preserve">
     <value>Opacity</value>
+  </data>
+  <data name="ChartFocusEvent" xml:space="preserve">
+    <value>Focus stutter</value>
+  </data>
+  <data name="ChartExportPng" xml:space="preserve">
+    <value>Export PNG</value>
+  </data>
+  <data name="ChartExportCsv" xml:space="preserve">
+    <value>Export CSV</value>
+  </data>
+  <data name="ChartPngFilter" xml:space="preserve">
+    <value>PNG image (*.png)|*.png</value>
+  </data>
+  <data name="ChartCsvFilter" xml:space="preserve">
+    <value>CSV file (*.csv)|*.csv</value>
+  </data>
+  <data name="ChartNoEvent" xml:space="preserve">
+    <value>No stutter is marked yet. Locating becomes available once one appears.</value>
+  </data>
+  <data name="ChartExportFailed" xml:space="preserve">
+    <value>Export failed:
+{0}</value>
+  </data>
+  <data name="ChartKeyboardHint" xml:space="preserve">
+    <value>Chart: click to pause, double-click to reset, wheel to zoom; arrows pan, +/- zoom, Home resets, Space pauses, E focuses the stutter, click a legend entry to hide or show it.</value>
   </data>
 </root>

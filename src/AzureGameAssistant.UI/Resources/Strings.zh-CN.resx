@@ -24,6 +24,27 @@
   <data name="StatusConnected" xml:space="preserve">
     <value>采集进程已连接</value>
   </data>
+  <data name="QualityComplete" xml:space="preserve">
+    <value>数据完整</value>
+  </data>
+  <data name="QualityShallow" xml:space="preserve">
+    <value>浅模式（无帧时间轴）</value>
+  </data>
+  <data name="QualityFrameGap" xml:space="preserve">
+    <value>帧数据中断</value>
+  </data>
+  <data name="QualityCollectorGap" xml:space="preserve">
+    <value>采集数据中断</value>
+  </data>
+  <data name="SafeModeTitle" xml:space="preserve">
+    <value>安全模式自检</value>
+  </data>
+  <data name="SafeModeChecks" xml:space="preserve">
+    <value>未提权 · 帧采集关闭（不启动 PresentMon/ETW） · 传感器不加载 · 仅本地诊断</value>
+  </data>
+  <data name="SafeModeFramesOff" xml:space="preserve">
+    <value>安全模式下已关闭帧采集</value>
+  </data>
   <data name="StatusDisconnected" xml:space="preserve">
     <value>采集进程未运行</value>
   </data>
@@ -452,6 +473,16 @@
   </data>
   <data name="OpenDiagnosticsFolder" xml:space="preserve">
     <value>打开记录目录</value>
+  </data>
+  <data name="ExportDiagnosticBundle" xml:space="preserve">
+    <value>导出诊断包</value>
+  </data>
+  <data name="DiagnosticBundleDone" xml:space="preserve">
+    <value>诊断包已保存（{0} 个文件，{1} 个已脱敏）。
+{2}</value>
+  </data>
+  <data name="DiagnosticBundleFailed" xml:space="preserve">
+    <value>创建诊断包失败：{0}</value>
   </data>
   <data name="AboutSection" xml:space="preserve">
     <value>关于</value>
@@ -1185,6 +1216,30 @@
   <data name="AiCostUnknown" xml:space="preserve">
     <value>未配置价格</value>
   </data>
+  <data name="AiTokenActual" xml:space="preserve">
+    <value>输入 {0:N0} / 输出 {1:N0} Token</value>
+  </data>
+  <data name="AiCostActual" xml:space="preserve">
+    <value>本次 {0}</value>
+  </data>
+  <data name="AiCostBreakdown" xml:space="preserve">
+    <value>输入 {0:N0} × ${1}/M · 输出 {2:N0} × ${3}/M</value>
+  </data>
+  <data name="AiCostSourceEstimate" xml:space="preserve">
+    <value>预估上限</value>
+  </data>
+  <data name="AiCostSourceReported" xml:space="preserve">
+    <value>服务端用量</value>
+  </data>
+  <data name="AiCostSourceEstimated" xml:space="preserve">
+    <value>本地估算</value>
+  </data>
+  <data name="AiCostSourceCached" xml:space="preserve">
+    <value>缓存报告</value>
+  </data>
+  <data name="AiCostCachedZero" xml:space="preserve">
+    <value>本次未调用模型，费用 $0.0000</value>
+  </data>
   <data name="AiBudgetLine" xml:space="preserve">
     <value>今日 {0} / {1} · 本月 {2} / {3}</value>
   </data>
@@ -1450,5 +1505,30 @@
   </data>
   <data name="OverlayOpacity" xml:space="preserve">
     <value>不透明度</value>
+  </data>
+  <data name="ChartFocusEvent" xml:space="preserve">
+    <value>定位卡顿</value>
+  </data>
+  <data name="ChartExportPng" xml:space="preserve">
+    <value>导出图</value>
+  </data>
+  <data name="ChartExportCsv" xml:space="preserve">
+    <value>导出 CSV</value>
+  </data>
+  <data name="ChartPngFilter" xml:space="preserve">
+    <value>PNG 图片 (*.png)|*.png</value>
+  </data>
+  <data name="ChartCsvFilter" xml:space="preserve">
+    <value>CSV 文件 (*.csv)|*.csv</value>
+  </data>
+  <data name="ChartNoEvent" xml:space="preserve">
+    <value>还没有卡顿标记，定位功能会在标记出现后可用。</value>
+  </data>
+  <data name="ChartExportFailed" xml:space="preserve">
+    <value>导出失败：
+{0}</value>
+  </data>
+  <data name="ChartKeyboardHint" xml:space="preserve">
+    <value>图表操作：点击暂停，双击复位，滚轮缩放；方向键平移，+/- 缩放，Home 复位，空格暂停，E 定位卡顿，点击图例可隐藏/显示指标。</value>
   </data>
 </root>

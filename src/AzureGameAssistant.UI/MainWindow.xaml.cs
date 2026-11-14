@@ -1,9 +1,12 @@
 using System.Globalization;
+using System.IO;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using AzureGameAssistant.UI.Controls;
 using AzureGameAssistant.UI.Services;
 using AzureGameAssistant.UI.ViewModels;
+using Microsoft.Win32;
 
 namespace AzureGameAssistant.UI;
 
@@ -149,6 +152,111 @@ public partial class MainWindow : Window
             ApplyWindowSeconds(seconds);
         }
     }
+
+    private void OnFocusEvent(object sender, RoutedEventArgs e)
+    {
+        bool focused = false;
+        foreach (TimelineChart chart in _charts)
+        {
+            if (chart.IsVisible && chart.FocusEventWindow())
+            {
+                focused = true;
+            }
+        }
+
+        if (!focused)
+        {
+            MessageBox.Show(
+                this,
+                LocalizationService.Instance["ChartNoEvent"],
+                LocalizationService.Instance["AppTitle"],
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+    }
+
+    private void OnExportChartPng(object sender, RoutedEventArgs e)
+    {
+        TimelineChart chart = ActiveChart();
+        var dialog = new SaveFileDialog
+        {
+            Title = LocalizationService.Instance["ChartExportPng"],
+            Filter = LocalizationService.Instance["ChartPngFilter"],
+            DefaultExt = ".png",
+            FileName = ChartExportName() + ".png",
+            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
+        };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            if (!chart.ExportPng(dialog.FileName))
+            {
+                throw new InvalidOperationException(LocalizationService.Instance["NoData"]);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowExportError(ex);
+        }
+    }
+
+    private void OnExportChartCsv(object sender, RoutedEventArgs e)
+    {
+        TimelineChart chart = ActiveChart();
+        var dialog = new SaveFileDialog
+        {
+            Title = LocalizationService.Instance["ChartExportCsv"],
+            Filter = LocalizationService.Instance["ChartCsvFilter"],
+            DefaultExt = ".csv",
+            FileName = ChartExportName() + ".csv",
+            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+        };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            File.WriteAllText(dialog.FileName, chart.BuildVisibleCsv(), new UTF8Encoding(true));
+        }
+        catch (Exception ex)
+        {
+            ShowExportError(ex);
+        }
+    }
+
+    private void ShowExportError(Exception ex) => MessageBox.Show(
+        this,
+        string.Format(CultureInfo.CurrentUICulture, LocalizationService.Instance["ChartExportFailed"], ex.Message),
+        LocalizationService.Instance["AppTitle"],
+        MessageBoxButton.OK,
+        MessageBoxImage.Warning);
+
+    private TimelineChart ActiveChart()
+    {
+        if (CombinedChart.IsVisible)
+        {
+            return CombinedChart;
+        }
+
+        foreach (TimelineChart chart in _charts)
+        {
+            if (chart.IsVisible)
+            {
+                return chart;
+            }
+        }
+
+        return CombinedChart;
+    }
+
+    private static string ChartExportName() =>
+        "chart-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
 
     private void OnDetachChart(object sender, RoutedEventArgs e)
     {

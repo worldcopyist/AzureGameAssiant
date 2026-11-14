@@ -39,9 +39,26 @@
                 <TextBlock Margin="0,2,0,0" FontSize="12"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AppSubtitle]}" />
+                <Border Margin="0,8,0,0" Padding="10,6" CornerRadius="6"
+                        Background="{DynamicResource SurfaceAltBrush}"
+                        BorderBrush="{DynamicResource WarnBrush}" BorderThickness="1"
+                        AutomationProperties.AutomationId="SafeModePanel"
+                        Visibility="{Binding IsSafeMode, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel>
+                        <TextBlock FontSize="12" FontWeight="SemiBold" Text="{Binding SafeModeTitleText}" />
+                        <TextBlock Margin="0,2,0,0" FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding SafeModeChecksText}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
             </StackPanel>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Border CornerRadius="11" Padding="10,4" Background="{DynamicResource SurfaceAltBrush}"
+                        BorderBrush="{DynamicResource WarnBrush}" BorderThickness="1" Margin="0,0,10,0"
+                        Visibility="{Binding HasQualityWarning, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock FontSize="12" Text="{Binding QualityText}" />
+                </Border>
                 <Border CornerRadius="11" Padding="10,4" Background="{DynamicResource AccentSoftBrush}" Margin="0,0,10,0">
                     <StackPanel Orientation="Horizontal">
                         <Ellipse Width="7" Height="7" VerticalAlignment="Center" Margin="0,0,6,0">
@@ -169,6 +186,16 @@
                                   ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartDesignHint]}"
                                   Visibility="{Binding ShowSeparateCharts, Converter={StaticResource BoolToVisibility}}"
                                   Checked="OnDesignModeChanged" Unchecked="OnDesignModeChanged" />
+                        <Button Style="{StaticResource FlatButton}" Margin="0,0,8,0" Padding="9,3"
+                                Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartFocusEvent]}"
+                                ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartKeyboardHint]}"
+                                Click="OnFocusEvent" />
+                        <Button Style="{StaticResource FlatButton}" Margin="0,0,8,0" Padding="9,3"
+                                Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartExportPng]}"
+                                Click="OnExportChartPng" />
+                        <Button Style="{StaticResource FlatButton}" Margin="0,0,8,0" Padding="9,3"
+                                Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ChartExportCsv]}"
+                                Click="OnExportChartCsv" />
                         <ComboBox x:Name="WindowSelector" MinWidth="100">
                             <ComboBoxItem Tag="60"
                                           Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[WindowOneMinute]}" />

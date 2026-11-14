@@ -1,8 +1,11 @@
 using System.Globalization;
+using System.IO;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Automation.Peers;
+using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using AzureGameAssistant.Core.Charts;
 using AzureGameAssistant.Core.Frames;
@@ -92,6 +95,8 @@ public sealed class TimelineChart : FrameworkElement
     private ChartSeries _series = ChartSeries.Cpu | ChartSeries.Gpu | ChartSeries.Memory |
                                   ChartSeries.Vram | ChartSeries.Disk | ChartSeries.Frame;
     private readonly ChartViewport _viewport = new();
+    private readonly List<LegendHit> _legendHits = new(6);
+    private ChartSeries _hiddenSeries;
     private long _eventStartUtc;
     private long _eventEndUtc;
     private int _version;
@@ -111,7 +116,7 @@ public sealed class TimelineChart : FrameworkElement
     {
         ClipToBounds = true;
         SnapsToDevicePixels = true;
-        Focusable = false;
+        Focusable = true;
         Cursor = System.Windows.Input.Cursors.Cross;
 
         _resumeTimer = new DispatcherTimer { Interval = ResumeDelay };
@@ -213,6 +218,89 @@ public sealed class TimelineChart : FrameworkElement
         InvalidateVisual();
     }
 
+    public bool HasEventWindow => _eventStartUtc > 0;
+
+    /// <summary>
+    /// Pauses the chart and pans so the marked stutter window sits in the
+    /// middle of the visible range. Returns false when nothing is marked or
+    /// there is no data to position against.
+    /// </summary>
+    public bool FocusEventWindow()
+    {
+        if (_eventStartUtc <= 0 || LatestEndTicks() <= 0)
+        {
+            return false;
+        }
+
+        PauseFlow();
+        double eventCenter = (_eventStartUtc + Math.Max(_eventStartUtc, _eventEndUtc)) * 0.5;
+        double pan = ((LatestEndTicks() - eventCenter) / TimeSpan.TicksPerSecond) - (_viewport.WindowSeconds * 0.5);
+        bool moved = _viewport.SetPan(pan, AvailableSpanSeconds());
+        if (moved || _viewport.IsPaused)
+        {
+            InvalidateVisual();
+        }
+
+        return true;
+    }
+
+    public (long StartUtc, long EndUtc) VisibleRange()
+    {
+        double latest = LatestEndTicks();
+        if (latest <= 0)
+        {
+            return (0, 0);
+        }
+
+        double end = _viewport.ResolveEndTicks(latest) - (_viewport.PanSeconds * TimeSpan.TicksPerSecond);
+        double start = end - (_viewport.WindowSeconds * TimeSpan.TicksPerSecond);
+        return ((long)start, (long)end);
+    }
+
+    public string BuildVisibleCsv()
+    {
+        (long start, long end) = VisibleRange();
+        return ChartExport.BuildVisibleCsv(_samples, _count, _frames, _frameCount, start, end);
+    }
+
+    /// <summary>
+    /// Saves exactly what the chart currently shows, including the paused or
+    /// panned window, as a 2x PNG so labels stay readable when enlarged.
+    /// </summary>
+    public bool ExportPng(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        double width = ActualWidth;
+        double height = ActualHeight;
+        if (width < 120 || height < 70)
+        {
+            return false;
+        }
+
+        const double scale = 2;
+        var visual = new DrawingVisual();
+        using (DrawingContext dc = visual.RenderOpen())
+        {
+            Brush background = GetBrush("WindowBackgroundBrush", Brushes.White);
+            dc.DrawRectangle(background, null, new Rect(0, 0, width, height));
+            dc.DrawRectangle(new VisualBrush(this), null, new Rect(0, 0, width, height));
+        }
+
+        var bitmap = new RenderTargetBitmap(
+            (int)Math.Ceiling(width * scale),
+            (int)Math.Ceiling(height * scale),
+            96 * scale,
+            96 * scale,
+            PixelFormats.Pbgra32);
+        bitmap.Render(visual);
+
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using FileStream stream = File.Create(path);
+        encoder.Save(stream);
+        return true;
+    }
+
     protected override void OnRender(DrawingContext dc)
     {
         var bounds = new Rect(RenderSize);
@@ -224,7 +312,7 @@ public sealed class TimelineChart : FrameworkElement
             return;
         }
 
-        bool combinedFrame = combined && HasSeries(ChartSeries.Frame);
+        bool combinedFrame = combined && IsSeriesConfigured(ChartSeries.Frame);
         _plot = new Rect(
             LeftGutter,
             TopMargin,
@@ -698,20 +786,32 @@ public sealed class TimelineChart : FrameworkElement
         LocalizationService loc = LocalizationService.Instance;
         double x = LeftGutter;
         double y = 2;
+        _legendHits.Clear();
 
         if (_metric == ChartMetric.Combined)
         {
             for (int index = 0; index < 5; index++)
             {
-                if (HasSeries(SeriesForIndex(index)))
+                ChartSeries series = SeriesForIndex(index);
+                if (!IsSeriesConfigured(series))
                 {
-                    x = DrawLegendItem(dc, x, y, loc[LegendKey(index)], GetBrush(BrushKey(index), Fallback(index)));
+                    continue;
                 }
+
+                double startX = x;
+                x = DrawLegendItem(
+                    dc, x, y, loc[LegendKey(index)], GetBrush(BrushKey(index), Fallback(index)),
+                    (series & _hiddenSeries) == 0);
+                _legendHits.Add(new LegendHit(new Rect(startX, y, x - startX, 18), series));
             }
 
-            if (HasSeries(ChartSeries.Frame))
+            if (IsSeriesConfigured(ChartSeries.Frame))
             {
-                DrawLegendItem(dc, x, y, loc["FrameTimeAxis"], GetBrush("ChartFrameBrush", FallbackFrame));
+                double startX = x;
+                x = DrawLegendItem(
+                    dc, x, y, loc["FrameTimeAxis"], GetBrush("ChartFrameBrush", FallbackFrame),
+                    (_hiddenSeries & ChartSeries.Frame) == 0);
+                _legendHits.Add(new LegendHit(new Rect(startX, y, x - startX, 18), ChartSeries.Frame));
             }
         }
         else if (_metric == ChartMetric.Frame)
@@ -743,10 +843,21 @@ public sealed class TimelineChart : FrameworkElement
         }
     }
 
-    private double DrawLegendItem(DrawingContext dc, double x, double y, string text, Brush brush)
+    private double DrawLegendItem(DrawingContext dc, double x, double y, string text, Brush brush, bool enabled = true)
     {
+        if (!enabled)
+        {
+            dc.PushOpacity(0.35);
+        }
+
         dc.DrawRectangle(brush, null, new Rect(x, y + 4, 8, 8));
         double width = DrawText(dc, text, new Point(x + 12, y), GetBrush("TextSecondaryBrush", FallbackText), 11);
+
+        if (!enabled)
+        {
+            dc.Pop();
+        }
+
         return x + 12 + width + 14;
     }
 
@@ -1038,6 +1149,13 @@ public sealed class TimelineChart : FrameworkElement
     protected override void OnMouseLeftButtonDown(System.Windows.Input.MouseButtonEventArgs e)
     {
         base.OnMouseLeftButtonDown(e);
+        Focus();
+
+        if (TryToggleLegend(e.GetPosition(this)))
+        {
+            e.Handled = true;
+            return;
+        }
 
         PauseFlow();
 
@@ -1108,6 +1226,91 @@ public sealed class TimelineChart : FrameworkElement
         e.Handled = true;
     }
 
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        double available = AvailableSpanSeconds();
+        double step = _viewport.WindowSeconds * 0.1;
+        switch (e.Key)
+        {
+            case Key.Left:
+                if (_viewport.PanBy(step, available))
+                {
+                    InvalidateVisual();
+                }
+
+                break;
+
+            case Key.Right:
+                if (_viewport.PanBy(-step, available))
+                {
+                    InvalidateVisual();
+                }
+
+                break;
+
+            case Key.Up or Key.OemPlus or Key.Add:
+                if (_viewport.Zoom(0.8, available))
+                {
+                    InvalidateVisual();
+                }
+
+                break;
+
+            case Key.Down or Key.OemMinus or Key.Subtract:
+                if (_viewport.Zoom(1.25, available))
+                {
+                    InvalidateVisual();
+                }
+
+                break;
+
+            case Key.Home:
+                ResetPan();
+                break;
+
+            case Key.Space:
+                TogglePause();
+                break;
+
+            case Key.E:
+                FocusEventWindow();
+                break;
+
+            default:
+                return;
+        }
+
+        e.Handled = true;
+    }
+
+    private void TogglePause()
+    {
+        bool changed = _viewport.IsPaused ? _viewport.Resume() : _viewport.Pause(LatestEndTicks());
+        if (changed)
+        {
+            _resumeTimer.Stop();
+            InvalidateVisual();
+        }
+    }
+
+    private bool TryToggleLegend(Point point)
+    {
+        foreach (LegendHit hit in _legendHits)
+        {
+            if (!hit.Bounds.Contains(point))
+            {
+                continue;
+            }
+
+            _hiddenSeries ^= hit.Series;
+            InvalidateVisual();
+            return true;
+        }
+
+        return false;
+    }
+
     private void EnsureBuffers(int width)
     {
         if (_minValues.Length < width)
@@ -1156,7 +1359,10 @@ public sealed class TimelineChart : FrameworkElement
 
     private Brush GetBrush(string key, Brush fallback) => TryFindResource(key) as Brush ?? fallback;
 
-    private bool HasSeries(ChartSeries series) => (_series & series) != 0;
+    private bool HasSeries(ChartSeries series) =>
+        (_series & series) != 0 && (_hiddenSeries & series) == 0;
+
+    private bool IsSeriesConfigured(ChartSeries series) => (_series & series) != 0;
 
     private static ChartSeries SeriesForIndex(int index) => index switch
     {
@@ -1285,6 +1491,8 @@ public sealed class TimelineChart : FrameworkElement
     /// Makes the custom-drawn chart visible to UI Automation. The help text is a
     /// stable, machine-readable state marker used by build/ui-smoke.ps1.
     /// </summary>
+    private readonly record struct LegendHit(Rect Bounds, ChartSeries Series);
+
     private sealed class TimelineChartPeer : FrameworkElementAutomationPeer
     {
         public TimelineChartPeer(TimelineChart owner)
