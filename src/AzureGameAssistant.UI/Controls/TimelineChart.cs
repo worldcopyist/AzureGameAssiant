@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Threading;
 using AzureGameAssistant.Core.Frames;
 using AzureGameAssistant.Core.Models;
 using AzureGameAssistant.UI.Services;
@@ -45,6 +46,7 @@ public sealed class TimelineChart : FrameworkElement
     private const double MinWindowSeconds = 10;
     private const double MaxWindowSeconds = 1800;
     private const int SpikeMarkLimit = 512;
+    private static readonly TimeSpan ResumeDelay = TimeSpan.FromSeconds(1.5);
 
     private static readonly Typeface LabelTypeface = new(
         new FontFamily("Segoe UI, Microsoft YaHei UI"),
@@ -103,12 +105,20 @@ public sealed class TimelineChart : FrameworkElement
     private double _dragStartPan;
     private DateTime _lastHoverPaint = DateTime.MinValue;
 
+    private bool _paused;
+    private double _pausedEndTicks;
+    private readonly DispatcherTimer _resumeTimer;
+
     public TimelineChart()
     {
         ClipToBounds = true;
         SnapsToDevicePixels = true;
         Focusable = false;
         Cursor = System.Windows.Input.Cursors.Cross;
+
+        _resumeTimer = new DispatcherTimer { Interval = ResumeDelay };
+        _resumeTimer.Tick += (_, _) => ResumeAfterIdle();
+        Unloaded += (_, _) => _resumeTimer.Stop();
     }
 
     public ChartMetric Metric
@@ -165,7 +175,10 @@ public sealed class TimelineChart : FrameworkElement
         _samples = samples;
         _count = Math.Clamp(count, 0, samples.Length);
         _version++;
-        InvalidateVisual();
+        if (!_paused)
+        {
+            InvalidateVisual();
+        }
     }
 
     public void SetFrames(FrameTimePoint[] frames, int count)
@@ -173,7 +186,10 @@ public sealed class TimelineChart : FrameworkElement
         _frames = frames;
         _frameCount = Math.Clamp(count, 0, frames.Length);
         _frameVersion++;
-        InvalidateVisual();
+        if (!_paused)
+        {
+            InvalidateVisual();
+        }
     }
 
     public void ResetPan()
@@ -230,11 +246,10 @@ public sealed class TimelineChart : FrameworkElement
             return;
         }
 
-        double baseEndTicks = _count > 0 ? _samples[_count - 1].UtcTicks : _frames[_frameCount - 1].UtcTicks;
-        if ((frameChart || combinedFrame) && _frameCount > 0)
-        {
-            baseEndTicks = Math.Max(baseEndTicks, _frames[_frameCount - 1].UtcTicks);
-        }
+        double latestEndTicks = LatestEndTicks();
+        double baseEndTicks = _paused && _pausedEndTicks > 0 && latestEndTicks >= _pausedEndTicks
+            ? _pausedEndTicks
+            : latestEndTicks;
 
         double endTicks = baseEndTicks - (_panSeconds * TimeSpan.TicksPerSecond);
         double startTicks = endTicks - (_windowSeconds * TimeSpan.TicksPerSecond);
@@ -270,6 +285,22 @@ public sealed class TimelineChart : FrameworkElement
         DrawEventWindow(dc, startTicks, endTicks);
         DrawTimeAxis(dc, startTicks, endTicks);
         DrawHover(dc, startTicks, endTicks);
+    }
+
+    private double LatestEndTicks()
+    {
+        double end = _count > 0
+            ? _samples[_count - 1].UtcTicks
+            : _frameCount > 0 ? _frames[_frameCount - 1].UtcTicks : 0;
+
+        bool showsFrames = _metric == ChartMetric.Frame ||
+            (_metric == ChartMetric.Combined && HasSeries(ChartSeries.Frame));
+        if (showsFrames && _frameCount > 0)
+        {
+            end = Math.Max(end, _frames[_frameCount - 1].UtcTicks);
+        }
+
+        return end;
     }
 
     private Rect TrackRect(int index, int count)
@@ -764,14 +795,21 @@ public sealed class TimelineChart : FrameworkElement
             DrawLegendItem(dc, x, y, loc[LegendKey(index)], GetBrush(BrushKey(index), Fallback(index)));
         }
 
+        string? state = _paused
+            ? loc["ChartPaused"]
+            : null;
         if (_panSeconds > 0.5)
         {
-            DrawText(
-                dc,
-                loc["History"],
-                new Point(bounds.Width - 52, 2),
-                GetBrush("WarnBrush", FallbackText),
-                11);
+            state = state is null ? loc["History"] : state + " · " + loc["History"];
+        }
+
+        if (state is not null)
+        {
+            Brush stateBrush = GetBrush("WarnBrush", FallbackText);
+            FormattedText stateText = Format(state, stateBrush, 11);
+            dc.DrawText(
+                stateText,
+                new Point(bounds.Width - stateText.WidthIncludingTrailingWhitespace - 4, 2));
         }
     }
 
@@ -1046,16 +1084,30 @@ public sealed class TimelineChart : FrameworkElement
         OnHoverChanged(e.GetPosition(this));
     }
 
+    protected override void OnMouseEnter(System.Windows.Input.MouseEventArgs e)
+    {
+        base.OnMouseEnter(e);
+        _resumeTimer.Stop();
+    }
+
     protected override void OnMouseLeave(System.Windows.Input.MouseEventArgs e)
     {
         base.OnMouseLeave(e);
         _hoverPoint = null;
+        if (_paused && !_dragging)
+        {
+            _resumeTimer.Stop();
+            _resumeTimer.Start();
+        }
+
         InvalidateVisual();
     }
 
     protected override void OnMouseLeftButtonDown(System.Windows.Input.MouseButtonEventArgs e)
     {
         base.OnMouseLeftButtonDown(e);
+
+        PauseFlow();
 
         if (e.ClickCount == 2)
         {
@@ -1076,6 +1128,49 @@ public sealed class TimelineChart : FrameworkElement
         base.OnMouseLeftButtonUp(e);
         _dragging = false;
         ReleaseMouseCapture();
+
+        if (_paused && !IsMouseOver)
+        {
+            _resumeTimer.Stop();
+            _resumeTimer.Start();
+        }
+    }
+
+    /// <summary>
+    /// Freezes the sliding window at the newest sample so the lines stay put
+    /// while the user reads them. Leaving the chart resumes the slide after a
+    /// short delay instead of immediately, so brief mouse-outs do not resume.
+    /// </summary>
+    private void PauseFlow()
+    {
+        _resumeTimer.Stop();
+        if (_paused)
+        {
+            return;
+        }
+
+        double end = LatestEndTicks();
+        if (end <= 0)
+        {
+            return;
+        }
+
+        _paused = true;
+        _pausedEndTicks = end;
+        InvalidateVisual();
+    }
+
+    private void ResumeAfterIdle()
+    {
+        _resumeTimer.Stop();
+        if (!_paused || _dragging || IsMouseOver)
+        {
+            return;
+        }
+
+        _paused = false;
+        _pausedEndTicks = 0;
+        InvalidateVisual();
     }
 
     protected override void OnMouseWheel(System.Windows.Input.MouseWheelEventArgs e)

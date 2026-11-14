@@ -492,6 +492,9 @@
   <data name="History" xml:space="preserve">
     <value>历史</value>
   </data>
+  <data name="ChartPaused" xml:space="preserve">
+    <value>已暂停</value>
+  </data>
   <data name="Vram" xml:space="preserve">
     <value>显存</value>
   </data>

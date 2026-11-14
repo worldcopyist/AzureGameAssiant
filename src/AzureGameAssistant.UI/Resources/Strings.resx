@@ -492,6 +492,9 @@
   <data name="History" xml:space="preserve">
     <value>History</value>
   </data>
+  <data name="ChartPaused" xml:space="preserve">
+    <value>Paused</value>
+  </data>
   <data name="Vram" xml:space="preserve">
     <value>VRAM</value>
   </data>
