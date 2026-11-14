@@ -163,7 +163,46 @@
     <value>High-load mode (automatic load shedding)</value>
   </data>
   <data name="HighLoadModeHint" xml:space="preserve">
-    <value>Recommended. When another program uses a lot of CPU or GPU, pause charts, overlay, session recording and diagnostics; keep load sampling, FPS and stutter marking. Clicking any assistant window restores every feature.</value>
+    <value>Recommended. When another program uses a lot of CPU or GPU, the optional features selected below are suspended; load sampling, FPS capture and stutter marking stay on. Focusing this app restores every feature.</value>
+  </data>
+  <data name="HighLoadSection" xml:space="preserve">
+    <value>High-load mode</value>
+  </data>
+  <data name="HighLoadPauseHeading" xml:space="preserve">
+    <value>Suspend these features while reduced (clear a box to keep it running):</value>
+  </data>
+  <data name="HighLoadPauseChartsLabel" xml:space="preserve">
+    <value>Charts and overview cards</value>
+  </data>
+  <data name="HighLoadPauseOverlayLabel" xml:space="preserve">
+    <value>Desktop overlay</value>
+  </data>
+  <data name="HighLoadPauseSessionsLabel" xml:space="preserve">
+    <value>Session recording</value>
+  </data>
+  <data name="HighLoadPauseDiagnosticsLabel" xml:space="preserve">
+    <value>Long-run diagnostics</value>
+  </data>
+  <data name="HighLoadPauseSelfUsageLabel" xml:space="preserve">
+    <value>This-app usage row</value>
+  </data>
+  <data name="HighLoadPauseProcessViewLabel" xml:space="preserve">
+    <value>Process ranking</value>
+  </data>
+  <data name="HighLoadPauseTrayTipLabel" xml:space="preserve">
+    <value>Tray tooltip</value>
+  </data>
+  <data name="HighLoadPauseNotificationsLabel" xml:space="preserve">
+    <value>Stutter notifications</value>
+  </data>
+  <data name="HighLoadPauseAiAnalysisLabel" xml:space="preserve">
+    <value>Automatic AI analysis</value>
+  </data>
+  <data name="HighLoadPauseSensorsLabel" xml:space="preserve">
+    <value>Sensor sidecar (temperature/power)</value>
+  </data>
+  <data name="HighLoadKeepNote" xml:space="preserve">
+    <value>Load sampling, FPS capture and stutter marking always stay on. Focusing this app restores every feature immediately.</value>
   </data>
   <data name="ModeLabel" xml:space="preserve">
     <value>Mode</value>

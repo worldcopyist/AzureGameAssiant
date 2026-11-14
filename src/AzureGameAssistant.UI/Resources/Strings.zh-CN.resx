@@ -163,7 +163,46 @@
     <value>高占用模式（自动降载）</value>
   </data>
   <data name="HighLoadModeHint" xml:space="preserve">
-    <value>推荐开启。检测到其他程序大量占用 CPU/GPU 时，自动暂停图表、悬浮窗、会话与诊断记录，只保留占用检测、帧率与卡顿标注；点击本软件任意窗口即可恢复全部功能。</value>
+    <value>推荐开启。检测到其他程序大量占用 CPU/GPU 时，按下方选择暂停可选功能，仅保留占用采样、帧采集与卡顿标注；点击本软件任意窗口即可恢复全部功能。</value>
+  </data>
+  <data name="HighLoadSection" xml:space="preserve">
+    <value>高占用模式</value>
+  </data>
+  <data name="HighLoadPauseHeading" xml:space="preserve">
+    <value>降载时暂停以下功能（取消勾选即可保留）：</value>
+  </data>
+  <data name="HighLoadPauseChartsLabel" xml:space="preserve">
+    <value>图表与概览卡片</value>
+  </data>
+  <data name="HighLoadPauseOverlayLabel" xml:space="preserve">
+    <value>桌面悬浮窗</value>
+  </data>
+  <data name="HighLoadPauseSessionsLabel" xml:space="preserve">
+    <value>会话记录</value>
+  </data>
+  <data name="HighLoadPauseDiagnosticsLabel" xml:space="preserve">
+    <value>长时诊断记录</value>
+  </data>
+  <data name="HighLoadPauseSelfUsageLabel" xml:space="preserve">
+    <value>本软件占用行</value>
+  </data>
+  <data name="HighLoadPauseProcessViewLabel" xml:space="preserve">
+    <value>进程排行</value>
+  </data>
+  <data name="HighLoadPauseTrayTipLabel" xml:space="preserve">
+    <value>托盘提示</value>
+  </data>
+  <data name="HighLoadPauseNotificationsLabel" xml:space="preserve">
+    <value>卡顿通知</value>
+  </data>
+  <data name="HighLoadPauseAiAnalysisLabel" xml:space="preserve">
+    <value>AI 自动分析</value>
+  </data>
+  <data name="HighLoadPauseSensorsLabel" xml:space="preserve">
+    <value>传感器边车（温度/功耗）</value>
+  </data>
+  <data name="HighLoadKeepNote" xml:space="preserve">
+    <value>占用采样、帧采集与卡顿标注始终保留；点击本软件任意窗口即可立即恢复全部功能。</value>
   </data>
   <data name="ModeLabel" xml:space="preserve">
     <value>运行模式</value>

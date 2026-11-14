@@ -174,7 +174,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _loc = loc;
         _settings = settings;
         _settingsService = settingsService;
-        _performance = new PerformanceMode(settings.HighLoadMode);
+        _performance = new PerformanceMode(settings.HighLoadMode, pause: settings.HighLoadPause);
         _detector = new DetectionEngine(_settings.Detection);
         _sessions = new SessionRecorder(
             AppPaths.SessionsDirectory,
@@ -531,25 +531,25 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 // Decide the profile first: entering it on this tick must skip
                 // the display work below instead of one tick later.
                 ObservePerformance(sample);
-                bool reduced = _performance.IsReduced;
 
-                if (!reduced)
+                if (IsFeatureEnabled(PerformanceModule.Charts))
                 {
                     UpdateMetrics();
+                }
+
+                if (IsFeatureEnabled(PerformanceModule.ProcessView))
+                {
                     UpdateProcesses();
                 }
 
                 TimelineCount = _telemetry.CopyTo(_timeline);
-                if (!reduced)
-                {
-                    TrackHighLoad();
-                }
+                TrackHighLoad();
 
                 _detector.DeepMode = IsFrameDataFresh;
                 UpdateFrames();
                 TrackStutter();
                 DrainStutterEvents();
-                if (!reduced)
+                if (IsFeatureEnabled(PerformanceModule.Sessions))
                 {
                     int sessionFrames = CopyFrameTimeline();
                     _sessions.Observe(DateTime.UtcNow, _timeline, TimelineCount, _frameTimelineBuffer, sessionFrames);
@@ -564,7 +564,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 ObservePerformance(default);
             }
 
-            if (!_performance.IsReduced)
+            if (IsFeatureEnabled(PerformanceModule.SelfUsage))
             {
                 UpdateSelfUsage();
             }
@@ -585,9 +585,14 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 }
             }
 
-            if (!_performance.IsReduced)
+            bool charts = IsFeatureEnabled(PerformanceModule.Charts);
+            if (charts)
             {
                 UpdateFooter();
+            }
+
+            if (charts || IsFeatureEnabled(PerformanceModule.TrayTip))
+            {
                 TelemetryUpdated?.Invoke(this, EventArgs.Empty);
             }
         }
@@ -1801,8 +1806,18 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         UpdateSelfUsage();
 
-        ApplyPerformanceState(_performance.SetEnabled(_settings.HighLoadMode));
+        _performance.Pause = _settings.HighLoadPause;
+        bool modeChanged = _performance.SetEnabled(_settings.HighLoadMode);
+        ApplyPerformanceState(modeChanged);
         UpdateModeText();
+
+        // A pause-selection edit must take effect immediately while the app is
+        // already shed; the host re-syncs overlay, sensors and trimming on this
+        // event even when the reduced state itself did not change.
+        if (!modeChanged && _performance.IsReduced)
+        {
+            PerformanceModeChanged?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     private static string FormatMegabytes(double megabytes) => megabytes >= 1024

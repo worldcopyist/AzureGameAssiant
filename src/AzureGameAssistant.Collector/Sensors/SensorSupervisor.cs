@@ -31,6 +31,7 @@ internal sealed class SensorSupervisor : IDisposable
     private IntPtr _job;
     private volatile string? _lastError;
     private volatile bool _running;
+    private volatile bool _paused;
 
     public SensorSupervisor(FileLogger logger, string executablePath, int intervalMs, string cpuMode)
     {
@@ -42,7 +43,43 @@ internal sealed class SensorSupervisor : IDisposable
 
     public bool IsRunning => _running;
 
+    public bool IsPaused => _paused;
+
     public string? LastError => _lastError;
+
+    /// <summary>
+    /// Stops or restarts the sidecar without tearing down the supervisor. The
+    /// reduced profile pauses it because the sidecar's vendor libraries hold
+    /// tens of megabytes even while the game does not show temperatures.
+    /// </summary>
+    public void SetPaused(bool paused)
+    {
+        if (_paused == paused)
+        {
+            return;
+        }
+
+        _paused = paused;
+
+        if (!paused)
+        {
+            _logger.Info("传感器边车恢复");
+            return;
+        }
+
+        _logger.Info("传感器边车暂停（高占用模式）");
+        Process? process = _process;
+        try
+        {
+            if (process is { HasExited: false })
+            {
+                process.Kill(entireProcessTree: true);
+            }
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or Win32Exception or NotSupportedException)
+        {
+        }
+    }
 
     public void Start()
     {
@@ -105,6 +142,21 @@ internal sealed class SensorSupervisor : IDisposable
         {
             while (!token.IsCancellationRequested)
             {
+                if (_paused)
+                {
+                    consecutiveFailures = 0;
+                    try
+                    {
+                        await Task.Delay(500, token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
+
+                    continue;
+                }
+
                 using var process = new Process
                 {
                     StartInfo = BuildStartInfo(),
@@ -137,6 +189,20 @@ internal sealed class SensorSupervisor : IDisposable
                     _logger.Warn($"传感器边车未能加入作业对象：{System.Runtime.InteropServices.Marshal.GetLastWin32Error()}");
                 }
 
+                if (_paused)
+                {
+                    try
+                    {
+                        process.Kill(entireProcessTree: true);
+                    }
+                    catch (Exception ex) when (ex is InvalidOperationException or Win32Exception or NotSupportedException)
+                    {
+                    }
+
+                    _process = null;
+                    continue;
+                }
+
                 _lastError = null;
 
                 try
@@ -155,6 +221,12 @@ internal sealed class SensorSupervisor : IDisposable
                 if (token.IsCancellationRequested)
                 {
                     break;
+                }
+
+                if (_paused)
+                {
+                    // The exit was requested by the reduced profile, not a crash.
+                    continue;
                 }
 
                 int exitCode = process.HasExited ? process.ExitCode : -1;

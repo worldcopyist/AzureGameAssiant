@@ -13,6 +13,7 @@ using AzureGameAssistant.Core.Diagnostics;
 using AzureGameAssistant.Core.Hardware;
 using AzureGameAssistant.Core.Logging;
 using AzureGameAssistant.Core.Models;
+using AzureGameAssistant.Core.Performance;
 using AzureGameAssistant.Core.Sessions;
 using AzureGameAssistant.Core.Settings;
 using AzureGameAssistant.UI.Services;
@@ -49,6 +50,10 @@ public partial class App : Application
     private UiProcessProbe? _uiProbe;
     private CancellationTokenSource? _trimCts;
     private bool _trimScheduled;
+    private CancellationTokenSource? _reducedTrimCts;
+    private bool _sensorsPaused;
+    private bool _sensorSyncBusy;
+    private DateTime _sensorSyncRetryAt = DateTime.MinValue;
     private bool _shuttingDown;
     private int _appliedNormalMs = 1_000;
     private int _appliedSensorIntervalMs = 1_000;
@@ -209,13 +214,21 @@ public partial class App : Application
         _viewModel.SetAppFocused(IsAnyAppWindowActive());
         await _viewModel.RefreshAsync();
 
-        if (!_viewModel.IsReducedMode)
+        if (_viewModel.IsFeatureEnabled(PerformanceModule.Charts))
         {
             _window?.RefreshChart();
-            if (_overlay?.IsVisible == true)
-            {
-                _overlay.Update(_viewModel.GetOverlayData());
-            }
+        }
+
+        if (_overlay?.IsVisible == true && _viewModel.IsFeatureEnabled(PerformanceModule.Overlay))
+        {
+            _overlay.Update(_viewModel.GetOverlayData());
+        }
+
+        if (_viewModel.IsReducedMode)
+        {
+            // A collector restart during the reduced profile starts its sensor
+            // sidecar again; retry the pause until the pipe accepts it.
+            _ = SyncSensorPauseAsync();
         }
 
         RecordLongRunSample();
@@ -237,26 +250,149 @@ public partial class App : Application
         {
             string trigger = _viewModel.ModeTriggerName;
             _logger?.Info(
-                $"高占用模式：检测到 {trigger}，暂停图表、悬浮窗、会话与诊断记录，保留采样、帧率与卡顿标注");
+                $"高占用模式：检测到 {trigger}，保留采样、帧采集与卡顿标注，按设置暂停可选功能");
 
-            if (_overlay?.IsVisible == true)
-            {
-                _overlay.Hide();
-            }
+            SyncOverlayVisibility();
+            _ = SyncSensorPauseAsync();
+            StartReducedTrim();
         }
         else
         {
             _logger?.Info("高占用模式：恢复全部功能");
-            if (_settings.Overlay.Enabled && _overlay is not null && !_overlay.IsVisible)
-            {
-                _overlay.ApplySettings(_settings.Overlay);
-                _overlay.ShowOverlay();
-            }
-
+            StopReducedTrim();
+            _ = SyncSensorPauseAsync();
+            SyncOverlayVisibility();
             RefreshTrayTip();
         }
 
         UpdateTimerState();
+    }
+
+    private void SyncOverlayVisibility()
+    {
+        if (_overlay is null || _viewModel is null)
+        {
+            return;
+        }
+
+        bool show = _settings.Overlay.Enabled && _viewModel.IsFeatureEnabled(PerformanceModule.Overlay);
+        if (show)
+        {
+            _overlay.ApplySettings(_settings.Overlay);
+            if (!_overlay.IsVisible)
+            {
+                _overlay.ShowOverlay();
+            }
+        }
+        else if (_overlay.IsVisible)
+        {
+            _overlay.Hide();
+        }
+    }
+
+    /// <summary>
+    /// The sensor sidecar is optional and expensive, so it follows the reduced
+    /// profile unless the user opted it back in. The collector owns the
+    /// process; this only sends the pause state and remembers the last answer.
+    /// </summary>
+    private async Task SyncSensorPauseAsync()
+    {
+        if (_client is null || _viewModel is null || !_settings.Sensors.Enabled || _sensorSyncBusy)
+        {
+            return;
+        }
+
+        bool pause = _viewModel.IsReducedMode && !_viewModel.IsFeatureEnabled(PerformanceModule.Sensors);
+        if (pause == _sensorsPaused)
+        {
+            return;
+        }
+
+        DateTime now = DateTime.UtcNow;
+        if (now < _sensorSyncRetryAt)
+        {
+            return;
+        }
+
+        _sensorSyncBusy = true;
+        try
+        {
+            if (await _client.SetSensorsPausedAsync(pause, CancellationToken.None).ConfigureAwait(true))
+            {
+                _sensorsPaused = pause;
+                _sensorSyncRetryAt = DateTime.MinValue;
+                _logger?.Info(pause ? "高占用模式：传感器边车已暂停" : "高占用模式：传感器边车已恢复");
+            }
+            else
+            {
+                _sensorSyncRetryAt = now.AddSeconds(10);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or InvalidOperationException or ObjectDisposedException)
+        {
+            _logger?.Warn($"切换传感器暂停状态失败：{ex.Message}");
+        }
+        finally
+        {
+            _sensorSyncBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Releases the WPF render pages and the collector heap while the reduced
+    /// profile owns the machine, then keeps them released every 30 seconds.
+    /// </summary>
+    private void StartReducedTrim()
+    {
+        if (_reducedTrimCts is not null)
+        {
+            return;
+        }
+
+        var cts = new CancellationTokenSource();
+        _reducedTrimCts = cts;
+        _ = TrimReducedWorkingSetAsync(cts);
+    }
+
+    private void StopReducedTrim()
+    {
+        _reducedTrimCts?.Cancel();
+        _reducedTrimCts = null;
+    }
+
+    private async Task TrimReducedWorkingSetAsync(CancellationTokenSource cts)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(3), cts.Token);
+
+            while (!cts.IsCancellationRequested)
+            {
+                (long before, long after) = WorkingSetTrimmer.Trim();
+                bool collectorTrimmed = false;
+                if (_client is not null)
+                {
+                    collectorTrimmed = await _client.TrimMemoryAsync(cts.Token).ConfigureAwait(true);
+                }
+
+                _logger?.Info(
+                    $"高占用模式：工作集回收，本界面 {before} MB → {after} MB，采集进程{(collectorTrimmed ? "已回收" : "未回收")}");
+
+                await Task.Delay(TimeSpan.FromSeconds(30), cts.Token);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        finally
+        {
+            if (ReferenceEquals(_reducedTrimCts, cts))
+            {
+                _reducedTrimCts = null;
+            }
+
+            cts.Dispose();
+        }
     }
 
     /// <summary>
@@ -323,7 +459,7 @@ public partial class App : Application
             return;
         }
 
-        if (_viewModel.IsReducedMode)
+        if (!_viewModel.IsFeatureEnabled(PerformanceModule.Diagnostics))
         {
             return;
         }
@@ -461,12 +597,16 @@ public partial class App : Application
         bool mainVisible = _window is { IsVisible: true } && _window.WindowState != WindowState.Minimized;
         bool overlayVisible = _overlay?.IsVisible == true;
         bool chartsVisible = _window?.HasVisibleCharts == true;
+        bool reduced = _viewModel?.IsReducedMode == true;
 
         // Recording must continue from launch to exit, so the timer never
-        // stops; hidden windows just refresh at a slower cadence.
-        TimeSpan interval = mainVisible || overlayVisible || chartsVisible
-            ? TimeSpan.FromMilliseconds(500)
-            : TimeSpan.FromSeconds(2);
+        // stops; hidden windows just refresh at a slower cadence. The reduced
+        // profile halves the cadence because sampling already runs there.
+        TimeSpan interval = reduced
+            ? TimeSpan.FromSeconds(1)
+            : mainVisible || overlayVisible || chartsVisible
+                ? TimeSpan.FromMilliseconds(500)
+                : TimeSpan.FromSeconds(2);
         if (_timer.Interval != interval)
         {
             _timer.Interval = interval;
@@ -533,26 +673,9 @@ public partial class App : Application
         }
     }
 
-    private void SetOverlayEnabled(bool enabled)
+    private void SetOverlayEnabled()
     {
-        if (_overlay is null)
-        {
-            return;
-        }
-
-        if (enabled)
-        {
-            _overlay.ApplySettings(_settings.Overlay);
-            if (!_overlay.IsVisible)
-            {
-                _overlay.ShowOverlay();
-            }
-        }
-        else if (_overlay.IsVisible)
-        {
-            _overlay.Hide();
-        }
-
+        SyncOverlayVisibility();
         UpdateTimerState();
     }
 
@@ -560,7 +683,7 @@ public partial class App : Application
     {
         _settings.Overlay.Enabled = !_settings.Overlay.Enabled;
         SaveSettingsQuietly("保存悬浮窗设置失败");
-        SetOverlayEnabled(_settings.Overlay.Enabled);
+        SetOverlayEnabled();
     }
 
     private void ShowMainWindow()
@@ -714,7 +837,7 @@ public partial class App : Application
         _viewModel?.RefreshDisplaySettings();
         _window?.RefreshChart();
         _viewModel?.Sessions.ApplyRetention(settings.Sessions.MaxCount, settings.Sessions.MaxTotalMb);
-        SetOverlayEnabled(settings.Overlay.Enabled);
+        SetOverlayEnabled();
 
         if (settings.AutoStart != autoStart)
         {
@@ -921,6 +1044,12 @@ public partial class App : Application
 
         await _launcher.WaitForExitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(true);
         _launcher.Start();
+
+        // The fresh collector runs its sensor sidecar again; re-apply the
+        // pause state once its control pipe is up (retried from the tick).
+        _sensorsPaused = false;
+        _sensorSyncRetryAt = DateTime.MinValue;
+        _ = SyncSensorPauseAsync();
     }
 
     private void OnLanguageChanged(object? sender, EventArgs e)
@@ -934,7 +1063,8 @@ public partial class App : Application
 
     private void RefreshTrayTip()
     {
-        if (_tray is null || _telemetry is null || _telemetry.Count == 0)
+        if (_tray is null || _telemetry is null || _telemetry.Count == 0 ||
+            _viewModel?.IsFeatureEnabled(PerformanceModule.TrayTip) == false)
         {
             return;
         }
@@ -1096,7 +1226,7 @@ public partial class App : Application
             $"检测到卡顿：评分 {stutterEvent.Score}，时长 {stutterEvent.DurationMs:F0} ms，原因 {stutterEvent.Cause}");
 
         if (!_settings.Detection.NotifyStutter || !_settings.Notifications || _tray is null ||
-            _viewModel?.IsReducedMode == true)
+            _viewModel?.IsFeatureEnabled(PerformanceModule.Notifications) == false)
         {
             return;
         }
@@ -1113,7 +1243,8 @@ public partial class App : Application
     /// </summary>
     private async void OnSessionWritten(object? sender, SessionInfo info)
     {
-        if (!info.Complete || _autoAnalysisBusy || _shuttingDown || _viewModel?.IsReducedMode == true)
+        if (!info.Complete || _autoAnalysisBusy || _shuttingDown ||
+            _viewModel?.IsFeatureEnabled(PerformanceModule.AiAnalysis) == false)
         {
             return;
         }
@@ -1246,6 +1377,7 @@ public partial class App : Application
         _logger?.Info("界面退出");
 
         _trimCts?.Cancel();
+        StopReducedTrim();
         _timer?.Stop();
         StopLongRunRecorder("exit");
 

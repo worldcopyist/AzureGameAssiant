@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using AzureGameAssistant.Collector.Frames;
 using AzureGameAssistant.Collector.Interop;
@@ -615,6 +616,31 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
         }
 
         return true;
+    }
+
+    public bool SetSensorsPaused(bool paused)
+    {
+        if (_sensor is null)
+        {
+            return false;
+        }
+
+        _sensor.SetPaused(paused);
+        return true;
+    }
+
+    public bool TrimMemory()
+    {
+        try
+        {
+            GC.Collect(2, GCCollectionMode.Optimized, blocking: false, compacting: false);
+            using Process process = Process.GetCurrentProcess();
+            return Psapi.EmptyWorkingSet(process.Handle);
+        }
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or NotSupportedException)
+        {
+            return false;
+        }
     }
 
     public void RequestQuit() => _stop.Cancel();

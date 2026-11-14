@@ -18,24 +18,41 @@ internal static class WorkingSetTrimmer
     public static (long BeforeMb, long AfterMb) Trim()
     {
         using Process process = Process.GetCurrentProcess();
-        long before = 0;
+        long before = ReadWorkingSetMb(process);
         try
         {
             GC.Collect(2, GCCollectionMode.Optimized, blocking: false, compacting: false);
-            process.Refresh();
-            before = process.WorkingSet64 / 1048576;
 
             if (!EmptyWorkingSet(process.Handle))
             {
                 return (before, before);
             }
 
-            process.Refresh();
-            return (before, process.WorkingSet64 / 1048576);
+            return (before, ReadWorkingSetMb(process));
         }
         catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or NotSupportedException)
         {
             return (before, before);
         }
+    }
+
+    private static long ReadWorkingSetMb(Process process)
+    {
+        try
+        {
+            process.Refresh();
+            long bytes = process.WorkingSet64;
+            if (bytes > 0)
+            {
+                return bytes / 1048576;
+            }
+        }
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or NotSupportedException)
+        {
+        }
+
+        // The counter occasionally reads zero right after a trim; report the
+        // runtime's own figure instead of logging a bogus 0 MB.
+        return Math.Max(1, Environment.WorkingSet / 1048576);
     }
 }

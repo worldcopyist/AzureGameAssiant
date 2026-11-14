@@ -43,6 +43,16 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.False(result.Settings.Detection.NotifyStutter);
         Assert.True(result.Settings.ProcessMemoryPercent);
         Assert.True(result.Settings.HighLoadMode);
+        Assert.True(result.Settings.HighLoadPause.Charts);
+        Assert.True(result.Settings.HighLoadPause.Overlay);
+        Assert.True(result.Settings.HighLoadPause.Sessions);
+        Assert.True(result.Settings.HighLoadPause.Diagnostics);
+        Assert.True(result.Settings.HighLoadPause.SelfUsage);
+        Assert.True(result.Settings.HighLoadPause.ProcessView);
+        Assert.True(result.Settings.HighLoadPause.TrayTip);
+        Assert.True(result.Settings.HighLoadPause.Notifications);
+        Assert.True(result.Settings.HighLoadPause.AiAnalysis);
+        Assert.True(result.Settings.HighLoadPause.Sensors);
         Assert.True(result.Settings.Charts.Cpu);
         Assert.False(result.Settings.Charts.Separate);
         Assert.False(result.Settings.Diagnostics.LongRunRecord);
@@ -77,6 +87,8 @@ public sealed class SettingsServiceTests : IDisposable
         settings.Charts.Detached.Topmost = true;
         settings.ProcessMemoryPercent = false;
         settings.HighLoadMode = false;
+        settings.HighLoadPause.Charts = false;
+        settings.HighLoadPause.Sensors = false;
 
         service.Save(settings);
         SettingsLoadResult result = service.Load();
@@ -99,6 +111,9 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.True(result.Settings.Charts.Detached.Topmost);
         Assert.False(result.Settings.ProcessMemoryPercent);
         Assert.False(result.Settings.HighLoadMode);
+        Assert.False(result.Settings.HighLoadPause.Charts);
+        Assert.False(result.Settings.HighLoadPause.Sensors);
+        Assert.True(result.Settings.HighLoadPause.Overlay);
     }
 
     [Fact]

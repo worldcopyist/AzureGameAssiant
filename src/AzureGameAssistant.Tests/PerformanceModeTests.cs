@@ -1,4 +1,5 @@
 using AzureGameAssistant.Core.Performance;
+using AzureGameAssistant.Core.Settings;
 
 namespace AzureGameAssistant.Tests;
 
@@ -185,5 +186,54 @@ public sealed class PerformanceModeTests
         Assert.False(mode.IsEnabled(PerformanceModule.TrayTip));
         Assert.False(mode.IsEnabled(PerformanceModule.Notifications));
         Assert.False(mode.IsEnabled(PerformanceModule.AiAnalysis));
+        Assert.False(mode.IsEnabled(PerformanceModule.Sensors));
+    }
+
+    [Fact]
+    public void SelectedModules_StayEnabledWhileReduced()
+    {
+        var pause = new HighLoadPauseSettings
+        {
+            Charts = false,
+            Sensors = false,
+        };
+        PerformanceMode mode = new(
+            true,
+            enterDelay: TimeSpan.FromSeconds(3),
+            exitDelay: TimeSpan.FromSeconds(12),
+            pause: pause);
+
+        mode.Observe(T0, Heavy(), appFocused: false);
+        mode.Observe(T0.AddSeconds(3), Heavy(), appFocused: false);
+
+        Assert.True(mode.IsReduced);
+        Assert.True(mode.IsEnabled(PerformanceModule.Charts));
+        Assert.True(mode.IsEnabled(PerformanceModule.Sensors));
+        Assert.False(mode.IsEnabled(PerformanceModule.Overlay));
+        Assert.False(mode.IsEnabled(PerformanceModule.Sessions));
+    }
+
+    [Fact]
+    public void PauseSelectionChange_AppliesWhileAlreadyReduced()
+    {
+        PerformanceMode mode = Create();
+        mode.Observe(T0, Heavy(), appFocused: false);
+        mode.Observe(T0.AddSeconds(3), Heavy(), appFocused: false);
+        Assert.False(mode.IsEnabled(PerformanceModule.Sensors));
+
+        mode.Pause.Sensors = false;
+
+        Assert.True(mode.IsEnabled(PerformanceModule.Sensors));
+        Assert.False(mode.IsEnabled(PerformanceModule.Charts));
+    }
+
+    [Fact]
+    public void UnknownModule_IsPausedWhileReduced()
+    {
+        PerformanceMode mode = Create();
+        mode.Observe(T0, Heavy(), appFocused: false);
+        mode.Observe(T0.AddSeconds(3), Heavy(), appFocused: false);
+
+        Assert.False(mode.IsEnabled((PerformanceModule)999));
     }
 }

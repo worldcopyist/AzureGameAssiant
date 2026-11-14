@@ -120,6 +120,27 @@ public sealed class CollectorClient : IDisposable
         return applied is int appliedMs && Math.Abs(appliedMs - intervalMs) <= 1;
     }
 
+    public async Task<bool> SetSensorsPausedAsync(bool paused, CancellationToken cancellationToken)
+    {
+        bool? result = await SendAsync(
+            "sensors",
+            data => data.TryGetProperty("paused", out JsonElement value) && value.GetBoolean(),
+            cancellationToken,
+            writer => writer.WriteBoolean("paused", paused)).ConfigureAwait(true);
+
+        return result == true;
+    }
+
+    public async Task<bool> TrimMemoryAsync(CancellationToken cancellationToken)
+    {
+        bool? result = await SendAsync(
+            "trim",
+            data => data.TryGetProperty("trimmed", out JsonElement value) && value.GetBoolean(),
+            cancellationToken).ConfigureAwait(true);
+
+        return result == true;
+    }
+
     public Task<string?> StartFramesAsync(int pid, CancellationToken cancellationToken) =>
         SendAsync(
             "frames.start",

@@ -25,6 +25,8 @@ internal interface ICollectorControl
     int CapabilityFlags { get; }
     CollectorStatus GetStatus();
     bool SetPaused(bool paused);
+    bool SetSensorsPaused(bool paused);
+    bool TrimMemory();
     bool SetSamplingInterval(int intervalMs, bool gameMode);
     bool StartFrames(int pid);
     bool StopFrames();
@@ -174,6 +176,39 @@ internal sealed class ControlPipeServer
                 {
                     _control.SetPaused(false);
                     await WriteResponseAsync(server, id, true, writer => writer.WriteBoolean("paused", false), null, cancellationToken);
+                    break;
+                }
+
+                case "sensors":
+                {
+                    bool paused = root.TryGetProperty("paused", out JsonElement pausedElement) &&
+                                  pausedElement.ValueKind is JsonValueKind.True or JsonValueKind.False &&
+                                  pausedElement.GetBoolean();
+
+                    bool applied = _control.SetSensorsPaused(paused);
+                    Action<Utf8JsonWriter>? writeData = applied
+                        ? writer => writer.WriteBoolean("paused", paused)
+                        : null;
+                    await WriteResponseAsync(
+                        server,
+                        id,
+                        applied,
+                        writeData,
+                        applied ? null : "传感器边车未启用",
+                        cancellationToken);
+                    break;
+                }
+
+                case "trim":
+                {
+                    bool trimmed = _control.TrimMemory();
+                    await WriteResponseAsync(
+                        server,
+                        id,
+                        true,
+                        writer => writer.WriteBoolean("trimmed", trimmed),
+                        null,
+                        cancellationToken);
                     break;
                 }
 

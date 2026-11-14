@@ -20,6 +20,7 @@ public sealed class AppSettings
     public string Language { get; set; } = "zh-CN";
     public bool ProcessMemoryPercent { get; set; } = true;
     public bool HighLoadMode { get; set; } = true;
+    public HighLoadPauseSettings HighLoadPause { get; set; } = new();
     public SessionSettings Sessions { get; set; } = new();
     public GameDetectionSettings GameDetection { get; set; } = new();
     public AiSettings Ai { get; set; } = new();
@@ -31,6 +32,8 @@ public sealed class AppSettings
     public void Normalize()
     {
         SchemaVersion = CurrentSchemaVersion;
+
+        HighLoadPause ??= new HighLoadPauseSettings();
 
         Sampling ??= new SamplingSettings();
         Sampling.NormalMs = Math.Clamp(Sampling.NormalMs, 100, 10_000);
@@ -67,8 +70,7 @@ public sealed class AppSettings
             : Frames.PresentMonPath.Trim();
 
         Sensors ??= new SensorSettings();
-        Sensors.IntervalMs = Math.Clamp(Sensors.IntervalMs, 500, 10_000);
-        Sensors.CpuMode = (Sensors.CpuMode ?? string.Empty).Trim().ToLowerInvariant() switch
+        Sensors.IntervalMs = Math.Clamp(Sensors.IntervalMs, 500, 10_000);        Sensors.CpuMode = (Sensors.CpuMode ?? string.Empty).Trim().ToLowerInvariant() switch
         {
             "driver" => "driver",
             "off" => "off",
@@ -256,6 +258,26 @@ public sealed class SensorSettings
     public bool Enabled { get; set; } = true;
     public int IntervalMs { get; set; } = 1_000;
     public string CpuMode { get; set; } = "acpi";
+}
+
+/// <summary>
+/// Optional groups shed while the reduced profile is active. Everything
+/// defaults to paused: the reduced profile keeps only sampling, frame capture
+/// and stutter marking, and the user opts features back in one by one.
+/// Always-on groups are deliberately absent.
+/// </summary>
+public sealed class HighLoadPauseSettings
+{
+    public bool Charts { get; set; } = true;
+    public bool Overlay { get; set; } = true;
+    public bool Sessions { get; set; } = true;
+    public bool Diagnostics { get; set; } = true;
+    public bool SelfUsage { get; set; } = true;
+    public bool ProcessView { get; set; } = true;
+    public bool TrayTip { get; set; } = true;
+    public bool Notifications { get; set; } = true;
+    public bool AiAnalysis { get; set; } = true;
+    public bool Sensors { get; set; } = true;
 }
 
 public sealed class ChartSettings

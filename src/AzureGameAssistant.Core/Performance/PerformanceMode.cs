@@ -1,3 +1,5 @@
+using AzureGameAssistant.Core.Settings;
+
 namespace AzureGameAssistant.Core.Performance;
 
 /// <summary>
@@ -45,6 +47,12 @@ public enum PerformanceModule
 
     /// <summary>Automatic AI analysis of finished sessions.</summary>
     AiAnalysis,
+
+    /// <summary>
+    /// The optional sensor sidecar (GPU/CPU temperature and power). Pausing it
+    /// is the single largest saving in the reduced profile.
+    /// </summary>
+    Sensors,
 }
 
 public readonly record struct LoadSample(uint Pid, double CpuPct, double GpuPct);
@@ -75,18 +83,27 @@ public sealed class PerformanceMode
         double cpuThresholdPct = DefaultCpuThresholdPct,
         double gpuThresholdPct = DefaultGpuThresholdPct,
         TimeSpan? enterDelay = null,
-        TimeSpan? exitDelay = null)
+        TimeSpan? exitDelay = null,
+        HighLoadPauseSettings? pause = null)
     {
         Enabled = enabled;
         _cpuThresholdPct = Math.Max(1, cpuThresholdPct);
         _gpuThresholdPct = Math.Max(1, gpuThresholdPct);
         _enterDelay = enterDelay ?? DefaultEnterDelay;
         _exitDelay = exitDelay ?? DefaultExitDelay;
+        Pause = pause ?? new HighLoadPauseSettings();
     }
 
     public bool Enabled { get; private set; }
 
     public bool IsReduced { get; private set; }
+
+    /// <summary>
+    /// User selection of optional groups to shed. Always-on groups ignore it;
+    /// a module not covered by the selection is paused, so a newly added
+    /// feature is shed automatically until it gets its own flag.
+    /// </summary>
+    public HighLoadPauseSettings Pause { get; set; }
 
     /// <summary>PID of the process that triggered the reduced profile.</summary>
     public uint TriggerPid { get; private set; }
@@ -96,7 +113,22 @@ public sealed class PerformanceMode
         PerformanceModule.FrameCapture or
         PerformanceModule.StutterMarking;
 
-    public bool IsEnabled(PerformanceModule module) => !IsReduced || IsAlwaysOn(module);
+    public bool IsEnabled(PerformanceModule module) => !IsReduced || IsAlwaysOn(module) || !IsPaused(module);
+
+    private bool IsPaused(PerformanceModule module) => module switch
+    {
+        PerformanceModule.Charts => Pause.Charts,
+        PerformanceModule.Overlay => Pause.Overlay,
+        PerformanceModule.Sessions => Pause.Sessions,
+        PerformanceModule.Diagnostics => Pause.Diagnostics,
+        PerformanceModule.SelfUsage => Pause.SelfUsage,
+        PerformanceModule.ProcessView => Pause.ProcessView,
+        PerformanceModule.TrayTip => Pause.TrayTip,
+        PerformanceModule.Notifications => Pause.Notifications,
+        PerformanceModule.AiAnalysis => Pause.AiAnalysis,
+        PerformanceModule.Sensors => Pause.Sensors,
+        _ => true,
+    };
 
     /// <summary>Returns true when the reduced state changed.</summary>
     public bool SetEnabled(bool enabled)

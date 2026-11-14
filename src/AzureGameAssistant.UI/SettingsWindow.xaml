@@ -182,8 +182,6 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
                         <TextBlock VerticalAlignment="Center"
@@ -217,14 +215,48 @@
                                   IsChecked="{Binding ProcessMemoryPercent, Mode=TwoWay}"
                                   Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ProcessMemoryPercentLabel]}"
                                   ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ProcessMemoryPercentHint]}" />
-
-                        <CheckBox Grid.Row="7" Grid.ColumnSpan="2" Margin="0,14,0,0"
-                                  IsChecked="{Binding HighLoadMode, Mode=TwoWay}"
-                                  Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[HighLoadModeLabel]}" />
-                        <TextBlock Grid.Row="8" Grid.ColumnSpan="2" Margin="24,2,0,0" FontSize="11"
-                                   TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}"
-                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[HighLoadModeHint]}" />
                     </Grid>
+                </Border>
+
+                <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,8"
+                           Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[HighLoadSection]}" />
+                <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                    <StackPanel>
+                        <CheckBox IsChecked="{Binding HighLoadMode, Mode=TwoWay}"
+                                  Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[HighLoadModeLabel]}" />
+                        <TextBlock Margin="24,2,0,10" FontSize="11" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[HighLoadModeHint]}" />
+
+                        <TextBlock Margin="0,4,0,8" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[HighLoadPauseHeading]}" />
+                        <WrapPanel>
+                            <CheckBox Margin="0,0,28,8" IsChecked="{Binding HighLoadPauseCharts, Mode=TwoWay}"
+                                      Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[HighLoadPauseChartsLabel]}" />
+                            <CheckBox Margin="0,0,28,8" IsChecked="{Binding HighLoadPauseOverlay, Mode=TwoWay}"
+                                      Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[HighLoadPauseOverlayLabel]}" />
+                            <CheckBox Margin="0,0,28,8" IsChecked="{Binding HighLoadPauseSessions, Mode=TwoWay}"
+                                      Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[HighLoadPauseSessionsLabel]}" />
+                            <CheckBox Margin="0,0,28,8" IsChecked="{Binding HighLoadPauseDiagnostics, Mode=TwoWay}"
+                                      Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[HighLoadPauseDiagnosticsLabel]}" />
+                            <CheckBox Margin="0,0,28,8" IsChecked="{Binding HighLoadPauseSelfUsage, Mode=TwoWay}"
+                                      Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[HighLoadPauseSelfUsageLabel]}" />
+                            <CheckBox Margin="0,0,28,8" IsChecked="{Binding HighLoadPauseProcessView, Mode=TwoWay}"
+                                      Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[HighLoadPauseProcessViewLabel]}" />
+                            <CheckBox Margin="0,0,28,8" IsChecked="{Binding HighLoadPauseTrayTip, Mode=TwoWay}"
+                                      Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[HighLoadPauseTrayTipLabel]}" />
+                            <CheckBox Margin="0,0,28,8" IsChecked="{Binding HighLoadPauseNotifications, Mode=TwoWay}"
+                                      Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[HighLoadPauseNotificationsLabel]}" />
+                            <CheckBox Margin="0,0,28,8" IsChecked="{Binding HighLoadPauseAiAnalysis, Mode=TwoWay}"
+                                      Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[HighLoadPauseAiAnalysisLabel]}" />
+                            <CheckBox Margin="0,0,28,8" IsChecked="{Binding HighLoadPauseSensors, Mode=TwoWay}"
+                                      Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[HighLoadPauseSensorsLabel]}" />
+                        </WrapPanel>
+                        <TextBlock Margin="0,2,0,0" FontSize="11" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[HighLoadKeepNote]}" />
+                    </StackPanel>
                 </Border>
 
                 <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,8"

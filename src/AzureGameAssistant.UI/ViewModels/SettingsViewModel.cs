@@ -49,6 +49,16 @@ public sealed partial class SettingsViewModel : ObservableObject
         Language = settings.Language;
         ProcessMemoryPercent = settings.ProcessMemoryPercent;
         HighLoadMode = settings.HighLoadMode;
+        HighLoadPauseCharts = settings.HighLoadPause.Charts;
+        HighLoadPauseOverlay = settings.HighLoadPause.Overlay;
+        HighLoadPauseSessions = settings.HighLoadPause.Sessions;
+        HighLoadPauseDiagnostics = settings.HighLoadPause.Diagnostics;
+        HighLoadPauseSelfUsage = settings.HighLoadPause.SelfUsage;
+        HighLoadPauseProcessView = settings.HighLoadPause.ProcessView;
+        HighLoadPauseTrayTip = settings.HighLoadPause.TrayTip;
+        HighLoadPauseNotifications = settings.HighLoadPause.Notifications;
+        HighLoadPauseAiAnalysis = settings.HighLoadPause.AiAnalysis;
+        HighLoadPauseSensors = settings.HighLoadPause.Sensors;
         Hotkey = settings.Hotkey;
         Notifications = settings.Notifications;
         AutoStart = autoStartEnabled;
@@ -254,6 +264,36 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _highLoadMode = true;
+
+    [ObservableProperty]
+    private bool _highLoadPauseCharts = true;
+
+    [ObservableProperty]
+    private bool _highLoadPauseOverlay = true;
+
+    [ObservableProperty]
+    private bool _highLoadPauseSessions = true;
+
+    [ObservableProperty]
+    private bool _highLoadPauseDiagnostics = true;
+
+    [ObservableProperty]
+    private bool _highLoadPauseSelfUsage = true;
+
+    [ObservableProperty]
+    private bool _highLoadPauseProcessView = true;
+
+    [ObservableProperty]
+    private bool _highLoadPauseTrayTip = true;
+
+    [ObservableProperty]
+    private bool _highLoadPauseNotifications = true;
+
+    [ObservableProperty]
+    private bool _highLoadPauseAiAnalysis = true;
+
+    [ObservableProperty]
+    private bool _highLoadPauseSensors = true;
 
     [ObservableProperty]
     private string _hotkey = HotkeyService.DefaultGesture;
@@ -565,6 +605,16 @@ public sealed partial class SettingsViewModel : ObservableObject
         settings.Language = Language;
         settings.ProcessMemoryPercent = ProcessMemoryPercent;
         settings.HighLoadMode = HighLoadMode;
+        settings.HighLoadPause.Charts = HighLoadPauseCharts;
+        settings.HighLoadPause.Overlay = HighLoadPauseOverlay;
+        settings.HighLoadPause.Sessions = HighLoadPauseSessions;
+        settings.HighLoadPause.Diagnostics = HighLoadPauseDiagnostics;
+        settings.HighLoadPause.SelfUsage = HighLoadPauseSelfUsage;
+        settings.HighLoadPause.ProcessView = HighLoadPauseProcessView;
+        settings.HighLoadPause.TrayTip = HighLoadPauseTrayTip;
+        settings.HighLoadPause.Notifications = HighLoadPauseNotifications;
+        settings.HighLoadPause.AiAnalysis = HighLoadPauseAiAnalysis;
+        settings.HighLoadPause.Sensors = HighLoadPauseSensors;
         settings.Hotkey = string.IsNullOrWhiteSpace(Hotkey) ? HotkeyService.DefaultGesture : Hotkey.Trim();
         settings.Notifications = Notifications;
         settings.AutoStart = AutoStart;
