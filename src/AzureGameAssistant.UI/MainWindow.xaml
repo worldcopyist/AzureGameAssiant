@@ -64,12 +64,15 @@
                 </Border>
 
                 <Button Style="{StaticResource FlatButton}" Margin="0,0,8,0"
+                        AutomationProperties.AutomationId="AiAnalyzeButton"
                         Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiAnalyzeButton]}"
                         Click="OnAiAnalyzeClick" />
                 <Button Style="{StaticResource FlatButton}" Margin="0,0,8,0"
+                        AutomationProperties.AutomationId="PauseButton"
                         Content="{Binding PauseText}"
                         Command="{Binding TogglePauseCommand}" />
                 <Button Style="{StaticResource FlatButton}"
+                        AutomationProperties.AutomationId="SettingsButton"
                         Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Settings]}"
                         Click="OnSettingsClick" />
             </StackPanel>

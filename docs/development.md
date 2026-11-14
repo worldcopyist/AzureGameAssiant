@@ -1545,6 +1545,13 @@ internal sealed record AiProviderProfile(
 - 2026-11-14 实测（Release，12 逻辑处理器，界面在主窗口、帧采集常驻、传感器开启）：界面专用工作集 52.8MB（任务管理器工作集约 148MB 含共享页）、采集进程 14.5MB、传感器边车 30.3MB、PresentMon 11.6MB；30 秒窗口内 CPU 界面 0.234%、采集 0.078%、传感器 0.069%、PresentMon 0.017%（合计约整机 0.4%），GPU 占用 0.00%。自身占用行的合计值与任务管理器四进程之和一致（示例 217MB）。
 - 每个 PR 涉及采集/UI 热路径时，必须在 PR 描述中附测量结果。
 
+### 12.4 UI 冒烟
+
+- `build/ui-smoke.ps1` 以 `--no-elevate` 启动 Release 界面，用 UI Automation 定位控件、用鼠标注入点按，并以 `CopyFromScreen` 截图到 `artifacts/ui-smoke/`（已按物理像素设置 DPI 感知，缩放屏不会裁偏）。
+- 检查项：主窗口出现、暂停/AI/设置按钮存在、合并图收到采样、点击图表进入暂停、鼠标移出 1.5 秒后恢复、设置窗打开/关闭、主窗口存活；任一失败脚本退出码为 1。
+- `TimelineChart` 实现 `AutomationPeer`，Name 默认取指标名，HelpText 输出 `Live|Paused;points=N;frames=N`，供脚本读取状态而不依赖截图比对。
+- 运行前必须退出已运行的实例（单实例会直接退出）；结束时会 `Stop-Process`，采集进程由父进程监控自行退出。
+
 ## 13. 目录结构
 
 ```
@@ -1578,6 +1585,7 @@ AzureGameAssistant/
 │  ├─ package.ps1
 │  ├─ publish-mcp.ps1
 │  ├─ run-dev.ps1
+│  ├─ ui-smoke.ps1
 │  └─ version.props
 └─ artifacts/                           # 构建产物（git 忽略）
 ```

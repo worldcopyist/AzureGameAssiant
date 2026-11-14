@@ -711,8 +711,10 @@
 
             <StackPanel Grid.Column="1" Orientation="Horizontal">
                 <Button Style="{StaticResource FlatButton}" Margin="0,0,8,0" Click="OnCancel"
+                        AutomationProperties.AutomationId="SettingsCancel"
                         Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Cancel]}" />
                 <Button Style="{StaticResource FlatButton}" Click="OnApply"
+                        AutomationProperties.AutomationId="SettingsApply"
                         Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[Apply]}" />
             </StackPanel>
         </Grid>

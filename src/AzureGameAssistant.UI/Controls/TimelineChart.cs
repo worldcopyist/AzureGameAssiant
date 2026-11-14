@@ -1,5 +1,7 @@
 using System.Globalization;
 using System.Windows;
+using System.Windows.Automation;
+using System.Windows.Automation.Peers;
 using System.Windows.Media;
 using System.Windows.Threading;
 using AzureGameAssistant.Core.Frames;
@@ -169,6 +171,10 @@ public sealed class TimelineChart : FrameworkElement
     }
 
     public bool IsPanned => _panSeconds > 0.5;
+
+    public bool IsPaused => _paused;
+
+    protected override AutomationPeer OnCreateAutomationPeer() => new TimelineChartPeer(this);
 
     public void SetSamples(SampleRecord[] samples, int count)
     {
@@ -1371,4 +1377,33 @@ public sealed class TimelineChart : FrameworkElement
         int FrameVersion,
         ChartMetric Metric,
         ChartSeries Series);
+
+    /// <summary>
+    /// Makes the custom-drawn chart visible to UI Automation. The help text is a
+    /// stable, machine-readable state marker used by build/ui-smoke.ps1.
+    /// </summary>
+    private sealed class TimelineChartPeer : FrameworkElementAutomationPeer
+    {
+        public TimelineChartPeer(TimelineChart owner)
+            : base(owner)
+        {
+        }
+
+        protected override string GetClassNameCore() => nameof(TimelineChart);
+
+        protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Custom;
+
+        protected override string GetNameCore()
+        {
+            string? name = AutomationProperties.GetName(Owner);
+            return string.IsNullOrEmpty(name) ? ((TimelineChart)Owner).Metric.ToString() : name;
+        }
+
+        protected override string GetHelpTextCore()
+        {
+            var chart = (TimelineChart)Owner;
+            string state = chart._paused ? "Paused" : "Live";
+            return $"{state};points={chart._count};frames={chart._frameCount}";
+        }
+    }
 }
