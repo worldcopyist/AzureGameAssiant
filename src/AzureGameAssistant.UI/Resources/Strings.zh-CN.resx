@@ -153,6 +153,12 @@
   <data name="HotkeyHint" xml:space="preserve">
     <value>示例：Ctrl+Alt+M、Alt+Shift+F9；至少一个修饰键加字母、数字或 F1–F24。独占全屏游戏可能拦截系统热键。</value>
   </data>
+  <data name="ProcessMemoryPercentLabel" xml:space="preserve">
+    <value>进程内存以物理内存百分比显示</value>
+  </data>
+  <data name="ProcessMemoryPercentHint" xml:space="preserve">
+    <value>作用于进程排行与本软件行；关闭后改为显示 MB。</value>
+  </data>
   <data name="MarkStutterHint" xml:space="preserve">
     <value>把当前时刻手动记为一次卡顿，AI 分析时会读取该标记。</value>
   </data>

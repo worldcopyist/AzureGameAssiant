@@ -181,6 +181,7 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
                         <TextBlock VerticalAlignment="Center"
@@ -209,6 +210,11 @@
                         <TextBlock Grid.Row="5" Grid.ColumnSpan="2" Margin="24,2,0,0" FontSize="11"
                                    TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}"
                                    Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[HotkeyHint]}" />
+
+                        <CheckBox Grid.Row="6" Grid.ColumnSpan="2" Margin="0,14,0,0"
+                                  IsChecked="{Binding ProcessMemoryPercent, Mode=TwoWay}"
+                                  Content="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ProcessMemoryPercentLabel]}"
+                                  ToolTip="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ProcessMemoryPercentHint]}" />
                     </Grid>
                 </Border>
 

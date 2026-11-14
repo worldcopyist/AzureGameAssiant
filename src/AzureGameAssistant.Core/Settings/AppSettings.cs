@@ -18,6 +18,7 @@ public sealed class AppSettings
     public bool Notifications { get; set; } = true;
     public string Theme { get; set; } = "Auto";
     public string Language { get; set; } = "zh-CN";
+    public bool ProcessMemoryPercent { get; set; } = true;
     public SessionSettings Sessions { get; set; } = new();
     public GameDetectionSettings GameDetection { get; set; } = new();
     public AiSettings Ai { get; set; } = new();

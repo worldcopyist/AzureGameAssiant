@@ -1125,7 +1125,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         SelfUsage usage = _selfUsage.Sample();
         SelfUsagePid = usage.UiPid.ToString();
         SelfUsageCpu = usage.CpuPct.ToString("F1") + "%";
-        SelfUsageMemory = usage.MemoryMb.ToString("F0");
+        SelfUsageMemory = FormatProcessMemory(usage.MemoryMb);
         SelfUsageDetail = _loc.Format(
             "SelfUsageDetail",
             FormatSelfPart(usage.UiMb),
@@ -1136,6 +1136,19 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     private static string FormatSelfPart(double megabytes) =>
         megabytes > 0 ? megabytes.ToString("F0") : "—";
+
+    private string FormatProcessMemory(double megabytes)
+    {
+        if (!_settings.ProcessMemoryPercent)
+        {
+            return megabytes.ToString("F0");
+        }
+
+        double total = SystemMemory.TotalPhysicalMb;
+        return total > 0
+            ? (megabytes / total * 100).ToString("F2") + "%"
+            : megabytes.ToString("F0");
+    }
 
     private void UpdateProcesses()
     {
@@ -1165,7 +1178,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 name,
                 slot.CpuPct.ToString("F1"),
                 slot.GpuPct.ToString("F1"),
-                slot.WorkingSetMb,
+                FormatProcessMemory(slot.WorkingSetMb),
                 foreground,
                 foreground ? _loc["Foreground"] : string.Empty);
         }
@@ -1622,6 +1635,15 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ShowDiskChart));
         OnPropertyChanged(nameof(ShowFrameChart));
         OnPropertyChanged(nameof(CombinedSeries));
+
+        // The memory column can switch between % and MB, so re-render both
+        // the ranking rows and the pinned self row when display settings change.
+        if (_telemetry.Count > 0)
+        {
+            UpdateProcesses();
+        }
+
+        UpdateSelfUsage();
     }
 
     private static string FormatMegabytes(double megabytes) => megabytes >= 1024
@@ -1694,13 +1716,13 @@ public sealed partial class ProcessRow : ObservableObject
     [ObservableProperty]
     private bool _isForeground;
 
-    public void Update(uint pid, string name, string cpu, string gpu, uint workingSetMb, bool foreground, string tag)
+    public void Update(uint pid, string name, string cpu, string gpu, string memory, bool foreground, string tag)
     {
         PidText = pid == 0 ? string.Empty : pid.ToString();
         Name = pid == 0 ? string.Empty : name;
         CpuText = pid == 0 ? string.Empty : cpu + "%";
         GpuText = pid == 0 ? string.Empty : gpu + "%";
-        MemoryText = pid == 0 ? string.Empty : workingSetMb.ToString();
+        MemoryText = pid == 0 ? string.Empty : memory;
         IsForeground = foreground;
         Tag = tag;
     }

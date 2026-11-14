@@ -47,6 +47,7 @@ public sealed partial class SettingsViewModel : ObservableObject
 
         Theme = settings.Theme;
         Language = settings.Language;
+        ProcessMemoryPercent = settings.ProcessMemoryPercent;
         Hotkey = settings.Hotkey;
         Notifications = settings.Notifications;
         AutoStart = autoStartEnabled;
@@ -246,6 +247,9 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private string _language = "auto";
+
+    [ObservableProperty]
+    private bool _processMemoryPercent = true;
 
     [ObservableProperty]
     private string _hotkey = HotkeyService.DefaultGesture;
@@ -555,6 +559,7 @@ public sealed partial class SettingsViewModel : ObservableObject
 
         settings.Theme = Theme;
         settings.Language = Language;
+        settings.ProcessMemoryPercent = ProcessMemoryPercent;
         settings.Hotkey = string.IsNullOrWhiteSpace(Hotkey) ? HotkeyService.DefaultGesture : Hotkey.Trim();
         settings.Notifications = Notifications;
         settings.AutoStart = AutoStart;

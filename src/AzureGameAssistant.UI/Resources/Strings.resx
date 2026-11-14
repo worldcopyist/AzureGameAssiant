@@ -153,6 +153,12 @@
   <data name="HotkeyHint" xml:space="preserve">
     <value>Examples: Ctrl+Alt+M, Alt+Shift+F9. Needs one modifier plus a letter, digit or F1–F24. Exclusive fullscreen games may block global hotkeys.</value>
   </data>
+  <data name="ProcessMemoryPercentLabel" xml:space="preserve">
+    <value>Show process memory as % of physical RAM</value>
+  </data>
+  <data name="ProcessMemoryPercentHint" xml:space="preserve">
+    <value>Applies to the ranking rows and the pinned "this app" row. Turn off to show megabytes instead.</value>
+  </data>
   <data name="MarkStutterHint" xml:space="preserve">
     <value>Record the current moment as a manual stutter marker for AI analysis.</value>
   </data>
