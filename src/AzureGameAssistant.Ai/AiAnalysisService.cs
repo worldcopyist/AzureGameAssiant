@@ -72,7 +72,8 @@ public sealed class AiAnalysisService : IDisposable
         HttpMessageHandler? handler = null,
         TimeSpan? retryDelay = null,
         Func<DateTimeOffset>? clock = null,
-        string? dataDirectory = null)
+        string? dataDirectory = null,
+        string? logsDirectory = null)
     {
         _credentials = credentials ?? CredentialStore.Shared;
         _usage = usage ?? new AiUsageStore(clock: clock);
@@ -81,9 +82,11 @@ public sealed class AiAnalysisService : IDisposable
         _reportsDirectory = dataDirectory is null
             ? AppPaths.AiReportsDirectory
             : Path.Combine(dataDirectory, "reports");
-        _logsDirectory = dataDirectory is null
-            ? AppPaths.LogsDirectory
-            : Path.Combine(dataDirectory, "logs");
+        _logsDirectory = !string.IsNullOrWhiteSpace(logsDirectory)
+            ? logsDirectory
+            : dataDirectory is null
+                ? AppPaths.LogsDirectory
+                : Path.Combine(dataDirectory, "logs");
     }
 
     public bool IsBusy => Volatile.Read(ref _active) != 0;

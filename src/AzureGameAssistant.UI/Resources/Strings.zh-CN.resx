@@ -462,6 +462,27 @@
   <data name="LogRetentionUnit" xml:space="preserve">
     <value>天的日志</value>
   </data>
+  <data name="LogsDirectoryLabel" xml:space="preserve">
+    <value>运行日志位置</value>
+  </data>
+  <data name="IssueLogsDirectoryLabel" xml:space="preserve">
+    <value>软件日志位置</value>
+  </data>
+  <data name="ChooseFolder" xml:space="preserve">
+    <value>更改…</value>
+  </data>
+  <data name="ResetToDefault" xml:space="preserve">
+    <value>恢复默认</value>
+  </data>
+  <data name="LogsDirectoryHint" xml:space="preserve">
+    <value>留空使用默认位置 %LOCALAPPDATA%\AzureGameAssistant\logs；旧日志不会自动迁移。保存后采集与传感器进程会自动重启，MCP 服务需下次启动时生效。</value>
+  </data>
+  <data name="LogsPathInvalid" xml:space="preserve">
+    <value>日志路径无效，请选择绝对路径。</value>
+  </data>
+  <data name="LogsPathUnavailable" xml:space="preserve">
+    <value>无法创建或写入日志目录：</value>
+  </data>
   <data name="LongRunRecordLabel" xml:space="preserve">
     <value>记录长时运行诊断数据</value>
   </data>

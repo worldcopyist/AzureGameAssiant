@@ -3,6 +3,7 @@ using System.Windows;
 using AzureGameAssistant.Ai;
 using AzureGameAssistant.Core;
 using AzureGameAssistant.Core.Diagnostics;
+using AzureGameAssistant.Core.Logging;
 using AzureGameAssistant.Core.Settings;
 using AzureGameAssistant.UI.Services;
 using AzureGameAssistant.UI.ViewModels;
@@ -29,9 +30,70 @@ public partial class SettingsWindow : Window
 
     private void OnApply(object sender, RoutedEventArgs e)
     {
+        if (!ValidateLogPaths())
+        {
+            return;
+        }
+
         _viewModel.ApplyTo(_settings);
         SaveRequested?.Invoke(this, _settings);
         Close();
+    }
+
+    private bool ValidateLogPaths()
+    {
+        LocalizationService loc = LocalizationService.Instance;
+        if (!LogPaths.TryNormalize(_viewModel.LogsDirectory, out string logsDirectory) ||
+            !LogPaths.TryNormalize(_viewModel.IssueLogsDirectory, out string issueLogsDirectory))
+        {
+            MessageBox.Show(this, loc["LogsPathInvalid"], Title,
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
+        }
+
+        logsDirectory = LogPaths.ResolveDirectory(logsDirectory);
+        issueLogsDirectory = LogPaths.ResolveIssueDirectory(issueLogsDirectory, logsDirectory);
+        foreach (string path in new[] { logsDirectory, issueLogsDirectory })
+        {
+            try
+            {
+                Directory.CreateDirectory(path);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or
+                NotSupportedException or ArgumentException or System.Security.SecurityException)
+            {
+                MessageBox.Show(this, loc["LogsPathUnavailable"] + "\n" + path + "\n" + ex.Message, Title,
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private void OnBrowseLogs(object sender, RoutedEventArgs e) =>
+        BrowseLogDirectory(path => _viewModel.LogsDirectory = path, _viewModel.LogsPath);
+
+    private void OnBrowseIssueLogs(object sender, RoutedEventArgs e) =>
+        BrowseLogDirectory(path => _viewModel.IssueLogsDirectory = path, _viewModel.IssueLogsPath);
+
+    private void OnResetLogs(object sender, RoutedEventArgs e) => _viewModel.LogsDirectory = string.Empty;
+
+    private void OnResetIssueLogs(object sender, RoutedEventArgs e) => _viewModel.IssueLogsDirectory = string.Empty;
+
+    private void BrowseLogDirectory(Action<string> apply, string current)
+    {
+        var dialog = new Microsoft.Win32.OpenFolderDialog
+        {
+            Title = LocalizationService.Instance["LogsDirectoryLabel"],
+            InitialDirectory = Directory.Exists(current) ? current : AppPaths.LogsDirectory,
+            Multiselect = false,
+        };
+
+        if (dialog.ShowDialog(this) == true && !string.IsNullOrWhiteSpace(dialog.FolderName))
+        {
+            apply(dialog.FolderName);
+        }
     }
 
     private void OnCancel(object sender, RoutedEventArgs e) => Close();
@@ -218,12 +280,12 @@ public partial class SettingsWindow : Window
 
     private void OnOpenLogs(object sender, RoutedEventArgs e)
     {
-        OpenFolder(AppPaths.LogsDirectory);
+        OpenFolder(_viewModel.LogsPath);
     }
 
     private void OnOpenIssueLogs(object sender, RoutedEventArgs e)
     {
-        OpenFolder(AppPaths.IssueLogsDirectory);
+        OpenFolder(_viewModel.IssueLogsPath);
     }
 
     private void OnOpenDiagnosticsFolder(object sender, RoutedEventArgs e)
@@ -250,9 +312,10 @@ public partial class SettingsWindow : Window
 
         try
         {
+            string logsDirectory = LogPaths.ResolveDirectory(_settings.Logs.Directory);
             DiagnosticBundleResult result = DiagnosticBundle.Create(new DiagnosticBundleOptions(
                 AppPaths.DiagnosticsDirectory,
-                AppPaths.IssueLogsDirectory,
+                LogPaths.ResolveIssueDirectory(_settings.Logs.IssueDirectory, logsDirectory),
                 AppPaths.SettingsPath,
                 dialog.FileName));
             MessageBox.Show(

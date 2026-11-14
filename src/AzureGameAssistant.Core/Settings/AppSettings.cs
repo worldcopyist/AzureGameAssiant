@@ -1,4 +1,5 @@
 using System.Globalization;
+using AzureGameAssistant.Core.Logging;
 using AzureGameAssistant.Core.Overlay;
 
 namespace AzureGameAssistant.Core.Settings;
@@ -126,6 +127,12 @@ public sealed class AppSettings
 
         Logs ??= new LogSettings();
         Logs.RetentionDays = Math.Clamp(Logs.RetentionDays, 1, 30);
+        Logs.Directory = LogPaths.TryNormalize(Logs.Directory, out string logsDirectory)
+            ? logsDirectory
+            : string.Empty;
+        Logs.IssueDirectory = LogPaths.TryNormalize(Logs.IssueDirectory, out string issueDirectory)
+            ? issueDirectory
+            : string.Empty;
 
         Overlay ??= new OverlaySettings();
         Overlay.Corner = Overlay.Corner?.Trim().ToLowerInvariant() switch
@@ -318,6 +325,12 @@ public sealed class LogSettings
 {
     public bool Enabled { get; set; } = true;
     public int RetentionDays { get; set; } = 3;
+
+    /// <summary>Empty keeps the default location under the app data folder.</summary>
+    public string Directory { get; set; } = string.Empty;
+
+    /// <summary>Empty keeps the problem archive under the log directory.</summary>
+    public string IssueDirectory { get; set; } = string.Empty;
 }
 
 public sealed class OverlaySettings

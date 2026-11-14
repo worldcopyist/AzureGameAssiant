@@ -29,8 +29,7 @@ public sealed class SettingsServiceTests : IDisposable
     }
 
     [Fact]
-    public void Load_MissingFile_ReturnsDefaults()
-    {
+    public void Load_MissingFile_ReturnsDefaults()    {
         var service = new SettingsService(SettingsPath);
 
         SettingsLoadResult result = service.Load();
@@ -346,5 +345,37 @@ public sealed class SettingsServiceTests : IDisposable
         settings.Normalize();
 
         Assert.Equal(expected, settings.Overlay.Monitor);
+    }
+
+    [Fact]
+    public void Save_RelocatedLogDirectories_RoundTrip()
+    {
+        string logs = Path.Combine(_directory, "custom-logs");
+        string issues = Path.Combine(_directory, "custom-issues");
+        var service = new SettingsService(SettingsPath);
+        AppSettings settings = service.Load().Settings;
+        settings.Logs.Directory = logs + Path.DirectorySeparatorChar;
+        settings.Logs.IssueDirectory = issues;
+
+        service.Save(settings);
+
+        AppSettings reloaded = service.Load().Settings;
+        Assert.Equal(logs, reloaded.Logs.Directory);
+        Assert.Equal(issues, reloaded.Logs.IssueDirectory);
+    }
+
+    [Fact]
+    public void Save_InvalidLogDirectory_FallsBackToDefault()
+    {
+        var service = new SettingsService(SettingsPath);
+        AppSettings settings = service.Load().Settings;
+        settings.Logs.Directory = @"relative\logs";
+        settings.Logs.IssueDirectory = "C:\\bad\0path";
+
+        service.Save(settings);
+
+        AppSettings reloaded = service.Load().Settings;
+        Assert.Equal(string.Empty, reloaded.Logs.Directory);
+        Assert.Equal(string.Empty, reloaded.Logs.IssueDirectory);
     }
 }

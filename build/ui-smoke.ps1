@@ -50,6 +50,8 @@ public static extern bool SetCursorPos(int x, int y);
 public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, System.IntPtr dwExtraInfo);
 [System.Runtime.InteropServices.DllImport("user32.dll")]
 public static extern bool SetProcessDpiAwarenessContext(System.IntPtr value);
+[System.Runtime.InteropServices.DllImport("user32.dll")]
+public static extern bool SetForegroundWindow(System.IntPtr hWnd);
 "@
 
 # Screen coordinates from UIA are physical pixels; make the capture process match
@@ -103,7 +105,30 @@ function Get-TopWindow([System.Windows.Automation.AutomationElement]$element) {
     return $null
 }
 
+function Activate-Window([System.Windows.Automation.AutomationElement]$window) {
+    $handle = [IntPtr]$window.Current.NativeWindowHandle
+    if ($handle -ne [IntPtr]::Zero) {
+        [Win32.Native]::SetForegroundWindow($handle) | Out-Null
+        try {
+            $window.SetFocus()
+        }
+        catch {
+        }
+        Start-Sleep -Milliseconds 300
+    }
+}
+
 function Click-Element([System.Windows.Automation.AutomationElement]$element) {
+    # Prefer the UIA Invoke pattern: synthesized mouse input is blocked in some
+    # remote/desktop contexts, while Invoke still works on buttons.
+    try {
+        $invoke = $element.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
+        $invoke.Invoke()
+        return
+    }
+    catch {
+    }
+
     $rect = $element.Current.BoundingRectangle
     $x = [int]($rect.X + ($rect.Width / 2))
     $y = [int]($rect.Y + ($rect.Height / 2))
@@ -145,12 +170,13 @@ try {
     if ($null -eq $mainWindow) {
         throw "Main window did not appear"
     }
+    Activate-Window $mainWindow
 
     $settingsButton = Find-ById $mainWindow "SettingsButton"
     $pauseButton = Find-ById $mainWindow "PauseButton"
     $aiButton = Find-ById $mainWindow "AiAnalyzeButton"
     $chart = Find-ById $mainWindow "CombinedChart"
-    $qualityBadge = Find-ById $mainWindow "QualityBadge"
+    $qualityBadge = Wait-ForId $mainWindow "QualityBadge" 6
     $focusEventButton = Find-ById $mainWindow "FocusEventButton"
     $exportPngButton = Find-ById $mainWindow "ExportPngButton"
     $exportCsvButton = Find-ById $mainWindow "ExportCsvButton"
@@ -176,9 +202,17 @@ try {
         Check ($points -gt 0) "chart received samples (points=$points)"
 
         if ($points -gt 0) {
+            Activate-Window $mainWindow
             Click-Element $chart
             Start-Sleep -Milliseconds 500
             $pausedHelp = $chart.Current.HelpText
+            if ($pausedHelp -notlike "Paused;*") {
+                # The first click may only have activated the window; retry once.
+                Activate-Window $mainWindow
+                Click-Element $chart
+                Start-Sleep -Milliseconds 500
+                $pausedHelp = $chart.Current.HelpText
+            }
             Check ($pausedHelp -like "Paused;*") "click pauses the timeline ($pausedHelp)"
 
             $mainRect = $mainWindow.Current.BoundingRectangle
@@ -204,6 +238,19 @@ try {
 
                 $bundleButton = Find-ById $settingsWindow "ExportDiagnosticBundleButton"
                 Check ($null -ne $bundleButton) "ExportDiagnosticBundleButton present"
+
+                $logsDirectoryText = Find-ById $settingsWindow "LogsDirectoryText"
+                $issueLogsDirectoryText = Find-ById $settingsWindow "IssueLogsDirectoryText"
+                $browseLogsButton = Find-ById $settingsWindow "BrowseLogsButton"
+                $browseIssueLogsButton = Find-ById $settingsWindow "BrowseIssueLogsButton"
+                Check ($null -ne $logsDirectoryText) "LogsDirectoryText present"
+                Check ($null -ne $issueLogsDirectoryText) "IssueLogsDirectoryText present"
+                Check ($null -ne $browseLogsButton) "BrowseLogsButton present"
+                Check ($null -ne $browseIssueLogsButton) "BrowseIssueLogsButton present"
+                if ($null -ne $logsDirectoryText -and $null -ne $issueLogsDirectoryText) {
+                    Check (-not [string]::IsNullOrWhiteSpace($logsDirectoryText.Current.Name)) "run log path is shown"
+                    Check (-not [string]::IsNullOrWhiteSpace($issueLogsDirectoryText.Current.Name)) "issue log path is shown"
+                }
 
                 $cancelButton = Find-ById $settingsWindow "SettingsCancel"
                 if ($null -ne $cancelButton) {

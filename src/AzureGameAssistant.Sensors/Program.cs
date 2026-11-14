@@ -34,7 +34,8 @@ internal static class Program
         }
 
         AppPaths.EnsureDirectories();
-        using var logger = new FileLogger("sensors");
+        (string logsDirectory, string issueLogsDirectory) = LogMaintenance.ResolveLogDirectories();
+        using var logger = new FileLogger("sensors", logsDirectory, issueDirectory: issueLogsDirectory);
         logger.Enabled = LogMaintenance.IsLoggingEnabled();
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
             logger.Error("传感器边车未处理异常", e.ExceptionObject as Exception);

@@ -61,6 +61,8 @@ public partial class App : Application
     private int _appliedSensorIntervalMs = 1_000;
     private string _appliedCpuMode = "acpi";
     private bool _appliedSensorsEnabled = true;
+    private string _appliedLogsDirectory = AppPaths.LogsDirectory;
+    private string _appliedIssueLogsDirectory = AppPaths.IssueLogsDirectory;
     private DateTime _lastHeartbeatLogUtc = DateTime.MinValue;
     private DateTime _lastLogPruneUtc = DateTime.MinValue;
     private string _lastLoggedFrameState = string.Empty;
@@ -77,8 +79,6 @@ public partial class App : Application
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
         AppPaths.EnsureDirectories();
-        _logger = new FileLogger("ui");
-        _logger.Info("界面进程启动");
 
         bool elevatedRelaunch = e.Args.Any(arg =>
             string.Equals(arg, "--elevated-relaunch", StringComparison.OrdinalIgnoreCase));
@@ -111,7 +111,13 @@ public partial class App : Application
         _settingsService = new SettingsService();
         SettingsLoadResult result = _settingsService.Load();
         _settings = result.Settings;
+        _appliedLogsDirectory = LogPaths.ResolveDirectory(_settings.Logs.Directory);
+        _appliedIssueLogsDirectory = LogPaths.ResolveIssueDirectory(
+            _settings.Logs.IssueDirectory,
+            _appliedLogsDirectory);
+        _logger = new FileLogger("ui", _appliedLogsDirectory, issueDirectory: _appliedIssueLogsDirectory);
         _logger.Enabled = _settings.Logs.Enabled;
+        _logger.Info("界面进程启动，日志目录 " + _appliedLogsDirectory);
         if (result.Warning is not null)
         {
             _logger.Warn(result.Warning);
@@ -122,7 +128,7 @@ public partial class App : Application
         _appliedCpuMode = _settings.Sensors.CpuMode;
         _appliedSensorsEnabled = _settings.Sensors.Enabled;
 
-        int pruned = LogMaintenance.Prune(AppPaths.LogsDirectory, _settings.Logs.RetentionDays);
+        int pruned = LogMaintenance.Prune(_appliedLogsDirectory, _settings.Logs.RetentionDays);
         _lastLogPruneUtc = DateTime.UtcNow;
         if (pruned > 0)
         {
@@ -428,7 +434,7 @@ public partial class App : Application
         if (now - _lastLogPruneUtc >= TimeSpan.FromDays(1))
         {
             _lastLogPruneUtc = now;
-            LogMaintenance.Prune(AppPaths.LogsDirectory, _settings.Logs.RetentionDays);
+            LogMaintenance.Prune(_appliedLogsDirectory, _settings.Logs.RetentionDays);
         }
 
         if (_viewModel is null || _telemetry is null)
@@ -761,7 +767,7 @@ public partial class App : Application
             return;
         }
 
-        _ai ??= new AiAnalysisService();
+        _ai ??= new AiAnalysisService(logsDirectory: _appliedLogsDirectory);
         var window = new SessionsWindow(_viewModel, _settings, _settingsService, _ai)
         {
             Owner = _window,
@@ -798,7 +804,7 @@ public partial class App : Application
         }
 
         ShowMainWindow();
-        _ai ??= new AiAnalysisService();
+        _ai ??= new AiAnalysisService(logsDirectory: _appliedLogsDirectory);
 
         var window = new AiAnalysisWindow(
             _settings,
@@ -848,10 +854,17 @@ public partial class App : Application
             return;
         }
 
+        string logsDirectory = LogPaths.ResolveDirectory(settings.Logs.Directory);
+        string issueLogsDirectory = LogPaths.ResolveIssueDirectory(settings.Logs.IssueDirectory, logsDirectory);
+        bool logPathChanged =
+            !string.Equals(logsDirectory, _appliedLogsDirectory, StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(issueLogsDirectory, _appliedIssueLogsDirectory, StringComparison.OrdinalIgnoreCase);
+
         bool restart = settings.Sampling.NormalMs != _appliedNormalMs ||
             settings.Sensors.Enabled != _appliedSensorsEnabled ||
             settings.Sensors.IntervalMs != _appliedSensorIntervalMs ||
-            !string.Equals(settings.Sensors.CpuMode, _appliedCpuMode, StringComparison.Ordinal);
+            !string.Equals(settings.Sensors.CpuMode, _appliedCpuMode, StringComparison.Ordinal) ||
+            logPathChanged;
 
         RegisterHotkey(settings.Hotkey, notifyConflict: true);
         ThemeService.Apply(settings.Theme);
@@ -872,7 +885,17 @@ public partial class App : Application
             _logger.Enabled = settings.Logs.Enabled;
         }
 
-        LogMaintenance.Prune(AppPaths.LogsDirectory, settings.Logs.RetentionDays);
+        if (logPathChanged)
+        {
+            _logger?.Relocate(logsDirectory, issueLogsDirectory);
+            _appliedLogsDirectory = logsDirectory;
+            _appliedIssueLogsDirectory = issueLogsDirectory;
+            _ai?.Dispose();
+            _ai = null;
+            _logger?.Info("日志目录已切换：" + logsDirectory);
+        }
+
+        LogMaintenance.Prune(_appliedLogsDirectory, settings.Logs.RetentionDays);
         SyncLongRunRecorder();
 
         if (restart)
@@ -1303,7 +1326,7 @@ public partial class App : Application
     private async Task RunAutoAnalysisAsync(SessionInfo info)
     {
         AiSettings ai = _settings.Ai;
-        _ai ??= new AiAnalysisService();
+        _ai ??= new AiAnalysisService(logsDirectory: _appliedLogsDirectory);
 
         // 会话解压、事实构建与哈希计算都不轻，放到后台线程避免卡住界面节拍。
         AutoAnalysisPreparation prep = await Task.Run(() => PrepareAutoAnalysis(info, ai));

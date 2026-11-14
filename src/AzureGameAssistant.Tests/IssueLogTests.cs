@@ -101,4 +101,27 @@ public sealed class IssueLogTests : IDisposable
         Assert.Contains("problem", text);
         Assert.DoesNotContain("routine", text);
     }
+
+    [Fact]
+    public void FileLogger_RelocatesRunAndIssueLogs()
+    {
+        string movedLogs = Path.Combine(_directory, "moved");
+        string movedIssues = Path.Combine(_directory, "moved-issues");
+
+        using (var logger = new FileLogger("test", _directory))
+        {
+            logger.Info("before");
+            logger.Relocate(movedLogs, movedIssues);
+            logger.Info("after");
+            logger.Warn("problem");
+        }
+
+        Assert.True(Directory.Exists(movedLogs));
+        string runLog = Assert.Single(Directory.GetFiles(movedLogs, "test-*.log"));
+        Assert.Contains("after", File.ReadAllText(runLog));
+        Assert.DoesNotContain("before", File.ReadAllText(runLog));
+
+        string issueLog = Assert.Single(Directory.GetFiles(movedIssues, "issues-*.log"));
+        Assert.Contains("problem", File.ReadAllText(issueLog));
+    }
 }

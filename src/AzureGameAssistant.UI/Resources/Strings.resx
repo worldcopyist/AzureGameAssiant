@@ -462,6 +462,27 @@
   <data name="LogRetentionUnit" xml:space="preserve">
     <value>days</value>
   </data>
+  <data name="LogsDirectoryLabel" xml:space="preserve">
+    <value>Run log location</value>
+  </data>
+  <data name="IssueLogsDirectoryLabel" xml:space="preserve">
+    <value>Problem log location</value>
+  </data>
+  <data name="ChooseFolder" xml:space="preserve">
+    <value>Change…</value>
+  </data>
+  <data name="ResetToDefault" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="LogsDirectoryHint" xml:space="preserve">
+    <value>Leave empty to use %LOCALAPPDATA%\AzureGameAssistant\logs. Existing files are not moved. The collector and sensor sidecar restart after saving; the MCP server uses the new location on its next launch.</value>
+  </data>
+  <data name="LogsPathInvalid" xml:space="preserve">
+    <value>The log path must be an absolute folder path.</value>
+  </data>
+  <data name="LogsPathUnavailable" xml:space="preserve">
+    <value>Cannot create or write the log folder:</value>
+  </data>
   <data name="LongRunRecordLabel" xml:space="preserve">
     <value>Record long-run diagnostics</value>
   </data>

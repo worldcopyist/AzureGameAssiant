@@ -14,8 +14,8 @@ public enum LogLevel
 public sealed class FileLogger : IDisposable
 {
     private readonly object _gate = new();
-    private readonly string _directory;
-    private readonly string _issueDirectory;
+    private string _directory;
+    private string _issueDirectory;
     private readonly string _component;
     private readonly long _maxBytes;
     private readonly int _maxFiles;
@@ -24,12 +24,19 @@ public sealed class FileLogger : IDisposable
     private bool _disposed;
     private volatile bool _enabled = true;
 
-    public FileLogger(string component, string? directory = null, long maxBytes = 2 * 1024 * 1024, int maxFiles = 5)
+    public FileLogger(
+        string component,
+        string? directory = null,
+        long maxBytes = 2 * 1024 * 1024,
+        int maxFiles = 5,
+        string? issueDirectory = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(component);
         _component = Sanitize(component);
         _directory = directory ?? AppPaths.LogsDirectory;
-        _issueDirectory = Path.Combine(_directory, "issues");
+        _issueDirectory = string.IsNullOrWhiteSpace(issueDirectory)
+            ? Path.Combine(_directory, "issues")
+            : issueDirectory;
         _maxBytes = Math.Max(64 * 1024, maxBytes);
         _maxFiles = Math.Max(1, maxFiles);
     }
@@ -37,6 +44,23 @@ public sealed class FileLogger : IDisposable
     public string DirectoryPath => _directory;
 
     public string IssueDirectoryPath => _issueDirectory;
+
+    /// <summary>
+    /// Moves subsequent writes to a user-chosen location without recreating the
+    /// logger, so a settings change applies immediately in the running process.
+    /// </summary>
+    public void Relocate(string directory, string? issueDirectory = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(directory);
+        lock (_gate)
+        {
+            CloseWriter();
+            _directory = directory;
+            _issueDirectory = string.IsNullOrWhiteSpace(issueDirectory)
+                ? Path.Combine(directory, "issues")
+                : issueDirectory;
+        }
+    }
 
     /// <summary>
     /// When false, every write is dropped and the file handle is released.

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AzureGameAssistant.Core.Settings;
 
 namespace AzureGameAssistant.Core.Logging;
@@ -23,6 +24,24 @@ public static class LogMaintenance
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             return true;
+        }
+    }
+
+    /// <summary>
+    /// Helper processes run outside the UI and read the same settings file so a
+    /// relocated log directory needs no extra command-line plumbing.
+    /// </summary>
+    public static (string LogsDirectory, string IssueLogsDirectory) ResolveLogDirectories()
+    {
+        try
+        {
+            AppSettings settings = new SettingsService().Load().Settings;
+            string logs = LogPaths.ResolveDirectory(settings.Logs.Directory);
+            return (logs, LogPaths.ResolveIssueDirectory(settings.Logs.IssueDirectory, logs));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        {
+            return (AppPaths.LogsDirectory, AppPaths.IssueLogsDirectory);
         }
     }
 

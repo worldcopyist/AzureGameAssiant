@@ -19,7 +19,8 @@ internal static class Program
         }
 
         AppPaths.EnsureDirectories();
-        using var logger = new FileLogger("collector");
+        (string logsDirectory, string issueLogsDirectory) = LogMaintenance.ResolveLogDirectories();
+        using var logger = new FileLogger("collector", logsDirectory, issueDirectory: issueLogsDirectory);
         logger.Enabled = LogMaintenance.IsLoggingEnabled();
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
             logger.Error("采集进程未处理异常", e.ExceptionObject as Exception);

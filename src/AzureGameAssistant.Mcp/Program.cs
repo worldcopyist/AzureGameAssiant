@@ -16,7 +16,8 @@ public static class Program
         try
         {
             AppPaths.EnsureDirectories();
-            logger = new FileLogger("mcp");
+            (string logsDirectory, string issueLogsDirectory) = LogMaintenance.ResolveLogDirectories();
+            logger = new FileLogger("mcp", logsDirectory, issueDirectory: issueLogsDirectory);
             logger.Enabled = LogMaintenance.IsLoggingEnabled();
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Windows.Media;
 using AzureGameAssistant.Ai;
 using AzureGameAssistant.Core;
+using AzureGameAssistant.Core.Logging;
 using AzureGameAssistant.Core.Settings;
 using AzureGameAssistant.UI.Interop;
 using AzureGameAssistant.UI.Services;
@@ -77,6 +78,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         LongRunIntervalSeconds = settings.Diagnostics.IntervalSeconds;
         LogRecording = settings.Logs.Enabled;
         LogRetentionDays = settings.Logs.RetentionDays;
+        LogsDirectory = settings.Logs.Directory;
+        IssueLogsDirectory = settings.Logs.IssueDirectory;
         SessionMaxCount = settings.Sessions.MaxCount;
         SessionMaxTotalMb = settings.Sessions.MaxTotalMb;
 
@@ -199,8 +202,6 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public string AppVersion { get; } =
         Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.1.0";
-
-    public string LogsPath => AppPaths.LogsDirectory;
 
     public string DataPath => AppPaths.RootDirectory;
 
@@ -416,6 +417,24 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private int _logRetentionDays = 3;
+
+    [ObservableProperty]
+    private string _logsDirectory = string.Empty;
+
+    [ObservableProperty]
+    private string _issueLogsDirectory = string.Empty;
+
+    public string LogsPath => LogPaths.ResolveDirectory(LogsDirectory);
+
+    public string IssueLogsPath => LogPaths.ResolveIssueDirectory(IssueLogsDirectory, LogsPath);
+
+    partial void OnLogsDirectoryChanged(string value)
+    {
+        OnPropertyChanged(nameof(LogsPath));
+        OnPropertyChanged(nameof(IssueLogsPath));
+    }
+
+    partial void OnIssueLogsDirectoryChanged(string value) => OnPropertyChanged(nameof(IssueLogsPath));
 
     [ObservableProperty]
     private int _sessionMaxCount = 20;
@@ -635,6 +654,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         settings.Diagnostics.IntervalSeconds = LongRunIntervalSeconds;
         settings.Logs.Enabled = LogRecording;
         settings.Logs.RetentionDays = LogRetentionDays;
+        settings.Logs.Directory = LogsDirectory;
+        settings.Logs.IssueDirectory = IssueLogsDirectory;
         settings.Sessions.MaxCount = (int)Math.Round(Clamp(SessionMaxCount, 1, 500, 20));
         settings.Sessions.MaxTotalMb = (int)Math.Round(Clamp(SessionMaxTotalMb, 10, 10_000, 500));
 
