@@ -1821,7 +1821,10 @@ AzureGameAssistant-<version>-win-x64/
 
 ## 18. 日志与运维
 
-- 目录：`%LOCALAPPDATA%\AzureGameAssistant\logs\`
+- 目录：默认 `%LOCALAPPDATA%\AzureGameAssistant\logs\`，问题归档默认在其 `issues\` 子目录。
+- 自定义目录：`settings.logs.directory`（运行日志）与 `settings.logs.issueDirectory`（软件日志）可分别指向任意绝对路径；空值表示默认。`LogPaths.TryNormalize` 展开 `%ENV%`、拒绝相对路径、拒绝控制字符与 `" < > | * ?`（`\\?\` 扩展路径除外）、去掉末尾分隔符，由 `AppSettings.Normalize` 在加载与保存时统一清洗，非法值回退空（默认），不会把日志散落到工作目录。
+- 路径解析：`LogPaths.ResolveDirectory` / `ResolveIssueDirectory` 是唯一入口；未单独指定软件日志时跟随运行日志目录（`<运行日志>\issues`）。界面进程启动后按设置创建日志器，设置保存且路径变化时调用 `FileLogger.Relocate` 原地切换并重建 AI 服务；采集 / 传感器进程采用“设置保存后重启”的方式读取新路径，MCP 在下次由宿主拉起时生效。旧目录文件不迁移，按天保留仍作用于各自目录。
+- 设置页：日志卡片提供两行路径（只读等宽文本）、“更改…”目录选择与“恢复默认”；保存前 `Directory.CreateDirectory` 验证可写，失败弹出路径与系统错误且不关闭窗口；“打开”“打开问题日志”按钮跟随当前路径。
 - 文件：`{组件}-yyyyMMdd-HHmmss-fff-{pid}.log`（组件为 `ui` / `collector` / `sensors` / `mcp` / `ai-parse`），随进程重启生成新文件。
 - 常开：`settings.logs.enabled` 默认 `true`；界面进程把该值同步给 `FileLogger.Enabled`，采集 / 传感器 / MCP 在启动时通过 `LogMaintenance.IsLoggingEnabled()` 读取同一设置，关闭后立即停写。
 - 滚动：单文件 2MB，保留 5 个；启动时清理超限文件。
