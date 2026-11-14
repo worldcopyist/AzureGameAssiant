@@ -19,10 +19,10 @@
 | 项 | 值 |
 | --- | --- |
 | 产品阶段 | M1（v0.1）完成；M2（帧级真相）完成核心闭环；M3-1 权限与自动采集闭环完成；M3 的 AI 手动分析与 MCP 只读服务已落地；界面与采集稳定性进入收尾 |
-| 最新里程碑 | 自验工具链落地：`build/ui-smoke.ps1` 以非提权实例 + UI Automation + 鼠标注入验证界面，图表经 AutomationPeer 暴露 `Live/Paused;points=N` 状态；已实测通过点击暂停、移出 1.5 秒恢复与设置窗开关。Release 0 警告 0 错误，251 项测试通过。 |
+| 最新里程碑 | 图表核心逻辑拆分：`ChartViewport`（窗口/平移/暂停状态机）与 `ChartAggregation`（列 min/max、帧尖峰、纵轴档位、双轨末端）移入 Core，`TimelineChart` 只保留绘制与输入；新增 28 项单测，测试总数 279。`build/ui-smoke.ps1` 冒烟在重构后仍 12 项全过。Release 0 警告 0 错误。 |
 | 可运行产物 | `build/run-dev.ps1` 可启动；`build/package.ps1` 默认 AOT 流程可生成便携 ZIP（含 PresentMon）；`build/publish-mcp.ps1` 生成 `artifacts/mcp/AzureGameAssistant.Mcp.exe`；二号屏桌面快捷方式指向 Release |
 | 代码分支 | `main`（`feat/m1-foundation` 已 squash 合入，分支保留） |
-| 当前提交 | `908e23c` |
+| 当前提交 | `21cdb69` |
 | 未提交变更 | 无 |
 | 阻塞事项 | 帧率准确性需在用户真实游戏（原神 60 帧、三角洲行动）长测确认；AI 窗口与“测试连接”按钮待点击验证；掉帧/高负载标记需在真实游戏复现后核对事件与报告；3 款游戏 PresentMon 实测与反作弊评估待用户游戏环境（已测明日方舟、三角洲行动）；深模式内存/CPU 与 60 分钟连续性待专项测量；本机默认热键 `Ctrl+Alt+M` 被其他程序占用，需用户在设置页改键（实测 `Ctrl+Alt+F9` 可用）；卡顿判定召回率与误报需真实游戏长测；会话级 AI 分析（3.16）待配置 API Key 后点击验证 |
 
@@ -519,6 +519,15 @@
 - 验证：脚本 RESULT PASS，12 项检查全过（主窗口、三个按钮、合并图、采样到达、点击暂停、移出 1.5 秒恢复、两张截图、设置窗开关、主窗口存活）；Release 0 警告 0 错误，251 项测试通过。
 - 限制：脚本结束用 `Stop-Process`（主窗口关闭语义是隐藏到托盘），采集进程由父进程监控退出；运行前必须退出已运行实例。
 
+### 3.44 图表核心逻辑拆分与单测（2026-11-15）
+
+- 目的：时间轴的窗口、平移、暂停与列聚合原本嵌在 `TimelineChart` 的鼠标回调与 `OnRender` 里，只能靠截图回归；本轮把规则移入 Core，让阅读暂停、缩放边界与双轨对齐可以被单测覆盖。
+- 实现：
+  - `Core/Charts/ChartViewport`：`WindowSeconds`（默认 60，10–1800s，且不超过已有数据跨度）、`SetPan/PanBy/ResetPan`（按 `可用跨度 − 窗口` 夹取，`0.5s` 内不算平移）、`Pause/Resume/ResolveEndTicks`（暂停时冻结末端 ticks；数据回退到更早区间时取最新值，避免视口停在未来）。
+  - `Core/Charts/ChartAggregation`：`SpanSeconds`、`LatestEndTicks`（系统采样与帧时间戳取并集）、`AggregateSamples`（每像素列 min/max，空列 NaN，窗口外跳过，负值归零，右边界并入最后一列）、`AggregateFrames`（跳过非正帧时间，记录尖峰列与窗口最大值）、`FrameScaleMax`（16.7/33.3/50/66.7/100ms 档位，超出向上取 50ms 倍数）。
+  - `TimelineChart` 删除 `_windowSeconds/_panSeconds/_paused/_pausedEndTicks` 与 `ClampPan()`，鼠标事件只转发到 `_viewport`；`OnRender` 使用 `ResolveEndTicks` 与 `WindowSeconds/PanSeconds`，绘制路径未变。
+- 验证：`ChartViewportTests` 12 项、`ChartAggregationTests` 16 项（含 7 组档位 Theory），全量 279 项通过；Release 0 警告 0 错误；`build/ui-smoke.ps1` RESULT PASS，点击暂停（`Paused;points=1`）与移出 1.5 秒恢复（`Live;points=4`）行为与重构前一致。
+
 ## 4. 进行中
 
 - **会话 AI 分析（3.16）**：按钮与写入链路已完成并通过单测；待配置 API Key 后在会话窗口点一次“AI 分析”，确认报告写入 `<会话>.ai.json`、详情区出现 AI 段、导出 Markdown 末尾附带 AI 章节。
@@ -845,3 +854,4 @@ MCP 冒烟（无需 Agent 客户端，直接走 stdio）：
 - [ ] 交接日志追加一行
 - [ ] 按提交规范提交，footer 含 `Agent: <名称>`
 | 2026-11-15 | Qoder | 非提权 UI 冒烟通道：`build/ui-smoke.ps1` 用 UIA + 鼠标注入验证主窗口、合并图、点击暂停/1.5 秒恢复与设置窗开关，截图输出到 `artifacts/ui-smoke/`；`TimelineChart` 增加 AutomationPeer 状态输出；脚本 12 项检查全过，251 项测试通过，Release 0 警告 0 错误；补充 handoff 3.43 | `908e23c` |
+| 2026-11-15 | Qoder | 图表核心逻辑拆分：新增 `Core/Charts/ChartViewport` 与 `ChartAggregation`，`TimelineChart` 只保留绘制与输入转发；新增 28 项单测覆盖暂停恢复、数据回退、平移夹取、缩放边界、空列/窗口外/负值、帧尖峰与纵轴档位；测试总数 279，Release 0 警告 0 错误；UI 冒烟 12 项全过；补充 handoff 3.44 | `21cdb69` |
