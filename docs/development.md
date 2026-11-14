@@ -1318,7 +1318,7 @@ internal sealed record AiProviderProfile(
 
 - `OverlayWindow`：无边框、透明（`AllowsTransparency`）、`Topmost`、`ShowInTaskbar=false`、`ShowActivated=false`、`Focusable=false`；根元素为裸 `WrapPanel`，无背景面板与边框。
 - Win32 扩展样式追加 `WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE`：鼠标穿透、不进入 Alt+Tab、不抢焦点。
-- 位置：`overlay.monitor` 取 `Follow`（默认，跟随主窗口）、`Primary` 或 `\\.\DISPLAYn`。`Follow` 时 `MonitorWorkArea.TryGet` 取主窗口所在显示器（`MonitorFromWindow` + `GetMonitorInfo`）；指定显示器由 `MonitorWorkArea.TryGetByDevice` 在 `Enumerate()`（`EnumDisplayMonitors` + `GetMonitorInfoW`/`MONITORINFOEX`）结果中查找；物理像素工作区按窗口 DPI 换算为 DIP 后交给 Core 的 `OverlayPlacement.Place` 计算四角 + 偏移。指定显示器缺失、枚举或定位失败时回退 `SystemParameters.WorkArea`；越界时夹紧到工作区。`Normalize()` 把非 `DISPLAYn` 的值收敛为 `Follow`。`SizeChanged`、显示与主窗口 `LocationChanged` 时重新定位。位置由“显示器 + 四角 + 偏移”完整确定并随设置持久化；手动拖动与 `WS_EX_TRANSPARENT` 鼠标穿透互斥，不提供拖动。
+- 位置：`overlay.monitor` 默认 `\\.\DISPLAY1`（1 号显示器），也可取 `Follow`（跟随主窗口）、`Primary`（主显示器）或其他 `\\.\DISPLAYn`。`Follow` 时 `MonitorWorkArea.TryGet` 取主窗口所在显示器（`MonitorFromWindow` + `GetMonitorInfo`）；指定显示器由 `MonitorWorkArea.TryGetByDevice` 在 `Enumerate()`（`EnumDisplayMonitors` + `GetMonitorInfoW`/`MONITORINFOEX`）结果中查找；物理像素工作区按窗口 DPI 换算为 DIP 后交给 Core 的 `OverlayPlacement.Place` 计算四角 + 偏移。指定显示器缺失、枚举或定位失败时回退 `SystemParameters.WorkArea`；越界时夹紧到工作区。`Normalize()` 只接受 `Follow` / `Primary` / `\\.\DISPLAYn`，空值或未知值收敛为 `\\.\DISPLAY1`。设置页按编号排序列出全部显示器（标注主显示器，当前值未连接时标注“未连接”），保存后立即重新定位。`SizeChanged`、显示与主窗口 `LocationChanged` 时重新定位。位置由“显示器 + 四角 + 偏移”完整确定并随设置持久化；手动拖动与 `WS_EX_TRANSPARENT` 鼠标穿透互斥，不提供拖动。
 - 不透明度：`overlay.opacity` 取 30–100（默认 100），在 `Normalize()` 中夹紧；`ApplyAppearance()` 将其换算为窗口 `Opacity`，与配色一起即时生效，不引入背景面板。
 - 布局：每个数据项为“标签 + 数值”横向 `StackPanel`，整体从左到右排列；`MaxWidth = WorkArea.Width - 2 × OffsetX`（下限 240 DIP），放不下时按数据项自动换行，窗口高度随行数增长。
 - 可读性：文字使用 `DropShadowEffect`（BlurRadius 3、无偏移），不使用背景遮挡桌面。
@@ -1330,7 +1330,7 @@ internal sealed record AiProviderProfile(
 - 内容：FPS、平均帧、1% Low、CPU、GPU、GPU 温度、内存、显存；按设置顺序生成数据项，缺失数据显示“—”。
 - 数据：主窗口与悬浮窗共用 `MainViewModel.GetOverlayData()` 与 500ms 刷新节拍；主窗口隐藏后计时器仍为悬浮窗运行。
 - 帧率、平均帧、Low 帧与温度字段已预留，M2 PresentMon / M3 LHM 接入后自动显示数值，无需改悬浮窗。
-- 托盘菜单与设置页均可开关；已按主窗口所在显示器定位并提供不透明度调节，M3 再评估拖动与跨显示器位置记忆。
+- 托盘菜单与设置页均可开关；默认固定在 1 号显示器并可选择任意显示器，不透明度可调；M3 再评估拖动与跨显示器位置记忆。
 
 ### 11.6 国际化与主题
 
@@ -1350,13 +1350,13 @@ internal sealed record AiProviderProfile(
 - 位置：`%LOCALAPPDATA%\AzureGameAssistant\settings.json`
 - UI 是唯一写入方；采集进程启动时读取，之后只接收管道补丁。
 - 写入采用临时文件 + 原子替换；读取失败时备份为 `settings.corrupt-<timestamp>.json` 并回退默认值。
-- `schemaVersion` 与迁移函数集中管理。
+- `schemaVersion` 与迁移函数集中管理。schema 3 → 4：旧版默认 `overlay.monitor=Follow` 迁移为 `\\.\DISPLAY1`；显式 `Primary` 或 `\\.\DISPLAYn` 保持不变。schema 2 → 3：传感器边车自动开启一次。
 - 加载时归一化：悬浮窗角落名转 PascalCase（缺省 TopLeft）；偏移量限制 0–4000；内容项全部关闭时强制打开 CPU 与 GPU，避免出现空窗口；配色主题名转 PascalCase（缺省 Default）；自定义颜色去 `#` 后校验 6 或 8 位十六进制并统一大写（8 位 alpha 为 `FF` 时收窄为 6 位），非法值回退 `#FFFFFF`；图表全部关闭时强制打开 CPU 图（含新增的帧时间图，默认开启）。
 - 进程内存单位：`processMemoryPercent`（默认 `true`）控制进程排行与“本软件”行的内存列；开启时按物理内存总量换算百分比，关闭后显示 MB。设置页“界面”分组提供对应开关，切换后立即生效并持久化。
 
 ```json
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "sampling": { "normalMs": 1000, "gameMs": 200 },
   "requestElevationOnStartup": true,
   "detection": {
@@ -1445,7 +1445,7 @@ internal sealed record AiProviderProfile(
   "overlay": {
     "enabled": true,
     "corner": "TopLeft",
-    "monitor": "Follow",
+    "monitor": "\\\\.\\DISPLAY1",
     "offsetX": 16,
     "offsetY": 16,
     "showFps": true,
@@ -1705,7 +1705,7 @@ AzureGameAssistant-<version>-win-x64/
 | 系统 | Win10 22H2、Win11 22H2+ |
 | 显卡 | NVIDIA、AMD、Intel 核显、混合显卡 |
 | 显示器 | 单屏、双屏、不同 DPI |
-| 悬浮窗 | 默认左上、无背景、可选半透明底、横向换行、四角、偏移、内容开关、鼠标穿透、主窗口隐藏、配色主题、自定义颜色（含 `#AARRGGBB` 透明度）、不透明度、按主窗口所在显示器定位（含负坐标显示器与越界夹紧） |
+| 悬浮窗 | 默认左上、默认 1 号显示器、可选任意显示器（未连接回退主屏）、无背景、可选半透明底、横向换行、四角、偏移、内容开关、鼠标穿透、主窗口隐藏、配色主题、自定义颜色（含 `#AARRGGBB` 透明度）、不透明度、越界夹紧 |
 | 图表 | 单图开关、至少保留一张、脱离小窗、关闭小窗归还、主窗口隐藏时小窗继续刷新 |
 | 游戏状态 | DX11、DX12、无边框窗口、全屏独占 |
 | 权限 | 普通用户、管理员、Performance Log Users |
