@@ -1263,7 +1263,7 @@ internal sealed record AiProviderProfile(
 ### 11.1 结构
 
 - `App.xaml`：资源、主题、全局异常处理。
-- `MainWindow`：六张概览卡片（CPU / GPU / 内存 / 显存 / 磁盘 / 定时抖动）、可开关的分指标折线图、Top-5 进程、采集状态、最近 50 条卡顿事件列表；M2 增加事件列表与详情面板。整页放在一个 `ScrollViewer` 内（`PageScroll`），窗口偏矮时可滚动到卡顿列表与帧采集卡片；进程排行顶部固定一行“本软件”，实时显示界面进程 PID / CPU / 内存合计，悬浮提示给出四个子进程的工作集明细。
+- `MainWindow`：六张概览卡片（CPU / GPU / 内存 / 显存 / 磁盘 / 定时抖动）、可开关的分指标折线图、Top-5 进程、采集状态、最近 50 条卡顿事件列表；M2 增加事件列表与详情面板。整页放在一个 `ScrollViewer` 内（`PageScroll`），窗口偏矮时可滚动到卡顿列表与帧采集卡片；进程排行顶部固定一行“本软件”，实时显示界面进程 PID / CPU / 内存合计，悬浮提示给出四个子进程的工作集明细。内存列由 `FormatProcessMemory()` 统一格式化：默认按 `SystemMemory.TotalPhysicalMb` 换算成两位小数百分比，设置页关闭 `processMemoryPercent` 后改为整数 MB；切换后 `RefreshDisplaySettings()` 立即重排进程排行与“本软件”行，无需等待重启。
 - `ChartWindow`：单张折线图的脱离小窗；复用同一 `TimelineChart` 实例，关闭后图表归还主窗口卡片。默认只有主窗口，所有图表都在主窗口的“实时时间轴”网格中；只有勾选“布局设计”后才显示脱离按钮，取消勾选会自动关闭所有小窗并合并回主窗口。
 - `OverlayWindow`：桌面悬浮数据窗（M1 基础版）；置顶、鼠标穿透、四角定位、内容项开关、文字配色主题。
 - `EventDetailView`：本地报告 / AI 报告两个页签；帧证据区（M2）。
@@ -1352,6 +1352,7 @@ internal sealed record AiProviderProfile(
 - 写入采用临时文件 + 原子替换；读取失败时备份为 `settings.corrupt-<timestamp>.json` 并回退默认值。
 - `schemaVersion` 与迁移函数集中管理。
 - 加载时归一化：悬浮窗角落名转 PascalCase（缺省 TopLeft）；偏移量限制 0–4000；内容项全部关闭时强制打开 CPU 与 GPU，避免出现空窗口；配色主题名转 PascalCase（缺省 Default）；自定义颜色去 `#` 后校验 6 或 8 位十六进制并统一大写（8 位 alpha 为 `FF` 时收窄为 6 位），非法值回退 `#FFFFFF`；图表全部关闭时强制打开 CPU 图（含新增的帧时间图，默认开启）。
+- 进程内存单位：`processMemoryPercent`（默认 `true`）控制进程排行与“本软件”行的内存列；开启时按物理内存总量换算百分比，关闭后显示 MB。设置页“界面”分组提供对应开关，切换后立即生效并持久化。
 
 ```json
 {
@@ -1387,6 +1388,7 @@ internal sealed record AiProviderProfile(
   "notifications": true,
   "theme": "Auto",
   "language": "zh-CN",
+  "processMemoryPercent": true,
   "sessions": { "maxCount": 20, "maxTotalMb": 500 },
   "gameDetection": { "enabled": true, "exclude": ["chrome.exe", "msedge.exe", "firefox.exe", "vlc.exe"] },
   "ai": {
