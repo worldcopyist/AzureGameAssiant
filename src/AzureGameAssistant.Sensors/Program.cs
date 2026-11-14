@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using AzureGameAssistant.Core;
@@ -100,11 +102,22 @@ internal static class Program
             }
 
             using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(options.IntervalMs));
+            int ticks = 0;
+            bool trimmed = false;
             while (WaitForTick(timer, stop.Token))
             {
                 Kernel32.QueryPerformanceCounter(out long qpc);
                 SensorRecord sample = sidecar.Read(qpc);
                 writer.Write(in sample);
+
+                // LibreHardwareMonitor keeps the pages it touched while
+                // enumerating every controller. Once the first samples are in,
+                // hand the unused ones back so the resident cost stays low.
+                if (!trimmed && ++ticks >= 30)
+                {
+                    trimmed = true;
+                    TrimInitialWorkingSet(logger);
+                }
             }
 
             logger.Info("传感器边车停止");
@@ -136,6 +149,27 @@ internal static class Program
         catch (OperationCanceledException)
         {
             return false;
+        }
+    }
+
+    private static void TrimInitialWorkingSet(FileLogger logger)
+    {
+        try
+        {
+            using var process = Process.GetCurrentProcess();
+            long before = process.WorkingSet64 / 1048576;
+            GC.Collect(2, GCCollectionMode.Optimized, blocking: false, compacting: false);
+            if (!PsApi.EmptyWorkingSet(process.Handle))
+            {
+                return;
+            }
+
+            process.Refresh();
+            logger.Info($"传感器边车回收初始化内存：{before} MB → {process.WorkingSet64 / 1048576} MB");
+        }
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or NotSupportedException)
+        {
+            logger.Warn($"传感器边车回收内存失败：{ex.Message}");
         }
     }
 
@@ -276,4 +310,11 @@ internal static partial class Kernel32
     [LibraryImport("kernel32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool QueryPerformanceCounter(out long counter);
+}
+
+internal static partial class PsApi
+{
+    [LibraryImport("psapi.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool EmptyWorkingSet(IntPtr process);
 }

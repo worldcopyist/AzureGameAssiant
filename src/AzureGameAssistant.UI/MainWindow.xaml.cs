@@ -26,6 +26,7 @@ public partial class MainWindow : Window
 
         Loaded += OnLoaded;
         Closing += OnClosing;
+        SizeChanged += OnSizeChanged;
     }
 
     public bool AllowClose { get; set; }
@@ -102,6 +103,19 @@ public partial class MainWindow : Window
     {
         ApplyWindowSeconds(60);
         RefreshChart();
+    }
+
+    private void OnSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (!e.HeightChanged)
+        {
+            return;
+        }
+
+        // The whole page scrolls, so the chart row cannot stretch with a star.
+        // Size it from the window instead: 240px keeps it readable when the
+        // window is short, and tall windows still get a bigger chart.
+        ChartRow.Height = new GridLength(Math.Clamp(ActualHeight * 0.36, 240, 480));
     }
 
     private void UpdateChartColumns()

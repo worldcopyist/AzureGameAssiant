@@ -120,6 +120,12 @@
   <data name="Foreground" xml:space="preserve">
     <value>Foreground</value>
   </data>
+  <data name="SelfUsageName" xml:space="preserve">
+    <value>Azure Game Assistant (this app)</value>
+  </data>
+  <data name="SelfUsageDetail" xml:space="preserve">
+    <value>UI {0} MB · collector {1} MB · frame capture {2} MB · sensors {3} MB</value>
+  </data>
   <data name="StutterTitle" xml:space="preserve">
     <value>Recent stutters</value>
   </data>

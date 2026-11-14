@@ -17,11 +17,13 @@
         </Style>
     </Window.Resources>
 
+    <ScrollViewer x:Name="PageScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                  Focusable="False" PanningMode="VerticalOnly">
     <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" MinHeight="240" />
+            <RowDefinition x:Name="ChartRow" Height="280" MinHeight="240" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
@@ -387,6 +389,33 @@
                                    Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[ColumnMemory]}" />
                     </Grid>
 
+                    <!-- The application's own footprint is always visible so the
+                         resident cost stays accountable next to the top games. -->
+                    <Border Background="{DynamicResource AccentSoftBrush}" CornerRadius="4" Margin="0,0,0,4"
+                            ToolTip="{Binding SelfUsageDetail}">
+                        <Grid Height="26">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="70" />
+                                <ColumnDefinition Width="64" />
+                                <ColumnDefinition Width="64" />
+                                <ColumnDefinition Width="64" />
+                                <ColumnDefinition Width="88" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Margin="6,0,0,0" FontSize="12" FontWeight="SemiBold"
+                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                       Text="{Binding SelfUsageName}" />
+                            <TextBlock Grid.Column="1" Style="{StaticResource MonoText}" VerticalAlignment="Center"
+                                       Text="{Binding SelfUsagePid}" />
+                            <TextBlock Grid.Column="2" Style="{StaticResource MonoText}" VerticalAlignment="Center"
+                                       Text="{Binding SelfUsageCpu}" />
+                            <TextBlock Grid.Column="3" Style="{StaticResource MonoText}" VerticalAlignment="Center"
+                                       Text="—" />
+                            <TextBlock Grid.Column="4" Style="{StaticResource MonoText}" VerticalAlignment="Center"
+                                       Text="{Binding SelfUsageMemory}" />
+                        </Grid>
+                    </Border>
+
                     <ItemsControl ItemsSource="{Binding Processes}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -606,4 +635,5 @@
             </Border>
         </Grid>
     </Grid>
+    </ScrollViewer>
 </Window>

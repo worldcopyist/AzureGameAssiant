@@ -47,6 +47,8 @@ public partial class App : Application
     private DispatcherTimer? _timer;
     private LongRunRecorder? _recorder;
     private UiProcessProbe? _uiProbe;
+    private CancellationTokenSource? _trimCts;
+    private bool _trimScheduled;
     private bool _shuttingDown;
     private int _appliedNormalMs = 1_000;
     private int _appliedSensorIntervalMs = 1_000;
@@ -427,6 +429,61 @@ public partial class App : Application
         if (!_timer.IsEnabled)
         {
             _timer.Start();
+        }
+
+        UpdateIdleTrim(mainVisible || overlayVisible || chartsVisible);
+    }
+
+    /// <summary>
+    /// Trimming releases the WPF render and heap pages that only the hidden
+    /// window needed. It runs once per hide transition: trimming on a timer
+    /// would fault the same pages back in as the refresher touches them.
+    /// </summary>
+    private void UpdateIdleTrim(bool anyVisible)
+    {
+        if (anyVisible)
+        {
+            _trimCts?.Cancel();
+            _trimCts?.Dispose();
+            _trimCts = null;
+            _trimScheduled = false;
+            return;
+        }
+
+        if (_trimScheduled)
+        {
+            return;
+        }
+
+        _trimScheduled = true;
+        _trimCts = new CancellationTokenSource();
+        _ = TrimHiddenWorkingSetAsync(_trimCts);
+    }
+
+    private async Task TrimHiddenWorkingSetAsync(CancellationTokenSource cts)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(8), cts.Token);
+            (long before, long firstAfter) = WorkingSetTrimmer.Trim();
+
+            // A second pass catches heap churn from sessions and logging that
+            // lands right after the first trim.
+            await Task.Delay(TimeSpan.FromSeconds(60), cts.Token);
+            (_, long secondAfter) = WorkingSetTrimmer.Trim();
+            _logger?.Info($"窗口隐藏，工作集回收：{before} MB → {firstAfter} MB → {secondAfter} MB");
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        finally
+        {
+            if (ReferenceEquals(_trimCts, cts))
+            {
+                _trimCts = null;
+            }
+
+            cts.Dispose();
         }
     }
 
@@ -1141,6 +1198,7 @@ public partial class App : Application
         _shuttingDown = true;
         _logger?.Info("界面退出");
 
+        _trimCts?.Cancel();
         _timer?.Stop();
         StopLongRunRecorder("exit");
 

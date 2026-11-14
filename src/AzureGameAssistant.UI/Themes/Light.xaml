@@ -18,4 +18,6 @@
     <SolidColorBrush x:Key="ChartVramBrush" Color="#7C5CE0" />
     <SolidColorBrush x:Key="ChartDiskBrush" Color="#0F9C8A" />
     <SolidColorBrush x:Key="ChartFrameBrush" Color="#B0308F" />
+    <SolidColorBrush x:Key="ScrollThumbBrush" Color="#C3CCD8" />
+    <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#93A2B5" />
 </ResourceDictionary>

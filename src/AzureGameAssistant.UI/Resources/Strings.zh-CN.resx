@@ -120,6 +120,12 @@
   <data name="Foreground" xml:space="preserve">
     <value>前台</value>
   </data>
+  <data name="SelfUsageName" xml:space="preserve">
+    <value>蓝天游戏助手（本软件）</value>
+  </data>
+  <data name="SelfUsageDetail" xml:space="preserve">
+    <value>界面 {0} MB · 采集 {1} MB · 帧捕获 {2} MB · 传感器 {3} MB</value>
+  </data>
   <data name="StutterTitle" xml:space="preserve">
     <value>最近卡顿</value>
   </data>

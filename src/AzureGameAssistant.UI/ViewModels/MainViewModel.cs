@@ -26,6 +26,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly CollectorClient _client;
     private readonly CollectorLauncher _launcher;
     private readonly ProcessNameCache _names = new();
+    private readonly SelfUsageProbe _selfUsage = new();
     private readonly LocalizationService _loc;
     private readonly AppSettings _settings;
     private readonly SettingsService _settingsService;
@@ -186,6 +187,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         ShowElevationButton = !PermissionDiagnostics.IsElevated();
         _samplingTargetMs = Math.Clamp(settings.Sampling.NormalMs, 100, 10_000);
         PauseText = _loc["Pause"];
+        SelfUsageName = _loc["SelfUsageName"];
         UpdateCollectorTexts();
         UpdateFrameTexts();
         UpdateFooter();
@@ -479,6 +481,21 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _frameSub = string.Empty;
 
+    [ObservableProperty]
+    private string _selfUsageName = string.Empty;
+
+    [ObservableProperty]
+    private string _selfUsagePid = string.Empty;
+
+    [ObservableProperty]
+    private string _selfUsageCpu = "—";
+
+    [ObservableProperty]
+    private string _selfUsageMemory = "—";
+
+    [ObservableProperty]
+    private string _selfUsageDetail = string.Empty;
+
     public async Task RefreshAsync()
     {
         if (Interlocked.Exchange(ref _refreshing, 1) == 1)
@@ -506,6 +523,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             {
                 _highLoadTracker.Suspend();
             }
+
+            UpdateSelfUsage();
 
             _statusTicks++;
             if (!_connected || _statusTicks % 4 == 0)
@@ -1101,6 +1120,23 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         JitterSub = _loc.Format("JitterSub", interval);
     }
 
+    private void UpdateSelfUsage()
+    {
+        SelfUsage usage = _selfUsage.Sample();
+        SelfUsagePid = usage.UiPid.ToString();
+        SelfUsageCpu = usage.CpuPct.ToString("F1") + "%";
+        SelfUsageMemory = usage.MemoryMb.ToString("F0");
+        SelfUsageDetail = _loc.Format(
+            "SelfUsageDetail",
+            FormatSelfPart(usage.UiMb),
+            FormatSelfPart(usage.CollectorMb),
+            FormatSelfPart(usage.CaptureMb),
+            FormatSelfPart(usage.SensorMb));
+    }
+
+    private static string FormatSelfPart(double megabytes) =>
+        megabytes > 0 ? megabytes.ToString("F0") : "—";
+
     private void UpdateProcesses()
     {
         SampleRecord sample = _telemetry.Latest;
@@ -1603,6 +1639,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public void RefreshLocalization()
     {
         PauseText = IsPaused ? _loc["Resume"] : _loc["Pause"];
+        SelfUsageName = _loc["SelfUsageName"];
         OnPropertyChanged(nameof(StutterSummaryText));
         foreach (StutterEventRow row in StutterEvents)
         {
@@ -1619,12 +1656,15 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             UpdateProcesses();
             UpdateFrameMetrics();
         }
+
+        UpdateSelfUsage();
     }
 
     public void Dispose()
     {
         _cts.Cancel();
         _cts.Dispose();
+        _selfUsage.Dispose();
 
         int frameCount = CopyFrameTimeline();
         _sessions.FlushPending(DateTime.UtcNow, _timeline, TimelineCount, _frameTimelineBuffer, frameCount);
