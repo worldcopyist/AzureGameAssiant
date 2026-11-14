@@ -11,6 +11,7 @@ using AzureGameAssistant.Core.Frames;
 using AzureGameAssistant.Core.Hardware;
 using AzureGameAssistant.Core.Models;
 using AzureGameAssistant.Core.Performance;
+using AzureGameAssistant.Core.Quality;
 using AzureGameAssistant.Core.Settings;
 using AzureGameAssistant.Core.Sessions;
 using AzureGameAssistant.UI.Controls;
@@ -68,6 +69,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private double _uptimeSeconds;
     private int _samplingIntervalMs;
     private string _frameState = "stopped";
+    private bool _safeMode;
     private int? _frameTargetPid;
     private string? _frameError;
     private long _lastLoadSampleTicks;
@@ -294,7 +296,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             }
         }
 
-        string mode = _frameState == "capturing" || _settings.Sensors.Enabled ? "deep" : "shallow";
+        string mode = !_safeMode && (_frameState == "capturing" || _settings.Sensors.Enabled) ? "deep" : "shallow";
         return new FactsInput(
             samples,
             frameBuffer.AsSpan(0, frameCount).ToArray(),
@@ -414,6 +416,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public bool HasCollectorProblem =>
         _launcher.State is CollectorState.Missing or CollectorState.Failed ||
         (!_connected && _launcher.State == CollectorState.Stopped);
+
+    public string QualityText { get; private set; } = string.Empty;
+
+    public bool HasQualityWarning { get; private set; }
 
     public event EventHandler? TelemetryUpdated;
 
@@ -770,6 +776,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task StartFrameCaptureAsync()
     {
+        if (_safeMode)
+        {
+            FrameCaptureDetail = _loc["SafeModeFramesOff"];
+            return;
+        }
+
         if (SelectedFrameTarget is not { } target)
         {
             FrameCaptureDetail = _loc["FrameCaptureNoTarget"];
@@ -793,7 +805,34 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private void RestartElevated() => ElevationRequested?.Invoke(this, EventArgs.Empty);
+    private void RestartElevated()
+    {
+        if (!_safeMode)
+        {
+            ElevationRequested?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    public bool IsSafeMode => _safeMode;
+
+    public string SafeModeTitleText => _loc["SafeModeTitle"];
+
+    public string SafeModeChecksText => _loc["SafeModeChecks"];
+
+    /// <summary>
+    /// Anti-cheat friendly start requested with --safe-mode: never elevate,
+    /// never touch PresentMon/ETW, never load the sensor sidecar.
+    /// </summary>
+    public void ApplySafeMode()
+    {
+        _safeMode = true;
+        ShowElevationButton = false;
+        OnPropertyChanged(nameof(IsSafeMode));
+        OnPropertyChanged(nameof(SafeModeTitleText));
+        OnPropertyChanged(nameof(SafeModeChecksText));
+        UpdateFrameTexts();
+        UpdateQualityBadge();
+    }
 
     public DetachedChartSettings DetachedChartPlacement => _settings.Charts.Detached;
 
@@ -905,7 +944,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     private async Task TryAutoCaptureAsync()
     {
-        if (!_settings.Frames.Enabled || !_settings.Frames.AutoCapture)
+        if (_safeMode || !_settings.Frames.Enabled || !_settings.Frames.AutoCapture)
         {
             return;
         }
@@ -1448,7 +1487,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     private SessionContext BuildSessionContext()
     {
-        bool deep = _frameState == "capturing" || IsFrameDataFresh || _settings.Sensors.Enabled;
+        bool deep = !_safeMode &&
+            (_frameState == "capturing" || IsFrameDataFresh || _settings.Sensors.Enabled);
         var capabilities = new List<string>(6) { "samples", "processes" };
         if (_frameState == "capturing" || IsFrameDataFresh)
         {
@@ -1636,6 +1676,44 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         OnPropertyChanged(nameof(IsConnectedToCollector));
         OnPropertyChanged(nameof(HasCollectorProblem));
+        UpdateQualityBadge();
+    }
+
+    private void UpdateQualityBadge()
+    {
+        double age = _lastFrameAt == DateTime.MinValue
+            ? double.PositiveInfinity
+            : (DateTime.UtcNow - _lastFrameAt).TotalSeconds;
+        bool capturing = !_safeMode && _frameState == "capturing";
+
+        DataQualityFlags flags = DataQuality.Evaluate(
+            !_safeMode,
+            !capturing || IsFrameDataFresh,
+            capturing ? age : 0,
+            _connected,
+            0,
+            0);
+
+        var parts = new List<string>(3);
+        if (flags.HasFlag(DataQualityFlags.ShallowMode))
+        {
+            parts.Add(_loc["QualityShallow"]);
+        }
+
+        if (flags.HasFlag(DataQualityFlags.FrameInterrupted))
+        {
+            parts.Add(_loc["QualityFrameGap"]);
+        }
+
+        if (flags.HasFlag(DataQualityFlags.CollectorInterrupted))
+        {
+            parts.Add(_loc["QualityCollectorGap"]);
+        }
+
+        QualityText = parts.Count == 0 ? _loc["QualityComplete"] : string.Join(" · ", parts);
+        HasQualityWarning = flags != DataQualityFlags.None;
+        OnPropertyChanged(nameof(QualityText));
+        OnPropertyChanged(nameof(HasQualityWarning));
     }
 
     private void UpdateFrameTexts()
@@ -1652,6 +1730,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         string text = _loc[key];
         FrameCaptureText = _frameTargetPid is int pid ? _loc.Format("FrameStateWithPid", text, pid) : text;
         FrameCaptureDetail = _frameError ?? string.Empty;
+        UpdateQualityBadge();
     }
 
     private void UpdateFooter()

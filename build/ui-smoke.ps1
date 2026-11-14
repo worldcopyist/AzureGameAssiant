@@ -150,9 +150,17 @@ try {
     $pauseButton = Find-ById $mainWindow "PauseButton"
     $aiButton = Find-ById $mainWindow "AiAnalyzeButton"
     $chart = Find-ById $mainWindow "CombinedChart"
+    $qualityBadge = Find-ById $mainWindow "QualityBadge"
+    $focusEventButton = Find-ById $mainWindow "FocusEventButton"
+    $exportPngButton = Find-ById $mainWindow "ExportPngButton"
+    $exportCsvButton = Find-ById $mainWindow "ExportCsvButton"
     Check ($null -ne $pauseButton) "PauseButton present"
     Check ($null -ne $aiButton) "AiAnalyzeButton present"
     Check ($null -ne $chart) "CombinedChart present"
+    Check ($null -ne $qualityBadge) "QualityBadge present"
+    Check ($null -ne $focusEventButton) "FocusEventButton present"
+    Check ($null -ne $exportPngButton) "ExportPngButton present"
+    Check ($null -ne $exportCsvButton) "ExportCsvButton present"
 
     if ($null -ne $chart) {
         $deadline = (Get-Date).AddSeconds(20)
@@ -193,6 +201,9 @@ try {
             if ($null -ne $settingsWindow) {
                 Save-WindowShot $settingsWindow $screenshotSettings
                 Check (Test-Path $screenshotSettings) "settings screenshot saved"
+
+                $bundleButton = Find-ById $settingsWindow "ExportDiagnosticBundleButton"
+                Check ($null -ne $bundleButton) "ExportDiagnosticBundleButton present"
 
                 $cancelButton = Find-ById $settingsWindow "SettingsCancel"
                 if ($null -ne $cancelButton) {

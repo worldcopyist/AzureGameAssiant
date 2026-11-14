@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using AzureGameAssistant.Core.Frames;
 using AzureGameAssistant.Core.Models;
+using AzureGameAssistant.Core.Quality;
 
 namespace AzureGameAssistant.Core.Sessions;
 
@@ -175,6 +176,17 @@ public static class SessionMarkdownReport
         builder.AppendLine(zh
             ? $"- 帧统计排除 ≥{DiscontinuityFrameMs:0} ms 的单帧断档，避免停顿被当作一次渲染。"
             : $"- Frame statistics exclude single frames ≥{DiscontinuityFrameMs:0} ms so stalls are not counted as renders.");
+
+        DataQualityFlags quality = DataQuality.Evaluate(
+            string.Equals(header.Mode, "deep", StringComparison.OrdinalIgnoreCase),
+            frames.Length > 0,
+            0,
+            true,
+            dropped,
+            frameDropped);
+        builder.AppendLine(zh
+            ? $"- 数据质量：{DataQuality.Describe(quality, true)}"
+            : $"- Data quality: {DataQuality.Describe(quality, false)}");
 
         if (ai is not null)
         {

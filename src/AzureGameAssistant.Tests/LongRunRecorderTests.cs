@@ -110,6 +110,25 @@ public sealed class LongRunRecorderTests : IDisposable
         Assert.Contains("硬件高负载事件数: 1", summary);
     }
 
+    [Fact]
+    public void WritesResourceRowsAndSummary()
+    {
+        var recorder = new LongRunRecorder(_directory, 60, "{}");
+        DateTime start = new(2026, 11, 7, 12, 0, 0, DateTimeKind.Utc);
+
+        recorder.Record(Snapshot(start, Sample(start), framesFresh: false, fps: 0));
+        recorder.Stop("test");
+
+        string[] lines = File.ReadAllLines(Path.Combine(_directory, "resources.csv"));
+        Assert.True(lines.Length >= 2);
+        Assert.StartsWith("time_utc,process,pid,handles", lines[0]);
+        Assert.Contains(",ui,", lines[1]);
+
+        string summary = File.ReadAllText(Path.Combine(_directory, "summary.txt"));
+        Assert.Contains("[句柄与 GDI/USER 对象（每 30 秒）]", summary);
+        Assert.Contains("ui: samples=", summary);
+    }
+
     private static SampleRecord Sample(DateTime start) => new()
     {
         UtcTicks = start.Ticks,

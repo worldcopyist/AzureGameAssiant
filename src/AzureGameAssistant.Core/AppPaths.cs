@@ -20,6 +20,7 @@ public static class AppPaths
     public static string AiReportsDirectory => Path.Combine(AiDirectory, "reports");
     public static string AiUsagePath => Path.Combine(AiDirectory, "usage.json");
     public static string DiagnosticsDirectory => Path.Combine(RootDirectory, "diagnostics");
+    public static string DiagnosticBundlesDirectory => Path.Combine(RootDirectory, "diagnostic-bundles");
 
     public static void EnsureDirectories()
     {

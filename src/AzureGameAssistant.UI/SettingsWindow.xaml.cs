@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Windows;
 using AzureGameAssistant.Ai;
 using AzureGameAssistant.Core;
+using AzureGameAssistant.Core.Diagnostics;
 using AzureGameAssistant.Core.Settings;
 using AzureGameAssistant.UI.Services;
 using AzureGameAssistant.UI.ViewModels;
@@ -228,6 +229,52 @@ public partial class SettingsWindow : Window
     private void OnOpenDiagnosticsFolder(object sender, RoutedEventArgs e)
     {
         OpenFolder(AppPaths.DiagnosticsDirectory);
+    }
+
+    private void OnExportDiagnosticBundle(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = LocalizationService.Instance["ExportDiagnosticBundle"],
+            Filter = "ZIP (*.zip)|*.zip",
+            DefaultExt = ".zip",
+            AddExtension = true,
+            FileName = "ags-diagnostics-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".zip",
+            InitialDirectory = AppPaths.DiagnosticBundlesDirectory,
+        };
+        Directory.CreateDirectory(AppPaths.DiagnosticBundlesDirectory);
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            DiagnosticBundleResult result = DiagnosticBundle.Create(new DiagnosticBundleOptions(
+                AppPaths.DiagnosticsDirectory,
+                AppPaths.IssueLogsDirectory,
+                AppPaths.SettingsPath,
+                dialog.FileName));
+            MessageBox.Show(
+                this,
+                LocalizationService.Instance.Format(
+                    "DiagnosticBundleDone",
+                    result.Entries.Count,
+                    result.RedactedFiles,
+                    result.Path),
+                Title,
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            MessageBox.Show(
+                this,
+                LocalizationService.Instance.Format("DiagnosticBundleFailed", ex.Message),
+                Title,
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
     }
 
     private static void OpenFolder(string directory)

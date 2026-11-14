@@ -46,6 +46,7 @@ public sealed record AiAnalysisResult(
     int InputTokens,
     int OutputTokens,
     double Cost,
+    bool UsageEstimated,
     IReadOnlyList<string> Warnings,
     int Attempts,
     bool Streamed);
@@ -221,6 +222,7 @@ public sealed class AiAnalysisService : IDisposable
         int attempts = completion.Attempts;
         bool streamed = completion.Streamed;
         (int inputTokens, int outputTokens) = CountTokens(completion, prompt);
+        bool usageEstimated = completion.PromptTokens is null || completion.CompletionTokens is null;
         double cost = CostOf(prepared, inputTokens, outputTokens);
 
         if (completion.Success)
@@ -282,6 +284,7 @@ public sealed class AiAnalysisService : IDisposable
             inputTokens += repairInput;
             outputTokens += repairOutput;
             cost += repairCost;
+            usageEstimated |= second.PromptTokens is null || second.CompletionTokens is null;
             streamed |= second.Streamed;
 
             validation = AiReportValidator.Validate(second.Content, prepared.Facts);
@@ -308,6 +311,7 @@ public sealed class AiAnalysisService : IDisposable
             inputTokens,
             outputTokens,
             cost,
+            usageEstimated,
             warnings,
             attempts,
             streamed);
@@ -460,7 +464,7 @@ public sealed class AiAnalysisService : IDisposable
         string? raw,
         List<string> warnings,
         int attempts) =>
-        new(false, true, local, failure, error, raw, null, 0, 0, 0, warnings, attempts, false);
+        new(false, true, local, failure, error, raw, null, 0, 0, 0, false, warnings, attempts, false);
 
     private string? SaveReport(AiReport report)
     {

@@ -233,8 +233,10 @@ public sealed class TimelineChart : FrameworkElement
         }
 
         PauseFlow();
+        double latest = LatestEndTicks();
+        double baseEnd = _viewport.ResolveEndTicks(latest);
         double eventCenter = (_eventStartUtc + Math.Max(_eventStartUtc, _eventEndUtc)) * 0.5;
-        double pan = ((LatestEndTicks() - eventCenter) / TimeSpan.TicksPerSecond) - (_viewport.WindowSeconds * 0.5);
+        double pan = ((baseEnd - eventCenter) / TimeSpan.TicksPerSecond) - (_viewport.WindowSeconds * 0.5);
         bool moved = _viewport.SetPan(pan, AvailableSpanSeconds());
         if (moved || _viewport.IsPaused)
         {

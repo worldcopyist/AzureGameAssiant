@@ -98,8 +98,14 @@
 
                         <TextBlock Grid.Row="3" Style="{StaticResource Detail}" Margin="0,0,0,4"
                                    Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiCostLabel]}" />
-                        <TextBlock Grid.Row="3" Grid.Column="1" Style="{StaticResource MonoText}" Margin="0,0,0,4"
-                                   Text="{Binding CostText}" TextWrapping="Wrap" />
+                        <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,4">
+                            <TextBlock Style="{StaticResource MonoText}" Text="{Binding CostText}" TextWrapping="Wrap" />
+                            <Border Margin="8,0,0,0" Padding="5,1" CornerRadius="3" VerticalAlignment="Center"
+                                    Background="{DynamicResource AccentSoftBrush}"
+                                    Visibility="{Binding HasCostSource, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Style="{StaticResource Detail}" Text="{Binding CostSourceText}" />
+                            </Border>
+                        </StackPanel>
 
                         <TextBlock Grid.Row="4" Style="{StaticResource Detail}" Margin="0,0,0,4"
                                    Text="{Binding Source={x:Static svc:LocalizationService.Instance}, Path=[AiBudgetLabel]}" />

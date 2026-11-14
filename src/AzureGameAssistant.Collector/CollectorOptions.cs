@@ -8,6 +8,12 @@ internal sealed class CollectorOptions
     public int? IntervalOverrideMs { get; private init; }
     public bool EnablePipe { get; private init; } = true;
     public int? ParentProcessId { get; private init; }
+
+    /// <summary>
+    /// Anti-cheat friendly start: no frame capture and no sensor sidecar, so
+    /// no PresentMon/ETW session and no kernel driver are touched.
+    /// </summary>
+    public bool SafeMode { get; private init; }
     public bool ShowHelp { get; private init; }
     public string? ParseError { get; private init; }
 
@@ -17,6 +23,7 @@ internal sealed class CollectorOptions
         int? interval = null;
         bool pipe = true;
         int? parent = null;
+        bool safeMode = false;
         bool help = false;
         string? error = null;
 
@@ -31,6 +38,10 @@ internal sealed class CollectorOptions
 
                 case "--no-pipe":
                     pipe = false;
+                    break;
+
+                case "--safe-mode":
+                    safeMode = true;
                     break;
 
                 case "--duration":
@@ -87,6 +98,7 @@ internal sealed class CollectorOptions
             IntervalOverrideMs = interval,
             EnablePipe = pipe,
             ParentProcessId = parent,
+            SafeMode = safeMode,
             ShowHelp = help,
             ParseError = error,
         };

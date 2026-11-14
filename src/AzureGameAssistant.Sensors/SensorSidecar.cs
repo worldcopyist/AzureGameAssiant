@@ -20,6 +20,7 @@ internal sealed class SensorSidecar : IDisposable
     private Computer? _computer;
     private IHardware? _gpu;
     private IHardware? _cpu;
+    private NvmlPowerReader? _nvmlPower;
     private CancellationTokenSource? _cpuStop;
     private Task? _cpuTask;
     private int _cpuTempBits = BitConverter.SingleToInt32Bits(float.NaN);
@@ -57,6 +58,11 @@ internal sealed class SensorSidecar : IDisposable
 
             _computer.Open();
             _gpu = SelectGpu(_computer);
+
+            _nvmlPower = NvmlPowerReader.TryCreate();
+            _logger.Info(_nvmlPower is null
+                ? "NVML 功耗补源不可用"
+                : "NVML 功耗补源已启用");
 
             if (DriverCpuEnabled)
             {
@@ -136,6 +142,11 @@ internal sealed class SensorSidecar : IDisposable
         if (DriverCpuEnabled && _cpu is { } cpu)
         {
             ReadDriverCpu(cpu);
+        }
+
+        if (float.IsNaN(power) && _nvmlPower is not null && _nvmlPower.TryRead(out float nvmlWatts))
+        {
+            power = nvmlWatts;
         }
 
         float cpuTemperature = BitConverter.Int32BitsToSingle(Volatile.Read(ref _cpuTempBits));
@@ -465,6 +476,9 @@ internal sealed class SensorSidecar : IDisposable
         _cpuStop?.Dispose();
         _cpuStop = null;
         _cpuTask = null;
+
+        _nvmlPower?.Dispose();
+        _nvmlPower = null;
 
         DisposeComputer();
     }

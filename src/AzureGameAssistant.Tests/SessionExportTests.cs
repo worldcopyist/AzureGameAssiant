@@ -129,6 +129,18 @@ public sealed class SessionExportTests
 
         Assert.Contains("会话仍在录制或写入未完成", markdown);
         Assert.Contains("采样 3 个，帧 2 个", markdown);
+        Assert.Contains("数据质量：帧数据中断 · 采集数据中断", markdown);
+    }
+
+    [Fact]
+    public void ShallowSessionIsMarkedInQualityLine()
+    {
+        SessionDocument document = Document(BuildSamples(), [], Report());
+        document.Header.Mode = "shallow";
+
+        string markdown = SessionMarkdownReport.Build(document, "zh-CN", null, "x.png");
+
+        Assert.Contains("数据质量：浅模式（无帧时间轴） · 帧数据中断", markdown);
     }
 
     [Fact]

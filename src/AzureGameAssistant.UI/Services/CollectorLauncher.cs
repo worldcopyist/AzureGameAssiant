@@ -43,7 +43,7 @@ public sealed class CollectorLauncher : IDisposable
 
     public event EventHandler? StateChanged;
 
-    public bool Start()
+    public bool Start(bool safeMode = false)
     {
         if (IsRunning)
         {
@@ -63,7 +63,9 @@ public sealed class CollectorLauncher : IDisposable
             var startInfo = new ProcessStartInfo
             {
                 FileName = ExecutablePath,
-                Arguments = $"--parent {Environment.ProcessId}",
+                Arguments = safeMode
+                    ? $"--parent {Environment.ProcessId} --safe-mode"
+                    : $"--parent {Environment.ProcessId}",
                 WorkingDirectory = Path.GetDirectoryName(ExecutablePath) ?? AppContext.BaseDirectory,
                 UseShellExecute = false,
                 CreateNoWindow = true,

@@ -3,7 +3,9 @@ param(
     [int]$IntervalSeconds = 5,
     [string]$OutputPath = "",
     [string[]]$ProcessNames = @("AzureGameAssistant", "AzureGameAssistant.Collector"),
-    [switch]$IncludeSensors
+    [switch]$IncludeSensors,
+    [ValidateSet("auto", "tray", "main", "deep", "highload", "none")]
+    [string]$Mode = "auto"
 )
 
 $ErrorActionPreference = "Stop"
@@ -23,6 +25,55 @@ if ($outputDirectory -and -not (Test-Path $outputDirectory)) {
     New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
 }
 
+function Get-MainWindowVisible {
+    $process = Get-Process -Name "AzureGameAssistant" -ErrorAction SilentlyContinue | Select-Object -First 1
+    return ($null -ne $process -and $process.MainWindowHandle -ne [IntPtr]::Zero)
+}
+
+if ($Mode -eq "auto") {
+    $effectiveMode = if (Get-MainWindowVisible) { "main" } else { "tray" }
+} else {
+    $effectiveMode = $Mode
+}
+
+$physicalMb = 0
+try {
+    $physicalMb = [double](Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).TotalPhysicalMemory / 1MB
+} catch {
+}
+
+# Budgets follow the confirmed performance red lines in docs/handoff.md §6:
+# collector shallow <=30MB / <=0.3% CPU, deep <=45MB / <=0.5% (combined <=1.0%),
+# UI tray <=60MB, UI main window <=80MB, high-load shed total <1% physical RAM.
+$budgets = New-Object System.Collections.Generic.List[object]
+function Add-Budget([string]$Process, [string]$Metric, [double]$Limit) {
+    $budgets.Add([pscustomobject]@{ Process = $Process; Metric = $Metric; Limit = $Limit })
+}
+
+switch ($effectiveMode) {
+    "tray" {
+        Add-Budget "AzureGameAssistant" "PrivateWorkingSetMb" 60
+        Add-Budget "AzureGameAssistant.Collector" "PrivateWorkingSetMb" 30
+        Add-Budget "AzureGameAssistant.Collector" "CpuPercent" 0.3
+    }
+    "main" {
+        Add-Budget "AzureGameAssistant" "PrivateWorkingSetMb" 80
+        Add-Budget "AzureGameAssistant.Collector" "PrivateWorkingSetMb" 30
+        Add-Budget "AzureGameAssistant.Collector" "CpuPercent" 0.3
+    }
+    "deep" {
+        Add-Budget "AzureGameAssistant" "PrivateWorkingSetMb" 80
+        Add-Budget "AzureGameAssistant.Collector" "PrivateWorkingSetMb" 45
+        Add-Budget "AzureGameAssistant.Collector" "CpuPercent" 0.5
+        Add-Budget "Total" "CpuPercent" 1.0
+    }
+    "highload" {
+        if ($physicalMb -gt 0) {
+            Add-Budget "Total" "PrivateWorkingSetMb" [Math]::Round($physicalMb * 0.01, 1)
+        }
+    }
+}
+
 $duration = [TimeSpan]::FromMinutes([Math]::Max(1, $DurationMinutes))
 $interval = [TimeSpan]::FromSeconds([Math]::Max(1, $IntervalSeconds))
 $logicalCores = [Environment]::ProcessorCount
@@ -31,6 +82,7 @@ $previous = @{}
 $rows = New-Object System.Collections.Generic.List[object]
 
 Write-Host "Measuring for $($duration.TotalMinutes) minute(s), sampling every $($interval.TotalSeconds)s."
+Write-Host "Mode: $effectiveMode (requested: $Mode)"
 Write-Host "Output: $OutputPath"
 
 while ((Get-Date) - $started -lt $duration) {
@@ -96,7 +148,11 @@ $rows | Export-Csv -Path $OutputPath -NoTypeInformation -Encoding UTF8
 $summaryPath = [System.IO.Path]::ChangeExtension($OutputPath, ".summary.txt")
 $lines = New-Object System.Collections.Generic.List[string]
 $lines.Add("Measured: $($started.ToString('o')) for $($duration.TotalMinutes) minute(s)")
+$lines.Add("Mode: $effectiveMode (requested: $Mode)")
 $lines.Add("Logical cores: $logicalCores")
+if ($physicalMb -gt 0) {
+    $lines.Add("Physical memory: $([Math]::Round($physicalMb, 0)) MB")
+}
 $lines.Add("")
 
 function Get-Median([double[]]$values) {
@@ -110,6 +166,7 @@ function Get-Median([double[]]$values) {
     return ($sorted[$middle - 1] + $sorted[$middle]) / 2
 }
 
+$medians = @{}
 foreach ($group in ($rows | Group-Object Process)) {
     $privateValues = @($group.Group | Where-Object { $null -ne $_.PrivateMb } | ForEach-Object { [double]$_.PrivateMb })
     $privateWorkingValues = @($group.Group | Where-Object { $null -ne $_.PrivateWorkingSetMb } | ForEach-Object { [double]$_.PrivateWorkingSetMb })
@@ -117,18 +174,90 @@ foreach ($group in ($rows | Group-Object Process)) {
     $cpuValues = @($group.Group | Where-Object { $null -ne $_.CpuPercent } | ForEach-Object { [double]$_.CpuPercent })
     $handleValues = @($group.Group | Where-Object { $null -ne $_.HandleCount } | ForEach-Object { [double]$_.HandleCount })
 
+    $medians[$group.Name] = [pscustomobject]@{
+        PrivateWorkingSetMb = Get-Median $privateWorkingValues
+        WorkingSetMb        = Get-Median $workingValues
+        PrivateMb           = Get-Median $privateValues
+        CpuPercent          = Get-Median $cpuValues
+        HandleCount         = Get-Median $handleValues
+    }
+
     $line = "{0}: samples={1}  WS median={2:N1} MB  privateWS median={3:N1} MB  commit median={4:N1} MB  CPU median={5:N3}%  handles={6}" -f `
         $group.Name,
         $group.Count,
-        (Get-Median $workingValues),
-        (Get-Median $privateWorkingValues),
-        (Get-Median $privateValues),
-        (Get-Median $cpuValues),
-        (Get-Median $handleValues)
+        $medians[$group.Name].WorkingSetMb,
+        $medians[$group.Name].PrivateWorkingSetMb,
+        $medians[$group.Name].PrivateMb,
+        $medians[$group.Name].CpuPercent,
+        $medians[$group.Name].HandleCount
 
     $lines.Add($line)
     Write-Host $line
 }
 
+$budgetLines = New-Object System.Collections.Generic.List[string]
+$budgetFailures = 0
+$missing = 0
+$totals = [pscustomobject]@{ PrivateWorkingSetMb = 0.0; CpuPercent = 0.0 }
+
+foreach ($name in $ProcessNames) {
+    $median = $medians[$name]
+    if ($null -eq $median -or $null -eq $median.PrivateWorkingSetMb) {
+        $missing++
+        $budgetLines.Add("MISSING $name (no samples)")
+        continue
+    }
+
+    $totals.PrivateWorkingSetMb += [double]$median.PrivateWorkingSetMb
+    if ($null -ne $median.CpuPercent) {
+        $totals.CpuPercent += [double]$median.CpuPercent
+    }
+}
+
+foreach ($budget in $budgets) {
+    if ($budget.Process -eq "Total") {
+        $actual = if ($budget.Metric -eq "CpuPercent") { $totals.CpuPercent } else { $totals.PrivateWorkingSetMb }
+    } elseif ($null -ne $medians[$budget.Process]) {
+        $actual = $medians[$budget.Process].($budget.Metric)
+    } else {
+        $actual = $null
+    }
+
+    if ($null -eq $actual) {
+        $budgetLines.Add("SKIP $($budget.Process) $($budget.Metric): no data")
+        continue
+    }
+
+    $unit = if ($budget.Metric -eq "CpuPercent") { "%" } else { " MB" }
+    if ([double]$actual -le $budget.Limit) {
+        $budgetLines.Add(("PASS {0} {1} = {2:N3}{3} (limit {4:N3}{3})" -f `
+            $budget.Process, $budget.Metric, $actual, $unit, $budget.Limit))
+    } else {
+        $budgetFailures++
+        $budgetLines.Add(("FAIL {0} {1} = {2:N3}{3} (limit {4:N3}{3})" -f `
+            $budget.Process, $budget.Metric, $actual, $unit, $budget.Limit))
+    }
+}
+
+$lines.Add("")
+$lines.Add("Budgets:")
+$lines.AddRange($budgetLines)
+foreach ($line in $budgetLines) {
+    Write-Host $line
+}
+
 $lines | Set-Content -Path $summaryPath -Encoding UTF8
 Write-Host "Summary: $summaryPath"
+
+if ($missing -gt 0) {
+    Write-Host "RESULT INCOMPLETE: $missing process(es) produced no samples."
+    exit 2
+}
+
+if ($budgetFailures -gt 0) {
+    Write-Host "RESULT FAIL: $budgetFailures budget(s) exceeded."
+    exit 1
+}
+
+Write-Host "RESULT PASS"
+exit 0

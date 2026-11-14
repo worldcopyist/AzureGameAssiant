@@ -90,6 +90,29 @@ public sealed class AiAnalysisServiceTests
         Assert.True(File.Exists(result.SavedPath));
         Assert.True(fixture.Usage.Snapshot().Cost > 0);
         Assert.Equal(1, fixture.Handler.Calls);
+        Assert.Equal(120, result.InputTokens);
+        Assert.Equal(60, result.OutputTokens);
+        Assert.False(result.UsageEstimated);
+        Assert.Equal(0.00024, result.Cost, 6);
+    }
+
+    [Fact]
+    public async Task MissingUsageMarksTokensEstimated()
+    {
+        string body = "{\"choices\":[{\"message\":{\"content\":" +
+            System.Text.Json.JsonSerializer.Serialize(ReportJson) + "}}]}";
+        using var fixture = new Fixture(respond: (_, _) => Json(HttpStatusCode.OK, body));
+        AppSettings settings = Fixture.Settings();
+        fixture.Store.Keys["test-local"] = "sk-test";
+
+        AiPreparedRequest prepared = fixture.Service.BuildRequest(settings, Fixture.Facts(), "zh-CN");
+        AiAnalysisResult result = await fixture.Service.AnalyzeAsync(prepared, null, CancellationToken.None);
+
+        Assert.True(result.Success, result.Error);
+        Assert.True(result.UsageEstimated);
+        Assert.True(result.InputTokens > 0);
+        Assert.True(result.OutputTokens > 0);
+        Assert.True(result.Cost > 0);
     }
 
     [Fact]

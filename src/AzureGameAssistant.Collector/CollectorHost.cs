@@ -63,7 +63,8 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
         _jitter = new JitterMonitor(logger);
 
         _presentMonPath = ResolvePresentMonPath(settings.Frames.PresentMonPath);
-        if (settings.Frames.Enabled &&
+        if (!options.SafeMode &&
+            settings.Frames.Enabled &&
             settings.Frames.TargetPid is int targetPid &&
             targetPid > 0 &&
             IsProcessAlive(targetPid))
@@ -73,7 +74,7 @@ internal sealed class CollectorHost : ICollectorControl, IDisposable
                 () => IsTargetActive(targetPid));
         }
 
-        if (settings.Sensors.Enabled)
+        if (settings.Sensors.Enabled && !options.SafeMode)
         {
             _sensorReader = new SensorReader();
             _sensor = new SensorSupervisor(

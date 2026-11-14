@@ -28,6 +28,9 @@ public sealed record AiRecommendationRow(
 public sealed partial class AiAnalysisViewModel : ObservableObject
 {
     private readonly LocalizationService _loc;
+    private readonly bool _priced;
+    private readonly double _inputPrice;
+    private readonly double _outputPrice;
 
     public AiAnalysisViewModel(
         AppSettings settings,
@@ -37,6 +40,9 @@ public sealed partial class AiAnalysisViewModel : ObservableObject
     {
         _loc = loc;
         HasData = hasData;
+        _inputPrice = prepared.Provider.InputPricePerMillion;
+        _outputPrice = prepared.Provider.OutputPricePerMillion;
+        _priced = _inputPrice > 0 || _outputPrice > 0;
 
         Signature = AiAnalysisService.ConsentSignature(
             prepared.Provider.Id,
@@ -49,11 +55,12 @@ public sealed partial class AiAnalysisViewModel : ObservableObject
         EndpointText = prepared.Endpoint?.ToString() ?? "—";
         TokenText = loc.Format("AiTokenSummary", prepared.InputTokens, prepared.MaxOutputTokens);
 
-        bool priced = prepared.Provider.InputPricePerMillion > 0 ||
-                      prepared.Provider.OutputPricePerMillion > 0;
+        bool priced = _priced;
         CostText = priced
             ? loc.Format("AiCostEstimate", "$" + prepared.EstimatedCost.ToString("F4", CultureInfo.InvariantCulture))
             : loc["AiCostUnknown"];
+        CostSourceText = priced ? loc["AiCostSourceEstimate"] : string.Empty;
+        HasCostSource = priced;
 
         BudgetText = FormatBudget(prepared, loc);
         RedactionText = prepared.RedactionHits > 0
@@ -82,9 +89,17 @@ public sealed partial class AiAnalysisViewModel : ObservableObject
 
     public string EndpointText { get; }
 
-    public string TokenText { get; }
+    [ObservableProperty]
+    private string _tokenText = string.Empty;
 
-    public string CostText { get; }
+    [ObservableProperty]
+    private string _costText = string.Empty;
+
+    [ObservableProperty]
+    private string _costSourceText = string.Empty;
+
+    [ObservableProperty]
+    private bool _hasCostSource;
 
     public string BudgetText { get; }
 
@@ -233,6 +248,7 @@ public sealed partial class AiAnalysisViewModel : ObservableObject
             : _loc["AiLocalFallback"];
 
         Populate(result.Report, result.Warnings);
+        ApplyUsage(result);
 
         HasSavedPath = !string.IsNullOrEmpty(result.SavedPath);
         SavedText = HasSavedPath ? _loc.Format("AiSavedReport", result.SavedPath) : string.Empty;
@@ -253,6 +269,9 @@ public sealed partial class AiAnalysisViewModel : ObservableObject
         Populate(report, []);
         HasSavedPath = true;
         SavedText = _loc.Format("AiSavedSessionReport", path);
+        CostText = _loc["AiCostCachedZero"];
+        CostSourceText = _loc["AiCostSourceCached"];
+        HasCostSource = true;
         if (!HasConfigError)
         {
             RunText = _loc["AiRunAgain"];
@@ -268,6 +287,34 @@ public sealed partial class AiAnalysisViewModel : ObservableObject
         {
             RunText = _loc["AiRunAgain"];
         }
+    }
+
+    private void ApplyUsage(AiAnalysisResult result)
+    {
+        if (result.InputTokens + result.OutputTokens <= 0)
+        {
+            return;
+        }
+
+        TokenText = _loc.Format("AiTokenActual", result.InputTokens, result.OutputTokens);
+        if (!_priced)
+        {
+            CostText = _loc["AiCostUnknown"];
+            CostSourceText = string.Empty;
+            HasCostSource = false;
+            return;
+        }
+
+        string total = "$" + result.Cost.ToString("F4", CultureInfo.InvariantCulture);
+        string breakdown = _loc.Format(
+            "AiCostBreakdown",
+            result.InputTokens,
+            _inputPrice.ToString("F2", CultureInfo.InvariantCulture),
+            result.OutputTokens,
+            _outputPrice.ToString("F2", CultureInfo.InvariantCulture));
+        CostText = _loc.Format("AiCostActual", total) + " · " + breakdown;
+        CostSourceText = result.UsageEstimated ? _loc["AiCostSourceEstimated"] : _loc["AiCostSourceReported"];
+        HasCostSource = true;
     }
 
     private void Populate(AiReport report, IReadOnlyList<string> warnings)

@@ -56,6 +56,7 @@ public partial class App : Application
     private bool _sensorSyncBusy;
     private DateTime _sensorSyncRetryAt = DateTime.MinValue;
     private bool _shuttingDown;
+    private bool _safeMode;
     private int _appliedNormalMs = 1_000;
     private int _appliedSensorIntervalMs = 1_000;
     private string _appliedCpuMode = "acpi";
@@ -130,7 +131,9 @@ public partial class App : Application
 
         bool skipElevation = e.Args.Any(arg =>
             string.Equals(arg, "--no-elevate", StringComparison.OrdinalIgnoreCase));
-        if (!elevatedRelaunch && !skipElevation &&
+        _safeMode = e.Args.Any(arg =>
+            string.Equals(arg, "--safe-mode", StringComparison.OrdinalIgnoreCase));
+        if (!_safeMode && !elevatedRelaunch && !skipElevation &&
             _settings.RequestElevationOnStartup &&
             !PermissionDiagnostics.IsElevated() &&
             TryRelaunchElevated(e.Args))
@@ -187,7 +190,13 @@ public partial class App : Application
         };
         _timer.Tick += OnRefreshTick;
 
-        _launcher.Start();
+        _launcher.Start(_safeMode);
+
+        if (_safeMode)
+        {
+            _viewModel.ApplySafeMode();
+            _logger?.Info("安全模式：未提权、帧采集关闭、传感器不加载");
+        }
 
         StartLongRunRecorder();
 
@@ -311,7 +320,7 @@ public partial class App : Application
     /// </summary>
     private async Task SyncSensorPauseAsync()
     {
-        if (_client is null || _viewModel is null || !_settings.Sensors.Enabled || _sensorSyncBusy)
+        if (_client is null || _viewModel is null || _safeMode || !_settings.Sensors.Enabled || _sensorSyncBusy)
         {
             return;
         }
@@ -1020,7 +1029,7 @@ public partial class App : Application
         }
         catch (Win32Exception ex) when (ex.NativeErrorCode == 1223)
         {
-            _launcher.Start();
+            _launcher.Start(_safeMode);
             MessageBox.Show(
                 LocalizationService.Instance["ElevationFailed"],
                 LocalizationService.Instance["AppTitle"],
@@ -1029,7 +1038,7 @@ public partial class App : Application
         }
         catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
         {
-            _launcher.Start();
+            _launcher.Start(_safeMode);
             _logger?.Error("提权重启失败", ex);
             MessageBox.Show(
                 LocalizationService.Instance["ElevationFailed"] + "\n" + ex.Message,
@@ -1057,7 +1066,7 @@ public partial class App : Application
         }
 
         await _launcher.WaitForExitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(true);
-        _launcher.Start();
+        _launcher.Start(_safeMode);
 
         // The fresh collector runs its sensor sidecar again; re-apply the
         // pause state once its control pipe is up (retried from the tick).

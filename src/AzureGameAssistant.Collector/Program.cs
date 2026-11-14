@@ -91,6 +91,7 @@ internal static class Program
         Console.WriteLine("  --interval <ms>        覆盖采样间隔（100–10000）");
         Console.WriteLine("  --no-pipe              不启动控制管道");
         Console.WriteLine("  --parent <pid>         父进程退出后自动停止（界面启动时传入）");
+        Console.WriteLine("  --safe-mode            不启动帧采集与传感器边车（反作弊安全模式）");
         Console.WriteLine("  --help                 显示本帮助");
     }
 }

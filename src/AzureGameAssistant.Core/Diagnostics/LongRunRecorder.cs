@@ -12,6 +12,7 @@ namespace AzureGameAssistant.Core.Diagnostics;
 public sealed class LongRunRecorder : IDisposable
 {
     private const int ProcessIntervalSeconds = 30;
+    private const int ResourceIntervalSeconds = 30;
 
     private const string SampleHeader =
         "time_utc,uptime_s,sample_age_s,cpu_pct,cpu_freq_pct,gpu_pct,gpu_dedicated_mb,gpu_shared_mb," +
@@ -24,13 +25,18 @@ public sealed class LongRunRecorder : IDisposable
 
     private const string ProcessHeader = "time_utc,rank,pid,name,cpu_pct,gpu_pct,working_set_mb";
 
+    private const string ResourceHeader = "time_utc,process,pid,handles,gdi,user,threads,private_mb";
+
     private readonly string _directory;
     private readonly int _intervalSeconds;
     private readonly string _contextJson;
     private readonly DateTime _startedUtc = DateTime.UtcNow;
     private readonly StreamWriter? _samples;
     private readonly StreamWriter? _processes;
+    private readonly StreamWriter? _resources;
     private readonly StreamWriter? _events;
+    private readonly ResourceSeries _uiResources = new("ui");
+    private readonly ResourceSeries _collectorResources = new("collector");
 
     private readonly List<double> _fps = [];
     private readonly List<double> _lowFps = [];
@@ -40,6 +46,7 @@ public sealed class LongRunRecorder : IDisposable
 
     private DateTime _lastRowUtc = DateTime.MinValue;
     private DateTime _lastProcessUtc = DateTime.MinValue;
+    private DateTime _lastResourceUtc = DateTime.MinValue;
     private long _lastRowFramesSeen;
     private long _lastRowSpikesSeen;
     private long _spikeTotal;
@@ -93,6 +100,7 @@ public sealed class LongRunRecorder : IDisposable
         File.WriteAllText(Path.Combine(directory, "context.json"), contextJson, new UTF8Encoding(false));
         _samples = OpenWriter(Path.Combine(directory, "samples.csv"), SampleHeader);
         _processes = OpenWriter(Path.Combine(directory, "processes.csv"), ProcessHeader);
+        _resources = OpenWriter(Path.Combine(directory, "resources.csv"), ResourceHeader);
         _events = OpenWriter(Path.Combine(directory, "events.jsonl"), header: null);
         Event("session_start", new Dictionary<string, object?>
         {
@@ -125,6 +133,12 @@ public sealed class LongRunRecorder : IDisposable
                 WriteProcesses(snapshot))
             {
                 _lastProcessUtc = snapshot.TimestampUtc;
+            }
+
+            if ((snapshot.TimestampUtc - _lastResourceUtc).TotalSeconds >= ResourceIntervalSeconds &&
+                WriteResources(snapshot))
+            {
+                _lastResourceUtc = snapshot.TimestampUtc;
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ObjectDisposedException)
@@ -462,6 +476,53 @@ public sealed class LongRunRecorder : IDisposable
         return true;
     }
 
+    private bool WriteResources(in DiagnosticsSnapshot snapshot)
+    {
+        if (_resources is null)
+        {
+            return false;
+        }
+
+        bool wrote = WriteResourceRow(snapshot, "ui", Environment.ProcessId, _uiResources);
+        if (snapshot.CollectorPid > 0)
+        {
+            wrote |= WriteResourceRow(snapshot, "collector", snapshot.CollectorPid, _collectorResources);
+        }
+
+        if (wrote)
+        {
+            _resources.Flush();
+        }
+
+        return wrote;
+    }
+
+    private bool WriteResourceRow(
+        in DiagnosticsSnapshot snapshot,
+        string name,
+        int pid,
+        ResourceSeries series)
+    {
+        if (_resources is null || !ProcessResourceProbe.TryRead(pid, out ProcessResourceCounters counters))
+        {
+            return false;
+        }
+
+        series.Add(counters);
+        _resources.WriteLine(string.Join(',', new[]
+        {
+            Iso(snapshot.TimestampUtc),
+            name,
+            pid.ToString(CultureInfo.InvariantCulture),
+            counters.HandleCount.ToString(CultureInfo.InvariantCulture),
+            counters.GdiObjects.ToString(CultureInfo.InvariantCulture),
+            counters.UserObjects.ToString(CultureInfo.InvariantCulture),
+            counters.ThreadCount.ToString(CultureInfo.InvariantCulture),
+            Inv(counters.PrivateMb, "F1"),
+        }));
+        return true;
+    }
+
     public void Stop(string reason)
     {
         if (_stopped)
@@ -499,9 +560,11 @@ public sealed class LongRunRecorder : IDisposable
 
         _samples?.Flush();
         _processes?.Flush();
+        _resources?.Flush();
         _events?.Flush();
         _samples?.Dispose();
         _processes?.Dispose();
+        _resources?.Dispose();
         _events?.Dispose();
     }
 
@@ -567,6 +630,11 @@ public sealed class LongRunRecorder : IDisposable
         WriteStats(text, "CPU(%)", _uiCpu);
 
         text.AppendLine();
+        text.AppendLine("[句柄与 GDI/USER 对象（每 30 秒）]");
+        WriteResourceSeries(text, _uiResources);
+        WriteResourceSeries(text, _collectorResources);
+
+        text.AppendLine();
         text.AppendLine("[高频占用进程（按每个记录行的 CPU 第一名统计）]");
         foreach ((string name, int count) in _topOffenders.OrderByDescending(pair => pair.Value).Take(10))
         {
@@ -598,6 +666,23 @@ public sealed class LongRunRecorder : IDisposable
         text.AppendLine(label + " 中位数: " + Inv(Percentile(sorted, 0.5), "F1"));
         text.AppendLine(label + " p95: " + Inv(Percentile(sorted, 0.95), "F1"));
         text.AppendLine(label + " 最大: " + Inv(sorted[^1], "F1"));
+    }
+
+    private static void WriteResourceSeries(StringBuilder text, ResourceSeries series)
+    {
+        if (series.Samples == 0)
+        {
+            return;
+        }
+
+        text.AppendLine(
+            series.Name + ": samples=" + series.Samples +
+            " handles first/last/max=" + series.HandlesFirst + "/" + series.HandlesLast + "/" + series.HandlesMax +
+            " (growth " + series.HandleGrowth + ")" +
+            " gdi=" + series.GdiFirst + "/" + series.GdiLast + "/" + series.GdiMax +
+            " (growth " + series.GdiGrowth + ")" +
+            " user=" + series.UserFirst + "/" + series.UserLast + "/" + series.UserMax +
+            " (growth " + series.UserGrowth + ")");
     }
 
     private static double Percentile(List<double> sorted, double fraction)
