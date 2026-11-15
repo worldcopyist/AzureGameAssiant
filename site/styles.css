@@ -804,6 +804,37 @@ h1 {
 .quick-steps p { margin: 10px 0 0; font-size: 13px; color: var(--site-muted); }
 .start-note { margin: 16px 0 0; font-size: 12.5px; color: var(--site-muted); }
 
+.dev-reel { margin: 0 0 26px; }
+.dev-reel-frame {
+  border: 1px solid var(--site-border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #070a0f;
+  box-shadow: 0 18px 46px rgba(8, 15, 28, 0.18);
+}
+.dev-reel video { display: block; width: 100%; aspect-ratio: 16 / 9; background: #070a0f; }
+.dev-reel figcaption { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 12px; }
+.reel-kicker {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--site-accent);
+  border: 1px solid var(--site-border);
+  border-radius: 999px;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+.dev-reel figcaption p { margin: 0; flex: 1 1 340px; font-size: 12.5px; line-height: 1.65; color: var(--site-muted); }
+.reel-chapters { display: flex; flex-wrap: wrap; gap: 5px; }
+.reel-chapters span {
+  font-size: 10.5px;
+  padding: 3px 7px;
+  border: 1px solid var(--site-border);
+  border-radius: 999px;
+  color: var(--site-muted);
+  background: var(--site-surface);
+}
+
 .qoder-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
