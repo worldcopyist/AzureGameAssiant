@@ -3,10 +3,15 @@ import { existsSync, mkdirSync, rmSync, writeFileSync, readdirSync } from 'node:
 import { resolve, join } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
-const pageUrl = 'file:///' + join(root, 'site', 'dev-reel.html').replace(/\\/g, '/') + '?capture=1';
-const outDir = join(root, 'artifacts', 'reel-frames');
-const mp4 = join(root, 'site', 'assets', 'dev-reel.mp4');
-const poster = join(root, 'site', 'assets', 'dev-reel-poster.jpg');
+const themeArg = process.argv.includes('--theme')
+  ? (process.argv[process.argv.indexOf('--theme') + 1] || 'dark')
+  : 'dark';
+if (themeArg !== 'dark' && themeArg !== 'light') throw new Error('unknown theme: ' + themeArg);
+const theme = themeArg;
+const pageUrl = 'file:///' + join(root, 'site', 'dev-reel.html').replace(/\\/g, '/') + '?capture=1&theme=' + theme;
+const outDir = join(root, 'artifacts', theme === 'light' ? 'reel-frames-light' : 'reel-frames');
+const mp4 = join(root, 'site', 'assets', theme === 'light' ? 'dev-reel-light.mp4' : 'dev-reel.mp4');
+const poster = join(root, 'site', 'assets', theme === 'light' ? 'dev-reel-light-poster.jpg' : 'dev-reel-poster.jpg');
 const fps = 24;
 const duration = 46;
 let port = 9400;
@@ -176,6 +181,7 @@ if (!probeOnly && !resume && !encodeOnly) {
 } else if (!existsSync(outDir)) {
   mkdirSync(outDir, { recursive: true });
 }
+if (probeOnly) console.log('theme:', theme);
 
 function encode() {
   const count = readdirSync(outDir).filter((f) => f.endsWith('.png')).length;
@@ -207,7 +213,7 @@ if (encodeOnly) {
   try {
     if (probeOnly) {
       for (const t of probeTimes) {
-        const file = join(root, 'artifacts', 'reel-probe', 't' + String(t).replace('.', '_') + '.png');
+        const file = join(root, 'artifacts', 'reel-probe', theme + '-t' + String(t).replace('.', '_') + '.png');
         await capture(t, file);
         console.log('probe', t, file);
       }

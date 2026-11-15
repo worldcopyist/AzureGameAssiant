@@ -813,6 +813,8 @@ h1 {
   box-shadow: 0 18px 46px rgba(8, 15, 28, 0.18);
 }
 .dev-reel video { display: block; width: 100%; aspect-ratio: 16 / 9; background: #070a0f; }
+:root[data-theme="light"] .dev-reel-frame { background: #e9f0ee; box-shadow: 0 18px 44px rgba(16, 32, 43, 0.12); }
+:root[data-theme="light"] .dev-reel video { background: #e9f0ee; }
 .dev-reel figcaption { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 12px; }
 .reel-kicker {
   font-family: var(--mono);
