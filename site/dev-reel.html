@@ -38,7 +38,8 @@
     background-image: repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 3px);
     pointer-events: none;
   }
-  .stage-pad { position: absolute; inset: 0; padding: 24px 30px 12px; display: grid; grid-template-rows: 40px minmax(0,1fr) auto 44px; gap: 10px; }
+  .stage-pad { position: absolute; inset: 0; padding: 22px 28px 10px; display: grid; grid-template-rows: 36px minmax(0,1fr) auto 40px; gap: 9px; }
+  .ic { width: 11px; height: 11px; display: block; }
 
   /* top bar */
   .rv-top { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--rv-muted); }
@@ -50,98 +51,133 @@
   .rv-replay { padding: 3px 8px; border: 1px solid rgba(78,163,255,.35); border-radius: 5px; color: var(--rv-accent); }
 
   /* layout */
-  .rv-body { display: grid; grid-template-columns: 520px minmax(0, 1fr); gap: 22px; min-height: 0; }
+  .rv-body { display: grid; grid-template-columns: 664px minmax(0, 1fr); gap: 20px; min-height: 0; }
   .win { border: 1px solid var(--rv-line); border-radius: 12px; background: var(--rv-panel); box-shadow: 0 24px 60px rgba(0,0,0,.45); overflow: hidden; min-height: 0; }
-  .win-bar { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; background: var(--rv-panel2); border-bottom: 1px solid var(--rv-line); font-size: 11.5px; color: var(--rv-muted); }
-  .win-bar b { font-weight: 500; color: #c9d3e2; }
-  .win-lights { display: flex; gap: 6px; margin-right: 4px; }
-  .win-lights i { width: 8px; height: 8px; border-radius: 50%; background: #39465a; }
-  .win-lights i:nth-child(1) { background: #f26d6d; }
-  .win-lights i:nth-child(2) { background: #e3a008; }
-  .win-lights i:nth-child(3) { background: #4cc38a; }
-  .win-bar .tag { margin-left: auto; font-size: 10px; padding: 2px 7px; border-radius: 99px; border: 1px solid rgba(78,163,255,.35); color: var(--rv-accent); }
 
-  /* qoder window */
-  .qoder { display: grid; grid-template-rows: 32px minmax(0,1fr) 36px; }
-  .qoder-main { display: grid; grid-template-columns: 146px minmax(0,1fr); min-height: 0; }
-  .sessions { border-right: 1px solid var(--rv-line); padding: 10px 8px; display: flex; flex-direction: column; gap: 3px; min-height: 0; }
-  .sessions-h { font-size: 10px; letter-spacing: .08em; color: #657286; padding: 2px 6px 7px; }
-  .session { font-size: 11px; color: #93a0b2; padding: 6px 8px; border-radius: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .session.on { background: rgba(78,163,255,.12); color: #dbe9ff; box-shadow: inset 2px 0 0 var(--rv-accent); }
-  .sessions-new { margin-top: auto; font-size: 10.5px; color: #7f8da1; border: 1px dashed #2c3848; border-radius: 7px; padding: 7px 8px; text-align: center; }
-  .chat { display: grid; grid-template-rows: 34px minmax(0,1fr); min-height: 0; }
-  .chat-head { display: flex; align-items: center; justify-content: space-between; padding: 0 14px; border-bottom: 1px solid rgba(38,49,64,.7); font-size: 11px; color: #8c99ab; }
-  .chat-head b { font-size: 12px; font-weight: 600; color: #dfe7f2; }
-  .chat-scroll { padding: 14px 14px 10px; overflow: hidden; display: flex; flex-direction: column; gap: 12px; }
-  .msg-user { display: flex; justify-content: flex-end; }
-  .msg-user .bubble { max-width: 340px; padding: 9px 11px; border-radius: 10px 10px 3px 10px; background: rgba(78,163,255,.14); border: 1px solid rgba(78,163,255,.22); font-size: 12px; line-height: 1.6; color: #dce9fb; min-height: 38px; }
-  .msg-agent { display: flex; gap: 8px; align-items: flex-start; }
-  .avatar { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 7px; background: linear-gradient(140deg, #4ea3ff, #2a6fd6); color: #fff; font: 700 11px/22px "Segoe UI", sans-serif; text-align: center; }
-  .agent-body { min-width: 0; flex: 1; }
-  .agent-body > p { margin: 0 0 8px; font-size: 12px; line-height: 1.65; color: #cdd8e7; min-height: 40px; }
-  .tool { display: flex; align-items: center; gap: 7px; margin-top: 5px; padding: 5px 8px; border: 1px solid rgba(38,49,64,.85); border-radius: 6px; background: rgba(9,13,19,.6); font: 10.5px/1.4 "Cascadia Mono", Consolas, monospace; color: #9fadc0; opacity: 0; }
-  .tool i { width: 6px; height: 6px; border-radius: 50%; background: var(--rv-ok); box-shadow: 0 0 8px rgba(76,195,138,.6); flex: 0 0 auto; }
-  .tool code { font: inherit; color: #c3d2e6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .tool span { margin-left: auto; color: #5f6d80; font-size: 9.5px; flex: 0 0 auto; }
-  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
-  .chip { font-size: 10px; padding: 2px 7px; border-radius: 99px; background: rgba(78,163,255,.1); border: 1px solid rgba(78,163,255,.22); color: #9fc6f4; opacity: 0; }
-  .chat-foot { display: flex; align-items: center; gap: 8px; padding: 0 14px; border-top: 1px solid var(--rv-line); font-size: 10.5px; color: #7f8da1; }
-  .diff-badge { padding: 2px 6px; border-radius: 4px; background: rgba(227,160,8,.12); border: 1px solid rgba(227,160,8,.25); color: #e3b64a; }
-  .chat-foot .spacer { flex: 1; }
-  .chat-foot .send { color: #7fa9d8; }
-  .chat-result { margin-top: 9px; padding: 8px 9px; border: 1px solid rgba(76,195,138,.22); border-radius: 7px; background: rgba(76,195,138,.045); opacity: 0; }
-  .chat-result h5 { margin: 0 0 4px; font: 8.5px/1 "Cascadia Mono", Consolas, monospace; letter-spacing: .1em; color: #6f8a80; }
-  .chat-result div { display: flex; align-items: center; gap: 7px; font-size: 10.5px; line-height: 1.7; color: #b9c8d9; }
-  .chat-result i { font-style: normal; font-size: 9.5px; color: var(--rv-ok); }
+  /* ---------- qoder (real desktop layout) ---------- */
+  .qoder { display: grid; grid-template-rows: 30px minmax(0,1fr); background: #141619; border-color: #2b2f36; }
+  .qbar { display: flex; align-items: center; gap: 14px; padding: 0 9px 0 10px; background: #17191d; border-bottom: 1px solid #26292f; font-size: 10px; color: #a9b1bc; }
+  .qbar .nav { display: flex; gap: 10px; color: #7f8894; font-size: 11.5px; }
+  .qbar .menu { display: flex; gap: 13px; }
+  .qbar .wctl { margin-left: auto; display: flex; gap: 14px; color: #9aa3ae; font-size: 9.5px; }
+  .qmain { display: grid; grid-template-columns: 160px minmax(0, 1fr); min-height: 0; }
+  .qside { display: flex; flex-direction: column; gap: 1px; padding: 6px 5px 7px; background: #131518; border-right: 1px solid #23262c; font-size: 9.8px; color: #b8c0cb; min-height: 0; }
+  .prog { display: flex; align-items: center; gap: 5px; width: max-content; margin: 1px 4px 6px; padding: 3px 7px 3px 6px; border: 1px solid #2b3b31; border-radius: 5px; color: #7fd39f; }
+  .prog .gdot { width: 5px; height: 5px; border-radius: 50%; background: #4cc38a; box-shadow: 0 0 7px rgba(76,195,138,.8); }
+  .prog .ic { width: 10px; height: 10px; margin-left: 3px; color: #7fd39f; }
+  .qs-item { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 5px; color: #c0c7d1; white-space: nowrap; overflow: hidden; }
+  .qs-item .ic { width: 11px; height: 11px; flex: 0 0 auto; color: #939ba7; }
+  .qs-item.on { background: #2a2d33; color: #f1f4f8; }
+  .qs-item .more { margin-left: auto; color: #7d8592; letter-spacing: 1px; }
+  .qs-icons { display: flex; align-items: center; gap: 9px; padding: 8px 7px 7px; color: #8d95a1; }
+  .qs-icons .ic { width: 12px; height: 12px; }
+  .qs-icons .add { margin-left: auto; font-size: 12px; color: #8d95a1; }
+  .qs-h { margin: 9px 6px 3px; font-size: 8.6px; color: #6e7783; }
+  .qs-bottom { margin-top: auto; }
+  .qs-user { display: flex; align-items: center; gap: 6px; margin: 6px 2px 0; padding-top: 7px; border-top: 1px solid #23262c; }
+  .qs-user img { width: 18px; height: 18px; border-radius: 6px; }
+  .qs-user span:first-of-type { color: #dbe2ea; }
+  .u-ic { margin-left: auto; color: #737c88; font-size: 9px; }
+  .u-ic + .u-ic { margin-left: 6px; }
+
+  .chat { display: grid; grid-template-rows: 30px minmax(0,1fr) auto 19px; background: #16181c; min-height: 0; }
+  .qhead { display: flex; align-items: center; gap: 7px; padding: 0 10px; border-bottom: 1px solid #23262c; font-size: 10px; color: #7f8894; }
+  .qhead b { font-size: 11px; font-weight: 500; color: #eef1f5; }
+  .qhead .dots { letter-spacing: 1px; color: #7f8894; }
+  .qhead .qtools { margin-left: auto; display: flex; align-items: center; gap: 9px; color: #8f97a3; }
+  .qhead .qtools .ic { width: 12px; height: 12px; }
+
+  .qscroll { overflow: hidden; padding: 10px 12px 4px; position: relative; min-height: 0; }
+  .turns { position: relative; display: flex; flex-direction: column; gap: 11px; }
+  .turn .bubble { background: #1e3a2a; border: 1px solid #2c4b37; border-radius: 8px; padding: 7px 9px; font-size: 11px; line-height: 1.62; color: #e9f2ea; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .turn .bubble + .bubble { margin-top: 5px; }
+  .turn .state { display: flex; align-items: center; gap: 5px; margin: 8px 0 5px; font-size: 9.4px; color: #98a1ad; }
+  .state .chev { width: 12px; height: 12px; border: 1px solid #4a525e; border-radius: 50%; display: grid; place-items: center; font-size: 8px; line-height: 1; color: #aab2be; }
+  .turn .reply { font-size: 10.8px; line-height: 1.62; color: #e7ebf1; font-weight: 500; }
+  .turn .steps { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
+  .step { display: flex; align-items: flex-start; gap: 5px; font-size: 9.5px; line-height: 1.5; color: #8f98a5; min-width: 0; }
+  .step .ring { width: 7px; height: 7px; border: 1px solid #5a6472; border-radius: 50%; margin-top: 3px; flex: 0 0 auto; }
+  .step b { font-weight: 400; color: #d5dbe4; flex: 0 0 auto; }
+  .step .sx { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .step .run { color: #4cc38a; margin-right: 1px; }
+
+  .qcompose { margin: 0 10px 4px; border: 1px solid #343943; border-radius: 8px; background: #1a1d22; padding: 6px 9px 5px; }
+  .qcompose .ph { height: 21px; font-size: 9.6px; color: #6f7887; }
+  .qcompose .row { display: flex; align-items: center; gap: 8px; }
+  .qtool { display: grid; place-items: center; width: 15px; height: 15px; color: #8f97a3; font-size: 11px; }
+  .qperm { display: flex; align-items: center; gap: 3px; font-size: 9.2px; color: #e0665a; }
+  .qmodel { margin-left: auto; display: flex; align-items: center; gap: 4px; font-size: 9.2px; color: #c9d1dc; white-space: nowrap; }
+  .qmodel i { font-style: normal; color: #7ea2ff; font-size: 8px; }
+  .qsend { width: 19px; height: 19px; border-radius: 5px; background: #2f7d4f; display: grid; place-items: center; }
+  .qsend i { width: 7px; height: 7px; border-radius: 1px; background: #dff3e6; }
+  .qdot { width: 17px; height: 17px; border: 1px solid #3b414b; border-radius: 50%; }
+  .qfoot { display: flex; align-items: center; gap: 5px; padding: 0 12px; font-size: 8.6px; color: #7f8894; }
+  .qfoot .ic { width: 9px; height: 9px; }
+  .qfoot .qbar-line { margin-left: auto; width: 56px; height: 2px; border-radius: 2px; background: #2a2f36; }
+  .qfoot .qbar-line i { display: block; height: 100%; width: 72%; border-radius: 2px; background: #4cc38a; }
 
   /* project window */
-  .proj { display: grid; grid-template-rows: 32px minmax(0,1fr); }
-  .proj-bar img { width: 15px; height: 15px; border-radius: 4px; }
-  .proj-bar .live { margin-left: auto; font-size: 10px; color: var(--rv-ok); }
+  .proj { display: grid; grid-template-rows: 30px minmax(0,1fr); }
+  .pbar { display: flex; align-items: center; gap: 7px; padding: 0 8px 0 10px; background: var(--rv-panel2); border-bottom: 1px solid var(--rv-line); font-size: 10px; color: var(--rv-muted); }
+  .pbar img { width: 15px; height: 15px; border-radius: 4px; }
+  .pbar b { font-size: 11px; font-weight: 500; color: #dfe7f2; }
+  .pbar .live { margin-left: auto; font-size: 9.5px; color: var(--rv-ok); }
+  .pbar .wctl { display: flex; gap: 10px; margin-left: 9px; font-size: 9.5px; color: #8b97a6; }
   .proj-body { position: relative; min-height: 0; overflow: hidden; }
-  .scene { position: absolute; inset: 0; padding: 18px 20px 64px; display: none; z-index: 1; }
+  .scene { position: absolute; inset: 0; padding: 16px 18px 52px; display: none; z-index: 1; }
   .scene.on { display: block; }
-  .scene--app { padding-bottom: 18px; }
+  .scene--app { padding: 14px 16px 12px; }
   .proj-ghost { position: absolute; right: 12px; bottom: -20px; z-index: 0; font: 700 172px/1 "Cascadia Mono", Consolas, monospace; letter-spacing: -.08em; color: rgba(78,163,255,.05); pointer-events: none; }
-  .scene-foot { position: absolute; left: 20px; right: 20px; bottom: 16px; display: flex; align-items: center; gap: 7px; padding-top: 10px; border-top: 1px dashed rgba(38,49,64,.85); opacity: 0; }
+  .scene-foot { position: absolute; left: 18px; right: 18px; bottom: 14px; display: flex; align-items: center; gap: 7px; padding-top: 9px; border-top: 1px dashed rgba(38,49,64,.85); opacity: 0; }
   .scene-foot .sf-label { font: 9px/1 "Cascadia Mono", Consolas, monospace; letter-spacing: .12em; color: #5f7188; margin-right: 3px; }
   .sf-item { font: 10px/1 "Cascadia Mono", Consolas, monospace; color: #9fb0c6; padding: 4px 7px; border: 1px solid #2a3748; border-radius: 5px; background: rgba(19,26,36,.72); white-space: nowrap; }
   .sf-item.ok { color: #7fd7a9; border-color: rgba(76,195,138,.35); }
   .rv-kicker { font: 10px/1 "Cascadia Mono", Consolas, monospace; letter-spacing: .14em; color: var(--rv-accent); margin-bottom: 7px; }
-  .rv-title { margin: 0 0 14px; font-size: 21px; font-weight: 650; letter-spacing: -.01em; }
+  .rv-title { margin: 0 0 13px; font-size: 20px; font-weight: 650; letter-spacing: -.01em; }
 
   /* docs */
-  .docs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-  .doc { padding: 12px; border: 1px solid var(--rv-line); border-radius: 9px; background: var(--rv-panel2); }
+  .docs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+  .doc { padding: 11px; border: 1px solid var(--rv-line); border-radius: 9px; background: var(--rv-panel2); }
   .doc-tag { font: 9px/1 monospace; letter-spacing: .1em; color: var(--rv-accent); }
-  .doc h4 { margin: 7px 0 5px; font-size: 14px; }
-  .doc p { margin: 0; font-size: 11px; color: var(--rv-muted); line-height: 1.5; }
-  .doc i { display: block; margin-top: 8px; font-style: normal; font: 9.5px/1.4 monospace; color: #5f7188; }
-  .scope { margin-top: 12px; border: 1px solid var(--rv-line); border-radius: 9px; overflow: hidden; }
-  .scope-row { display: grid; grid-template-columns: 1.1fr 1.6fr 52px; gap: 10px; align-items: center; padding: 8px 12px; font-size: 11.5px; border-bottom: 1px solid rgba(38,49,64,.65); }
+  .doc h4 { margin: 6px 0 4px; font-size: 13.5px; }
+  .doc p { margin: 0; font-size: 10.5px; color: var(--rv-muted); line-height: 1.5; }
+  .doc i { display: block; margin-top: 7px; font-style: normal; font: 9px/1.4 monospace; color: #5f7188; }
+  .scope { margin-top: 10px; border: 1px solid var(--rv-line); border-radius: 9px; overflow: hidden; }
+  .scope-row { display: grid; grid-template-columns: 1.1fr 1.6fr 52px; gap: 10px; align-items: center; padding: 7px 11px; font-size: 11px; border-bottom: 1px solid rgba(38,49,64,.65); }
   .scope-row:last-child { border-bottom: 0; }
   .scope-row b { font-weight: 550; }
   .scope-row span { color: var(--rv-muted); }
   .scope-row em { font-style: normal; font-size: 9.5px; color: var(--rv-ok); text-align: right; }
-  .doc-foot { margin-top: 12px; font-size: 10.5px; color: var(--rv-muted); }
+  .doc-foot { margin-top: 10px; font-size: 10.5px; color: var(--rv-muted); }
+
+  /* research pick */
+  .pick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+  .pick-card { border: 1px solid var(--rv-line); border-radius: 9px; background: var(--rv-panel2); padding: 11px; }
+  .pick-card .lib { font: 8.5px/1 "Cascadia Mono", Consolas, monospace; letter-spacing: .1em; color: var(--rv-accent); }
+  .pick-card h4 { margin: 6px 0 4px; font-size: 13px; }
+  .pick-card p { margin: 0; font-size: 10.3px; color: var(--rv-muted); line-height: 1.5; }
+  .pick-card i { display: block; margin-top: 7px; font-style: normal; font: 9px/1.4 "Cascadia Mono", Consolas, monospace; color: #5f7188; }
+  .boundary { display: flex; align-items: center; gap: 7px; margin-top: 11px; padding: 9px 11px; border: 1px dashed #31405a; border-radius: 8px; background: rgba(78,163,255,.04); }
+  .boundary b { font-size: 10.5px; font-weight: 600; color: #cfdbea; margin-right: 3px; }
+  .boundary span { font-size: 9.5px; padding: 3px 7px; border: 1px solid #2c3a4d; border-radius: 99px; color: #9fb4cd; white-space: nowrap; }
 
   /* app mock */
-  .reel-app.app-ui { font-size: 10.2px; line-height: 1.4; border: 1px solid #2b3544; border-radius: 9px; overflow: hidden; }
-  .reel-app .am-body { gap: .7em; padding: .8em; }
-  .reel-app .am-app-title { font-size: 1.25em; }
-  .reel-app .am-cards { gap: .5em; }
-  .reel-app .am-value { font-size: 1.45em; }
-  .reel-app .am-chart-panel { gap: .5em; }
-  .reel-app .am-chart-body { padding: .45em .5em; max-height: 128px; overflow: hidden; }
-  .reel-app .am-bottom { gap: .6em; }
-  .reel-app .am-row { font-size: .8em; padding: .24em .3em; }
-  .reel-app .am-row-head { font-size: .74em; }
-  .reel-app .am-kv { font-size: .8em; gap: .34em .6em; }
-  .scene-note { margin-top: 10px; font-size: 10.5px; color: var(--rv-muted); }
+  .reel-app.app-ui { font-size: 9.6px; line-height: 1.4; border: 1px solid #2b3544; border-radius: 9px; overflow: hidden; }
+  .reel-app .am-body { gap: .65em; padding: .7em; }
+  .reel-app .am-app-title { font-size: 1.2em; }
+  .reel-app .am-cards { gap: .45em; }
+  .reel-app .am-value { font-size: 1.4em; }
+  .reel-app .am-chart-panel { gap: .45em; }
+  .reel-app .am-chart-body { padding: .4em .45em; max-height: 104px; overflow: hidden; }
+  .reel-app .am-bottom { gap: .55em; }
+  .reel-app .am-row { font-size: .78em; padding: .22em .28em; }
+  .reel-app .am-row-head { font-size: .72em; }
+  .reel-app .am-kv { font-size: .78em; gap: .3em .55em; }
+  .scene-note { margin-top: 8px; font-size: 10.3px; color: var(--rv-muted); }
   .scene-note b { color: #c6d4e6; font-weight: 500; }
 
   /* chart scene */
-  .chart-wrap { border: 1px solid var(--rv-line); border-radius: 10px; background: #0b1018; padding: 10px 12px 6px; }
+  .chart-wrap { border: 1px solid var(--rv-line); border-radius: 10px; background: #0b1018; padding: 9px 11px 5px; }
   .chart-wrap svg { display: block; width: 100%; height: auto; }
   .rv-grid line { stroke: #223041; stroke-width: 1; }
   .rv-axis text { font: 10px/1 "Cascadia Mono", Consolas, monospace; fill: #6f7e92; }
@@ -152,141 +188,108 @@
   .rv-event line { stroke: #e3a008; stroke-width: 1.2; stroke-dasharray: 5 4; }
   .rv-event circle { fill: #e3a008; }
   .rv-event text { fill: #e3a008; font: 10px "Cascadia Mono", Consolas, monospace; }
-  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
-  .tile { border: 1px solid var(--rv-line); border-radius: 9px; background: var(--rv-panel2); padding: 9px 12px; }
-  .tile span { display: block; font-size: 10px; color: var(--rv-muted); }
-  .tile b { font: 600 20px/1.2 "Cascadia Mono", Consolas, monospace; color: #e6eef9; }
-  .tile em { font-style: normal; font-size: 10px; color: var(--rv-muted); margin-left: 3px; }
-  .event-chip { margin-top: 10px; font-size: 10.5px; color: #b9c6d8; display: flex; align-items: center; gap: 7px; }
-  .event-chip i { width: 6px; height: 6px; border-radius: 50%; background: var(--rv-warn); }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-top: 9px; }
+  .tile { border: 1px solid var(--rv-line); border-radius: 9px; background: var(--rv-panel2); padding: 8px 11px; }
+  .tile span { display: block; font-size: 9.5px; color: var(--rv-muted); }
+  .tile b { font: 600 19px/1.2 "Cascadia Mono", Consolas, monospace; color: #e6eef9; }
+  .tile em { font-style: normal; font-size: 9.5px; color: var(--rv-muted); margin-left: 3px; }
+  .sensor-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+  .sensor { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 6px 10px; border: 1px solid var(--rv-line); border-radius: 8px; background: var(--rv-panel2); font-size: 9.8px; color: var(--rv-muted); }
+  .sensor b { font: 600 12.5px/1 "Cascadia Mono", Consolas, monospace; color: #e6eef9; }
+  .event-chip { margin-top: 8px; font-size: 10.2px; color: #b9c6d8; display: flex; align-items: center; gap: 6px; }
+  .event-chip i { width: 6px; height: 6px; border-radius: 50%; background: var(--rv-warn); flex: 0 0 auto; }
 
-  /* session */
-  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .rec-card, .report { border: 1px solid var(--rv-line); border-radius: 9px; background: var(--rv-panel2); padding: 12px; }
-  .rec-card header { display: flex; align-items: center; gap: 7px; font-size: 11px; color: #cfdbea; }
-  .rec-dot { width: 7px; height: 7px; border-radius: 50%; background: #f26d6d; box-shadow: 0 0 9px rgba(242,109,109,.7); }
-  .rec-bar { display: grid; grid-template-columns: 1fr 2px 1fr; align-items: center; gap: 0; margin: 14px 0 6px; height: 22px; }
-  .rec-bar span { height: 8px; background: rgba(78,163,255,.28); border-radius: 4px; }
-  .rec-bar span.after { background: rgba(76,195,138,.28); }
-  .rec-bar i { height: 22px; width: 2px; background: var(--rv-warn); }
-  .rec-axis { display: flex; justify-content: space-between; font: 9px/1 monospace; color: #718096; }
-  .rec-card ul { margin: 12px 0 0; padding: 0; list-style: none; font: 10px/1.9 "Cascadia Mono", Consolas, monospace; color: #93a3b8; }
-  .report-head { font-size: 11.5px; font-weight: 600; color: #dfe8f4; }
-  .report-lines { display: grid; gap: 6px; margin: 12px 0; }
-  .report-lines span { height: 6px; border-radius: 3px; background: #223044; }
-  .report-lines span:nth-child(1) { width: 92%; }
-  .report-lines span:nth-child(2) { width: 78%; }
-  .report-lines span:nth-child(3) { width: 86%; }
-  .report-lines span:nth-child(4) { width: 58%; }
-  .report-mini { height: 54px; border: 1px solid #263140; border-radius: 6px; background: #0b1018; display: flex; align-items: flex-end; gap: 3px; padding: 6px; }
-  .report-mini i { flex: 1; background: #2f4d70; border-radius: 1px; }
-  .report-tag { display: inline-block; margin-top: 10px; font: 9.5px/1 monospace; color: #8fb7e6; border: 1px solid rgba(78,163,255,.3); border-radius: 4px; padding: 4px 6px; }
-
-  /* ai */
-  .evidence { display: grid; grid-template-columns: 1.05fr 40px 1.25fr; align-items: center; gap: 6px; }
-  .rules { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
-  .rule { font-size: 10.5px; padding: 7px 9px; border: 1px solid var(--rv-line); border-radius: 7px; background: var(--rv-panel2); color: #b8c7da; }
-  .rule.hit { border-color: rgba(227,160,8,.5); color: #f0c76a; background: rgba(227,160,8,.08); }
-  .arrow { text-align: center; font-size: 18px; color: var(--rv-accent); }
-  .ai-card { border: 1px solid rgba(78,163,255,.35); border-radius: 9px; background: linear-gradient(160deg, rgba(78,163,255,.1), rgba(78,163,255,.02)); padding: 12px; }
-  .ai-chip { display: inline-block; font: 9px/1 monospace; letter-spacing: .08em; color: var(--rv-accent); border: 1px solid rgba(78,163,255,.35); border-radius: 99px; padding: 3px 7px; }
-  .ai-card h4 { margin: 8px 0 7px; font-size: 16px; }
-  .ai-card ul { margin: 0; padding-left: 16px; font-size: 10.5px; line-height: 1.7; color: #b9c7d9; }
-  .conf { margin-top: 9px; font-size: 9.5px; color: #7f8da1; }
-  .lock { margin-top: 12px; font-size: 10.5px; color: #9fb4cd; border: 1px dashed #31405a; border-radius: 8px; padding: 8px 10px; }
-
-  /* footprint */
-  .gauges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-  .gauge { border: 1px solid var(--rv-line); border-radius: 9px; background: var(--rv-panel2); padding: 12px; }
-  .gauge > span { font-size: 10.5px; color: var(--rv-muted); }
-  .gauge b { display: block; margin: 6px 0 2px; font: 600 26px/1.1 "Cascadia Mono", Consolas, monospace; color: #eaf2fc; }
-  .gauge em { font-style: normal; font-size: 10px; color: var(--rv-muted); }
-  .gauge .bar { height: 5px; margin: 10px 0 5px; border-radius: 3px; background: #223044; overflow: hidden; }
-  .gauge .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #4ea3ff, #4cc38a); }
-  .gauge small { font-size: 9.5px; color: #6e7d91; }
-  .mode-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
-  .pill { font-size: 10.5px; padding: 4px 9px; border-radius: 99px; border: 1px solid var(--rv-line); color: #a9b8cb; }
-  .pill.warn { border-color: rgba(227,160,8,.45); color: #ecc35f; background: rgba(227,160,8,.08); }
-  .pill.ok { border-color: rgba(76,195,138,.4); color: #7fd7a9; background: rgba(76,195,138,.08); }
-  .pill.accent { border-color: rgba(78,163,255,.4); color: #8cc4ff; background: rgba(78,163,255,.08); }
+  /* api + mcp */
+  .api-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+  .api-card { border: 1px solid var(--rv-line); border-radius: 9px; background: var(--rv-panel2); padding: 11px 12px; }
+  .api-card header { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: #dbe6f3; }
+  .api-card header .tag { margin-left: auto; font: 8.5px/1 "Cascadia Mono", Consolas, monospace; letter-spacing: .06em; color: var(--rv-accent); border: 1px solid rgba(78,163,255,.3); border-radius: 99px; padding: 3px 6px; }
+  .api-code { margin-top: 8px; border: 1px solid #263140; border-radius: 6px; background: #0b1018; padding: 6px 9px; font: 9.2px/1.8 "Cascadia Mono", Consolas, monospace; color: #9fb4cd; white-space: pre; overflow: hidden; }
+  .api-code b { color: #7fbdfc; font-weight: 500; }
+  .mcp-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px dashed #263140; font: 9.2px/1.5 "Cascadia Mono", Consolas, monospace; color: #a9bdd4; }
+  .mcp-row:last-child { border-bottom: 0; }
+  .mcp-row em { font-style: normal; margin-left: auto; color: #6f8399; font-size: 8.5px; }
+  .api-foot { margin-top: 7px; font-size: 9.2px; color: #74849a; }
+  .rule-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+  .rule-row span { font-size: 9.3px; padding: 3px 7px; border-radius: 99px; border: 1px solid #2a3748; color: #9fb4cd; }
+  .rule-row span.hit { border-color: rgba(227,160,8,.45); color: #ecc35f; background: rgba(227,160,8,.07); }
+  .lock { margin-top: 9px; font-size: 10.2px; color: #9fb4cd; border: 1px dashed #31405a; border-radius: 8px; padding: 7px 10px; }
+  .ai-sample { margin-top: 9px; border: 1px solid var(--rv-line); border-radius: 9px; background: #0b1018; padding: 8px 11px; }
+  .ai-sample-h { font-size: 9.8px; color: #8fa6bf; margin-bottom: 3px; }
+  .ai-line { font-size: 10.2px; line-height: 1.7; color: #b9c8d9; }
+  .ai-line b { display: inline-block; min-width: 30px; margin-right: 6px; color: #7fbdfc; font-weight: 500; }
+  .fixes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 9px; }
+  .fixes span { font-size: 9.2px; padding: 4px 7px; border: 1px solid var(--rv-line); border-radius: 6px; background: var(--rv-panel2); color: #a9b8cb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fixes i { color: #6fd39f; font-style: normal; margin-right: 3px; }
 
   /* logs */
-  .tree { border: 1px solid var(--rv-line); border-radius: 9px; background: #0b1018; padding: 12px; font: 10.5px/1.85 "Cascadia Mono", Consolas, monospace; color: #9fb0c6; white-space: pre; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tree { border: 1px solid var(--rv-line); border-radius: 9px; background: #0b1018; padding: 10px 11px; font: 10px/1.8 "Cascadia Mono", Consolas, monospace; color: #9fb0c6; white-space: pre; }
   .tree b { color: #d6e2f1; font-weight: 500; }
   .tree .dim { color: #63738a; }
-  .rot { border: 1px solid var(--rv-line); border-radius: 9px; background: var(--rv-panel2); padding: 12px; }
-  .rot-title { font-size: 11px; color: #cfdbea; }
-  .rot-files { display: flex; gap: 6px; margin: 12px 0; flex-wrap: wrap; }
-  .rot-files span { font: 9.5px/1 monospace; padding: 5px 7px; border-radius: 5px; border: 1px solid #2b3849; color: #8798ad; }
+  .rot { border: 1px solid var(--rv-line); border-radius: 9px; background: var(--rv-panel2); padding: 10px 11px; }
+  .rot-title { font-size: 10.5px; color: #cfdbea; }
+  .rot-files { display: flex; gap: 5px; margin: 10px 0; flex-wrap: wrap; }
+  .rot-files span { font: 9px/1 monospace; padding: 5px 7px; border-radius: 5px; border: 1px solid #2b3849; color: #8798ad; }
   .rot-files .hot { border-color: rgba(76,195,138,.45); color: #7fd7a9; background: rgba(76,195,138,.08); }
   .rot-bar { height: 5px; border-radius: 3px; background: #223044; overflow: hidden; }
   .rot-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #2f8bff, #2dd4bf); }
-  .rot small { display: block; margin-top: 10px; font-size: 9.5px; color: #74849a; line-height: 1.6; }
-
-  /* tests */
-  .big-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-  .big { border: 1px solid var(--rv-line); border-radius: 9px; background: var(--rv-panel2); padding: 12px; text-align: center; }
-  .big b { display: block; font: 600 34px/1 "Cascadia Mono", Consolas, monospace; color: #eef4fd; }
-  .big span { font-size: 10px; color: var(--rv-muted); }
-  .terminal { margin-top: 11px; border: 1px solid var(--rv-line); border-radius: 9px; background: #0b1018; padding: 10px 12px; font: 10.5px/1.9 "Cascadia Mono", Consolas, monospace; color: #a9b9cd; }
-  .terminal i { color: #5f7590; font-style: normal; margin-right: 5px; }
-  .terminal .ok { color: #6fd39f; }
-  .commit-row { margin-top: 11px; font-size: 10.5px; color: #8090a6; }
-  .test-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 11px; }
-  .test-grid div { border: 1px solid var(--rv-line); border-radius: 8px; background: var(--rv-panel2); padding: 9px 11px; }
-  .test-grid b { display: block; font: 600 16px/1.2 "Cascadia Mono", Consolas, monospace; color: #dfeaf8; }
-  .test-grid span { font-size: 9.5px; color: var(--rv-muted); }
-
-  /* session extras */
-  .session-list { margin-top: 11px; border: 1px solid var(--rv-line); border-radius: 9px; overflow: hidden; }
-  .sl-row { display: grid; grid-template-columns: 72px minmax(0,1fr) 58px; align-items: center; gap: 10px; padding: 7px 11px; border-bottom: 1px solid rgba(38,49,64,.65); font-size: 10.5px; }
-  .sl-row:last-child { border-bottom: 0; }
-  .sl-row span { font: 9.5px/1 "Cascadia Mono", Consolas, monospace; color: #6f8097; }
-  .sl-row b { font-weight: 500; color: #b9c8da; }
-  .sl-row em { font-style: normal; font-size: 9px; color: #64748b; text-align: right; }
-  .sl-row em.hot { color: #ecc35f; }
-
-  /* baseline strip */
-  .baseline { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 13px; border: 1px solid var(--rv-line); border-radius: 9px; background: #0b1018; }
-  .baseline div { padding: 10px 12px; border-right: 1px solid rgba(38,49,64,.7); }
-  .baseline div:last-child { border-right: 0; }
-  .baseline span { display: block; font-size: 9.5px; color: #74849a; }
-  .baseline b { font: 500 12.5px/1.6 "Cascadia Mono", Consolas, monospace; color: #cfdcea; }
-
-  /* log sample */
-  .log-sample { margin-top: 11px; border: 1px solid var(--rv-line); border-radius: 9px; background: #0b1018; padding: 8px 12px; font: 9.5px/1.95 "Cascadia Mono", Consolas, monospace; color: #98a9bd; }
-  .log-sample .t { color: #5f7590; margin-right: 8px; }
-  .log-sample .lvl { display: inline-block; min-width: 40px; margin-right: 7px; color: #7f92a9; }
+  .rot small { display: block; margin-top: 9px; font-size: 9.2px; color: #74849a; line-height: 1.6; }
+  .log-sample { margin-top: 9px; border: 1px solid var(--rv-line); border-radius: 9px; background: #0b1018; padding: 7px 11px; font: 9.2px/1.9 "Cascadia Mono", Consolas, monospace; color: #98a9bd; }
+  .log-sample .t { color: #5f7590; margin-right: 7px; }
+  .log-sample .lvl { display: inline-block; min-width: 38px; margin-right: 6px; color: #7f92a9; }
   .log-sample .lvl.warn { color: #ecc35f; }
   .log-sample .lvl.ok { color: #6fd39f; }
 
-  /* evidence strip */
-  .evidence-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-top: 14px; }
-  .evidence-strip div { border: 1px solid var(--rv-line); border-radius: 8px; background: var(--rv-panel2); padding: 9px 11px; }
-  .evidence-strip span { font: 8.5px/1 "Cascadia Mono", Consolas, monospace; letter-spacing: .1em; color: #62748b; }
-  .evidence-strip b { display: block; margin-top: 5px; font-size: 10.5px; font-weight: 500; color: #c3d1e2; }
+  /* footprint */
+  .gauges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+  .gauge { border: 1px solid var(--rv-line); border-radius: 9px; background: var(--rv-panel2); padding: 10px 11px; }
+  .gauge > span { font-size: 10px; color: var(--rv-muted); }
+  .gauge b { display: block; margin: 5px 0 2px; font: 600 24px/1.1 "Cascadia Mono", Consolas, monospace; color: #eaf2fc; }
+  .gauge em { font-style: normal; font-size: 9.5px; color: var(--rv-muted); }
+  .gauge .bar { height: 5px; margin: 9px 0 5px; border-radius: 3px; background: #223044; overflow: hidden; }
+  .gauge .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #4ea3ff, #4cc38a); }
+  .gauge small { font-size: 9.2px; color: #6e7d91; }
+  .mode-row { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 11px; }
+  .pill { font-size: 10px; padding: 4px 9px; border-radius: 99px; border: 1px solid var(--rv-line); color: #a9b8cb; }
+  .pill.warn { border-color: rgba(227,160,8,.45); color: #ecc35f; background: rgba(227,160,8,.08); }
+  .pill.ok { border-color: rgba(76,195,138,.4); color: #7fd7a9; background: rgba(76,195,138,.08); }
+  .pill.accent { border-color: rgba(78,163,255,.4); color: #8cc4ff; background: rgba(78,163,255,.08); }
+  .baseline { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 11px; border: 1px solid var(--rv-line); border-radius: 9px; background: #0b1018; }
+  .baseline div { padding: 9px 11px; border-right: 1px solid rgba(38,49,64,.7); }
+  .baseline div:last-child { border-right: 0; }
+  .baseline span { display: block; font-size: 9.2px; color: #74849a; }
+  .baseline b { font: 500 12px/1.6 "Cascadia Mono", Consolas, monospace; color: #cfdcea; }
 
-  /* site sections */
-  .site-sections { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-top: 10px; }
-  .site-sections div { border: 1px solid var(--rv-line); border-radius: 8px; background: var(--rv-panel2); padding: 8px 10px; }
-  .site-sections b { display: block; font-size: 11px; color: #d2dfee; }
-  .site-sections span { font-size: 9.5px; color: #74849a; }
+  /* tests */
+  .big-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+  .big { border: 1px solid var(--rv-line); border-radius: 9px; background: var(--rv-panel2); padding: 11px; text-align: center; }
+  .big b { display: block; font: 600 32px/1 "Cascadia Mono", Consolas, monospace; color: #eef4fd; }
+  .big span { font-size: 9.8px; color: var(--rv-muted); }
+  .terminal { margin-top: 10px; border: 1px solid var(--rv-line); border-radius: 9px; background: #0b1018; padding: 9px 11px; font: 10px/1.85 "Cascadia Mono", Consolas, monospace; color: #a9b9cd; }
+  .terminal i { color: #5f7590; font-style: normal; margin-right: 5px; }
+  .terminal .ok { color: #6fd39f; }
+  .commit-row { margin-top: 10px; font-size: 10.2px; color: #8090a6; }
+  .test-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-top: 10px; }
+  .test-grid div { border: 1px solid var(--rv-line); border-radius: 8px; background: var(--rv-panel2); padding: 8px 10px; }
+  .test-grid b { display: block; font: 600 15px/1.2 "Cascadia Mono", Consolas, monospace; color: #dfeaf8; }
+  .test-grid span { font-size: 9.2px; color: var(--rv-muted); }
 
   /* site scene */
   .browser { border: 1px solid var(--rv-line); border-radius: 10px; overflow: hidden; background: #0b1018; }
-  .browser-bar { display: flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; background: var(--rv-panel2); border-bottom: 1px solid var(--rv-line); }
-  .browser-bar i { width: 7px; height: 7px; border-radius: 50%; background: #39465a; }
-  .browser-bar span { font: 9.5px/1 monospace; color: #7888a0; margin-left: 6px; }
-  .browser-bar .toggle { margin-left: auto; width: 34px; height: 16px; border-radius: 99px; background: #263140; position: relative; border: 1px solid #344156; }
-  .browser-bar .toggle i { position: absolute; top: 2px; left: 2px; width: 10px; height: 10px; border-radius: 50%; background: #cfd9e7; }
-  .browser-body { --bs-bg: #0e131b; --bs-surface: #151c26; --bs-text: #e9eff8; --bs-muted: #8794a8; --bs-border: #273241; background: var(--bs-bg); color: var(--bs-text); padding: 14px 16px; min-height: 300px; }
-  .bs-nav { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+  .browser-bar { display: flex; align-items: center; gap: 5px; height: 24px; padding: 0 10px; background: var(--rv-panel2); border-bottom: 1px solid var(--rv-line); }
+  .browser-bar i { width: 6px; height: 6px; border-radius: 50%; background: #39465a; }
+  .browser-bar span { font: 9px/1 monospace; color: #7888a0; margin-left: 6px; }
+  .browser-bar .toggle { margin-left: auto; width: 32px; height: 15px; border-radius: 99px; background: #263140; position: relative; border: 1px solid #344156; }
+  .browser-bar .toggle i { position: absolute; top: 2px; left: 2px; width: 9px; height: 9px; border-radius: 50%; background: #cfd9e7; }
+  .browser-body { --bs-bg: #0e131b; --bs-surface: #151c26; --bs-text: #e9eff8; --bs-muted: #8794a8; --bs-border: #273241; background: var(--bs-bg); color: var(--bs-text); padding: 13px 15px; min-height: 292px; }
+  .bs-nav { display: flex; align-items: center; gap: 8px; font-size: 10.5px; }
   .bs-nav img { width: 18px; height: 18px; border-radius: 5px; }
-  .bs-nav em { font-style: normal; margin-left: auto; font-size: 8.5px; color: var(--bs-muted); }
-  .bs-hero { display: grid; grid-template-columns: 1.05fr .95fr; gap: 18px; margin-top: 22px; align-items: center; }
-  .bs-hero h4 { margin: 0 0 8px; font-size: 22px; letter-spacing: -.01em; line-height: 1.25; }
-  .bs-hero p { margin: 0 0 12px; font-size: 10.5px; line-height: 1.6; color: var(--bs-muted); }
-  .bs-btn { display: inline-block; font-size: 9.5px; padding: 5px 10px; border-radius: 6px; background: #2f8bff; color: #fff; }
+  .bs-nav em { font-style: normal; margin-left: auto; font-size: 8.2px; color: var(--bs-muted); }
+  .bs-hero { display: grid; grid-template-columns: 1.05fr .95fr; gap: 16px; margin-top: 20px; align-items: center; }
+  .bs-hero h4 { margin: 0 0 7px; font-size: 21px; letter-spacing: -.01em; line-height: 1.25; }
+  .bs-hero p { margin: 0 0 11px; font-size: 10px; line-height: 1.6; color: var(--bs-muted); }
+  .bs-btn { display: inline-block; font-size: 9px; padding: 5px 10px; border-radius: 6px; background: #2f8bff; color: #fff; }
   .bs-mock { border: 1px solid var(--bs-border); border-radius: 7px; background: var(--bs-surface); padding: 8px; }
   .bm-head { display: flex; justify-content: space-between; font-size: 8px; color: var(--bs-muted); margin-bottom: 6px; }
   .bm-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
@@ -296,7 +299,11 @@
   .bm-chart svg { display: block; width: 100%; height: auto; }
   .bm-chart .l1 { stroke: #2f8bff; }
   .bm-chart .l2 { stroke: #f472c8; stroke-dasharray: 3 3; }
-  .site-foot { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+  .site-sections { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 9px; }
+  .site-sections div { border: 1px solid var(--rv-line); border-radius: 8px; background: var(--rv-panel2); padding: 7px 10px; }
+  .site-sections b { display: block; font-size: 10.5px; color: #d2dfee; }
+  .site-sections span { font-size: 9.2px; color: #74849a; }
+  .site-foot { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
 
   /* caption + rail */
   .caption { display: flex; align-items: center; gap: 12px; padding: 9px 14px; border: 1px solid var(--rv-line); border-radius: 9px; background: rgba(14,19,27,.86); }
@@ -322,12 +329,12 @@
   .intro-inner h1 { margin: 18px 0 8px; font-size: 44px; letter-spacing: -.02em; }
   .intro-inner h1 span { color: #7fbdfc; }
   .intro-sub { font-size: 15px; color: #9fb0c6; line-height: 1.7; }
-  .intro-facts { display: flex; justify-content: center; gap: 22px; margin-top: 26px; font-size: 12px; color: #7d90a8; }
+  .intro-facts { display: flex; justify-content: center; gap: 22px; margin-top: 24px; font-size: 12px; color: #7d90a8; }
   .intro-facts b { color: #dce9fa; font-weight: 600; }
-  .intro-note { margin-top: 18px; font-size: 10.5px; color: #5f7188; }
+  .intro-note { margin-top: 16px; font-size: 10.5px; color: #5f7188; }
   .outro-inner h2 { margin: 14px 0 6px; font-size: 38px; letter-spacing: -.01em; }
-  .outro-stats { display: flex; justify-content: center; gap: 26px; margin: 22px 0 18px; }
-  .outro-stats div { min-width: 150px; border: 1px solid #253246; border-radius: 10px; padding: 12px 14px; background: rgba(16,23,33,.8); }
+  .outro-stats { display: flex; justify-content: center; gap: 22px; margin: 22px 0 18px; }
+  .outro-stats div { min-width: 140px; border: 1px solid #253246; border-radius: 10px; padding: 12px 14px; background: rgba(16,23,33,.8); }
   .outro-stats b { display: block; font: 600 22px/1.2 "Cascadia Mono", Consolas, monospace; color: #eaf3ff; }
   .outro-stats span { font-size: 10px; color: #7f92a9; }
   .outro-url { font: 12px/1.5 "Cascadia Mono", Consolas, monospace; color: #8cc4ff; }
@@ -335,115 +342,154 @@
 </style>
 </head>
 <body>
+<svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true"><defs>
+  <symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></symbol>
+  <symbol id="i-send" viewBox="0 0 16 16"><path d="M2.5 8 13 3.5 10.5 13 8 9.5 2.5 8Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></symbol>
+  <symbol id="i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.2" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M10.2 10.2 13.4 13.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 16 16"><rect x="2.2" y="3.4" width="11.6" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M5 13.4l1.6-1.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 16 16"><path d="M2 4.6h4l1.2 1.5H14v6.2H2Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="8" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M6 13.4h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 16 16"><rect x="2.4" y="2.4" width="4.3" height="4.3" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="9.3" y="2.4" width="4.3" height="4.3" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="2.4" y="9.3" width="4.3" height="4.3" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="9.3" y="9.3" width="4.3" height="4.3" fill="none" stroke="currentColor" stroke-width="1.1"/></symbol>
+  <symbol id="i-more" viewBox="0 0 16 16"><circle cx="3.6" cy="8" r="1" fill="currentColor"/><circle cx="8" cy="8" r="1" fill="currentColor"/><circle cx="12.4" cy="8" r="1" fill="currentColor"/></symbol>
+  <symbol id="i-bot" viewBox="0 0 16 16"><rect x="3.5" y="5" width="9" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M8 2.8v2.2M6 8.2h.01M10 8.2h.01" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 16 16"><path d="M10.6 5.2 6.1 9.7a1.6 1.6 0 0 0 2.3 2.3l4.5-4.5a2.9 2.9 0 0 0-4.1-4.1L4.3 8a4.2 4.2 0 0 0 5.9 5.9l3.2-3.2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 16 16"><path d="M8 2.5 9.4 6.6 13.5 8 9.4 9.4 8 13.5 6.6 9.4 2.5 8 6.6 6.6Z" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></symbol>
+  <symbol id="i-split" viewBox="0 0 16 16"><rect x="2.4" y="3" width="11.2" height="10" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M8 3v10" stroke="currentColor" stroke-width="1.1"/></symbol>
+  <symbol id="i-panel" viewBox="0 0 16 16"><rect x="2.4" y="3" width="11.2" height="10" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M10 3v10" stroke="currentColor" stroke-width="1.1"/></symbol>
+  <symbol id="i-side" viewBox="0 0 16 16"><rect x="2.4" y="3" width="11.2" height="10" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M5.6 3v10" stroke="currentColor" stroke-width="1.1"/></symbol>
+</defs></svg>
+
 <div id="stage">
   <div class="stage-pad">
     <header class="rv-top">
       <div class="rv-brand">
         <img src="assets/brand-icon.png" alt="">
-        蓝天游戏助手 <span>· 开发过程复盘</span>
+        蓝天游戏助手 <span>· 真实会话回放</span>
         <i class="rv-dot"></i>
       </div>
       <div class="rv-top-right">
-        <span class="rv-replay">SESSION REPLAY</span>
+        <span class="rv-replay">REAL SESSION</span>
         <span>2026-11-07 → 11-15</span>
-        <span>149 COMMITS</span>
+        <span>42 MSG · 9 ROUNDS</span>
       </div>
     </header>
 
     <div class="rv-body">
       <section class="win qoder">
-        <div class="win-bar">
-          <span class="win-lights"><i></i><i></i><i></i></span>
-          <b>Qoder</b> — 会话
-          <span class="tag">Agent</span>
+        <div class="qbar">
+          <span class="nav">‹ ›</span>
+          <span class="menu"><span>文件</span><span>编辑</span><span>视图</span><span>帮助</span></span>
+          <span class="wctl"><span>—</span><span>▢</span><span>✕</span></span>
         </div>
-        <div class="qoder-main">
-          <aside class="sessions">
-            <div class="sessions-h">最近会话</div>
-            <div class="session">需求拆解与里程碑</div>
-            <div class="session">M1 采集与界面闭环</div>
-            <div class="session">帧级真相与卡顿事件</div>
-            <div class="session">会话录制与报告导出</div>
-            <div class="session">AI 归因与预算门控</div>
-            <div class="session">低占用与稳定性</div>
-            <div class="session">日志长期保存</div>
-            <div class="session">质量与稳定性</div>
-            <div class="session">展示站与图标改版</div>
-            <div class="sessions-new">＋ 新建会话</div>
+        <div class="qmain">
+          <aside class="qside">
+            <div class="prog"><i class="gdot"></i>编程<svg class="ic"><use href="#i-bot"></use></svg></div>
+            <div class="qs-item"><svg class="ic"><use href="#i-plus"></use></svg>新的任务</div>
+            <div class="qs-item"><svg class="ic"><use href="#i-send"></use></svg>需要我</div>
+            <div class="qs-item"><svg class="ic"><use href="#i-search"></use></svg>搜索</div>
+            <div class="qs-icons">
+              <svg class="ic"><use href="#i-chat"></use></svg>
+              <svg class="ic"><use href="#i-chat"></use></svg>
+              <span class="add">＋</span>
+            </div>
+            <div class="qs-h">本机工作区</div>
+            <div class="qs-item"><svg class="ic"><use href="#i-folder"></use></svg>glagame相关</div>
+            <div class="qs-h">最近任务</div>
+            <div class="qs-item on"><span>游戏助手开发</span><span class="more">···</span></div>
+            <div class="qs-bottom">
+              <div class="qs-item"><svg class="ic"><use href="#i-monitor"></use></svg>站点</div>
+              <div class="qs-item"><svg class="ic"><use href="#i-grid"></use></svg>自动化</div>
+              <div class="qs-item"><svg class="ic"><use href="#i-grid"></use></svg>扩展</div>
+              <div class="qs-item"><svg class="ic"><use href="#i-more"></use></svg>更多</div>
+              <div class="qs-user"><img src="assets/brand-icon.png" alt=""><span>世界猫</span><span class="u-ic">?</span><span class="u-ic">⚙</span></div>
+            </div>
           </aside>
           <div class="chat">
-            <div class="chat-head">
-              <b data-chat-title>需求拆解与里程碑</b>
-              <span data-chat-mode>Qoder · 自动</span>
+            <div class="qhead">
+              <b>游戏助手开发</b><span class="dots">···</span>
+              <span class="qtools">
+                <svg class="ic"><use href="#i-folder"></use></svg>
+                <svg class="ic"><use href="#i-spark"></use></svg>
+                <svg class="ic"><use href="#i-split"></use></svg>
+                <svg class="ic"><use href="#i-panel"></use></svg>
+                <svg class="ic"><use href="#i-side"></use></svg>
+              </span>
             </div>
-            <div class="chat-scroll">
-              <div class="msg-user"><div class="bubble" data-type="user"></div></div>
-              <div class="msg-agent">
-                <div class="avatar">Q</div>
-                <div class="agent-body">
-                  <p data-type="agent"></p>
-                  <div class="tool" data-tool="0"><i></i><code></code><span>已完成</span></div>
-                  <div class="tool" data-tool="1"><i></i><code></code><span>已完成</span></div>
-                  <div class="tool" data-tool="2"><i></i><code></code><span>已完成</span></div>
-                  <div class="chips">
-                    <span class="chip" data-chip="0"></span>
-                    <span class="chip" data-chip="1"></span>
-                    <span class="chip" data-chip="2"></span>
-                  </div>
-                  <div class="chat-result" data-result-box>
-                    <h5>本轮结果</h5>
-                    <div><i>✓</i><span data-result="0"></span></div>
-                    <div><i>✓</i><span data-result="1"></span></div>
-                    <div><i>✓</i><span data-result="2"></span></div>
-                  </div>
-                </div>
+            <div class="qscroll" data-qscroll><div class="turns" data-turns></div></div>
+            <div class="qcompose">
+              <div class="ph">长按鼠标语音输入文字</div>
+              <div class="row">
+                <span class="qtool">＋</span>
+                <span class="qtool"><svg class="ic" style="width:12px;height:12px"><use href="#i-clip"></use></svg></span>
+                <span class="qperm">▲ 完全访问 <span style="font-size:7px">▾</span></span>
+                <span class="qmodel"><i>●</i>DeepSeek-Flash <span style="color:#8f97a3">高</span> <span style="font-size:7px">▾</span></span>
+                <span class="qsend"><i></i></span>
+                <span class="qdot"></span>
               </div>
             </div>
+            <div class="qfoot">
+              <svg class="ic"><use href="#i-monitor"></use></svg>本地
+              <span class="qbar-line"><i></i></span>
+            </div>
           </div>
-        </div>
-        <div class="chat-foot">
-          <span class="diff-badge">本轮变更</span>
-          <span data-diff>+0 文件</span>
-          <span class="spacer"></span>
-          <span class="send">↵ 发送 · Qoder 执行中</span>
         </div>
       </section>
 
       <section class="win proj">
-        <div class="win-bar proj-bar">
-          <span class="win-lights"><i></i><i></i><i></i></span>
+        <div class="pbar">
           <img src="assets/brand-icon.png" alt="">
           <b>蓝天游戏助手</b>
-          <span data-proj-sub style="font-size:10.5px;color:#7f8da1;"></span>
+          <span data-proj-sub style="font-size:9.5px;color:#7f8da1;"></span>
           <span class="live">● 运行中</span>
+          <span class="wctl"><span>—</span><span>▢</span><span>✕</span></span>
         </div>
         <div class="proj-body">
           <div class="proj-ghost" data-ghost>01</div>
 
           <!-- 1 docs -->
           <div class="scene" data-scene="1">
-            <div class="rv-kicker">ROUND 01 · PROJECT DOCS</div>
-            <h3 class="rv-title">先把问题说清楚</h3>
+            <div class="rv-kicker">ROUND 01 · REQUIREMENT SESSION</div>
+            <h3 class="rv-title">先问清楚，再写文档</h3>
             <div class="docs">
-              <div class="doc" data-r="0.10"><span class="doc-tag">REQ</span><h4>需求文档</h4><p>42 条功能与非功能指标</p><i>FR-001 … NFR-P-13</i></div>
-              <div class="doc" data-r="0.20"><span class="doc-tag">DEV</span><h4>开发文档</h4><p>12 章架构、口径与模块边界</p><i>采集 / 图表 / 会话 / AI</i></div>
-              <div class="doc" data-r="0.30"><span class="doc-tag">RES</span><h4>调研</h4><p>6 款同类方案与反作弊约束</p><i>PresentMon · LHM · ETW</i></div>
+              <div class="doc" data-r="0.08"><span class="doc-tag">REQ</span><h4>需求文档</h4><p>指标口径、边界与验收条件</p><i>docs/requirements.md</i></div>
+              <div class="doc" data-r="0.16"><span class="doc-tag">DEV</span><h4>开发文档</h4><p>模块边界、数据流与里程碑</p><i>docs/development.md</i></div>
+              <div class="doc" data-r="0.24"><span class="doc-tag">RES</span><h4>调研</h4><p>同类方案、权限与反作弊约束</p><i>docs/research.md</i></div>
             </div>
             <div class="scope">
-              <div class="scope-row" data-r="0.42"><b>帧级真相</b><span>PresentMon + 1% Low + 卡顿事件</span><em>已定</em></div>
-              <div class="scope-row" data-r="0.50"><b>系统指标</b><span>CPU / GPU / 内存 / 显存 / 磁盘</span><em>已定</em></div>
-              <div class="scope-row" data-r="0.58"><b>AI 归因</b><span>本地规则先判，大模型只复核</span><em>已定</em></div>
-              <div class="scope-row" data-r="0.66"><b>边界</b><span>不注入游戏、不读标题、Key 不落盘</span><em>已定</em></div>
+              <div class="scope-row" data-r="0.38"><b>时间轴</b><span>内存 / CPU / GPU / 显存同一时间轴</span><em>已定</em></div>
+              <div class="scope-row" data-r="0.46"><b>低占用</b><span>后台常驻，内存占用必须极小</span><em>已定</em></div>
+              <div class="scope-row" data-r="0.54"><b>交接文档</b><span>每次任务后更新，方便后续 Agent</span><em>已定</em></div>
+              <div class="scope-row" data-r="0.62"><b>提交规范</b><span>作者与 Agent 署名写进规范</span><em>已定</em></div>
             </div>
-            <div class="doc-foot" data-r="0.78">三份文档先对齐口径，再拆成可验收的里程碑。</div>
-            <div class="scene-foot" data-r="0.84"><span class="sf-label">本轮产物</span><span class="sf-item">requirements.md</span><span class="sf-item">development.md</span><span class="sf-item">research.md</span></div>
+            <div class="doc-foot" data-r="0.7">第一轮没有写产品代码：先提问、对齐边界，再产出三份文档。</div>
+            <div class="scene-foot" data-r="0.78"><span class="sf-label">本轮产物</span><span class="sf-item">requirements.md</span><span class="sf-item">development.md</span><span class="sf-item">research.md</span></div>
           </div>
 
-          <!-- 2 m1 -->
-          <div class="scene scene--app" data-scene="2">
-            <div class="rv-kicker">ROUND 02 · M1 FOUNDATION</div>
-            <h3 class="rv-title">五个项目跑通第一条闭环</h3>
-            <div class="reel-app app-ui" data-r="0.12">
+          <!-- 2 research -->
+          <div class="scene" data-scene="2">
+            <div class="rv-kicker">ROUND 02 · REUSE BEFORE BUILD</div>
+            <h3 class="rv-title">能从开源拿的，就不自己造</h3>
+            <div class="pick">
+              <div class="pick-card" data-r="0.08"><span class="lib">FRAME TRUTH</span><h4>PresentMon</h4><p>Intel 官方帧采集，直接给帧时间与呈现事件。</p><i>不自己 hook 图形 API</i></div>
+              <div class="pick-card" data-r="0.16"><span class="lib">SENSORS</span><h4>LibreHardwareMonitor</h4><p>温度与功耗交给厂商驱动和成熟库。</p><i>GPU 优先厂商原生接口</i></div>
+              <div class="pick-card" data-r="0.24"><span class="lib">LLM</span><h4>OpenAI 兼容接口</h4><p>模型与地址由用户填写，不绑定单一厂商。</p><i>Key 只进凭据管理器</i></div>
+            </div>
+            <div class="boundary" data-r="0.4"><b>自研只保留</b><span>指标口径聚合</span><span>卡顿事件判定</span><span>时间轴与报告界面</span></div>
+            <div class="doc-foot" data-r="0.5">先查 PresentMon 的两种集成方式和管理员要求，再确认 CapFrameX 等项目的分析口径。</div>
+            <div class="rule-row">
+              <span class="hit" data-r="0.58">帧级真相</span>
+              <span data-r="0.62">厂商 GPU 传感器</span>
+              <span data-r="0.66">分模式 · 可选联网</span>
+              <span data-r="0.7">不注入游戏</span>
+            </div>
+            <div class="scene-foot" data-r="0.76"><span class="sf-label">选型结论</span><span class="sf-item">PresentMon</span><span class="sf-item">LibreHardwareMonitor</span><span class="sf-item ok">OpenAI 兼容</span></div>
+          </div>
+
+          <!-- 3 app -->
+          <div class="scene scene--app" data-scene="3">
+            <div class="rv-kicker">ROUND 03 · M1 FOUNDATION</div>
+            <h3 class="rv-title">按文档开第一版</h3>
+            <div class="reel-app app-ui" data-r="0.1">
               <div class="am-titlebar">
                 <img class="am-logo" src="assets/brand-icon.png" alt="">
                 <span class="am-title">蓝天游戏助手</span>
@@ -485,14 +531,20 @@
                 </div>
               </div>
             </div>
-            <div class="scene-note" data-r="0.58"><b>共享内存 v2 · 命名管道 · 采集进程退避重启</b>，界面先有骨架，指标再逐步接上。</div>
+            <div class="scene-note" data-r="0.52"><b>共享内存 v2 · 命名管道 · 采集进程退避重启</b>，界面先出骨架，指标再逐步接上。</div>
+            <div class="fixes" data-r="0.62">
+              <span><i>✓</i>Core · 遥测模型</span>
+              <span><i>✓</i>Sensors · PDH 采样</span>
+              <span><i>✓</i>UI · 时间轴</span>
+              <span><i>✓</i>Tests · 冒烟骨架</span>
+            </div>
           </div>
 
-          <!-- 3 chart -->
-          <div class="scene" data-scene="3">
-            <div class="rv-kicker">ROUND 03 · FRAME TRUTH</div>
-            <h3 class="rv-title">把「卡了」变成可复核的事件</h3>
-            <div class="chart-wrap" data-r="0.10">
+          <!-- 4 chart -->
+          <div class="scene" data-scene="4">
+            <div class="rv-kicker">ROUND 04 · FRAME + SENSOR</div>
+            <h3 class="rv-title">采不到的数据，一项项补齐</h3>
+            <div class="chart-wrap" data-r="0.08">
               <svg viewBox="0 0 760 246" aria-hidden="true">
                 <g class="rv-grid"><line x1="0" y1="16" x2="760" y2="16"/><line x1="0" y1="66" x2="760" y2="66"/><line x1="0" y1="116" x2="760" y2="116"/><line x1="0" y1="166" x2="760" y2="166"/><line x1="0" y1="216" x2="760" y2="216"/><line x1="152" y1="16" x2="152" y2="216"/><line x1="304" y1="16" x2="304" y2="216"/><line x1="456" y1="16" x2="456" y2="216"/><line x1="608" y1="16" x2="608" y2="216"/></g>
                 <g class="rv-axis"><text x="754" y="14" text-anchor="end">100%</text><text x="754" y="118" text-anchor="end">50%</text><text x="4" y="240">-60s</text><text x="380" y="240" text-anchor="middle">-30s</text><text x="754" y="240" text-anchor="end">现在</text></g>
@@ -503,149 +555,149 @@
               </svg>
             </div>
             <div class="tiles">
-              <div class="tile" data-r="0.42"><span>1% Low</span><b data-count="121.8" data-dec="1">0</b><em>FPS</em></div>
-              <div class="tile" data-r="0.50"><span>帧尖峰</span><b data-count="46" data-dec="0">0</b><em>ms</em></div>
-              <div class="tile" data-r="0.58"><span>事件合并</span><b data-count="500" data-dec="0">0</b><em>ms</em></div>
+              <div class="tile" data-r="0.38"><span>1% Low</span><b data-count="121.8" data-dec="1">0</b><em>FPS</em></div>
+              <div class="tile" data-r="0.46"><span>帧尖峰</span><b data-count="46" data-dec="0">0</b><em>ms</em></div>
+              <div class="tile" data-r="0.54"><span>事件合并</span><b data-count="500" data-dec="0">0</b><em>ms</em></div>
             </div>
-            <div class="event-chip" data-r="0.68"><i></i>对比前 2 秒中位帧时间：超过 2 倍且 &gt; 33 ms 记为一次卡顿</div>
-            <div class="scene-foot" data-r="0.8"><span class="sf-label">本轮产物</span><span class="sf-item">FrameTimeline.cs</span><span class="sf-item">EventDetector.cs</span><span class="sf-item ok">1% Low · 46 ms</span></div>
+            <div class="sensor-row">
+              <div class="sensor" data-r="0.6"><span>GPU 温度</span><b>63 °C</b></div>
+              <div class="sensor" data-r="0.64"><span>平均帧</span><b>126.5</b></div>
+              <div class="sensor" data-r="0.68"><span>低帧</span><b>96.2</b></div>
+            </div>
+            <div class="event-chip" data-r="0.72"><i></i>浮窗补上 CPU 温度，采集只读性能计数器与厂商传感器</div>
+            <div class="scene-foot" data-r="0.8"><span class="sf-label">本轮产物</span><span class="sf-item">SensorSidecar.cs</span><span class="sf-item">FrameTimeline.cs</span><span class="sf-item ok">不注入游戏</span></div>
           </div>
 
-          <!-- 4 session -->
-          <div class="scene" data-scene="4">
-            <div class="rv-kicker">ROUND 04 · SESSION &amp; REPORT</div>
-            <h3 class="rv-title">卡顿前后各留 15 秒</h3>
-            <div class="split">
-              <div class="rec-card" data-r="0.10">
-                <header><span class="rec-dot"></span>正在录制 · 00:30</header>
-                <div class="rec-bar"><span data-grow="1"></span><i></i><span class="after" data-grow="1"></span></div>
-                <div class="rec-axis"><span>-15s</span><span>卡顿 14:32:07</span><span>+15s</span></div>
-                <ul><li>14:31:52 会话开始</li><li>14:32:07 卡顿事件</li><li>14:32:22 录制结束</li></ul>
-              </div>
-              <div class="report" data-r="0.28">
-                <div class="report-head">卡顿报告 · 14:32:07</div>
-                <div class="report-lines"><span></span><span></span><span></span><span></span></div>
-                <div class="report-mini"><i style="height:30%"></i><i style="height:42%"></i><i style="height:36%"></i><i style="height:54%"></i><i style="height:38%"></i><i style="height:88%"></i><i style="height:46%"></i><i style="height:34%"></i><i style="height:44%"></i><i style="height:32%"></i></div>
-                <span class="report-tag">Markdown + PNG · 本地生成</span>
-              </div>
-            </div>
-            <div class="session-list" data-r="0.46">
-              <div class="sl-row"><span>14:28:41</span><b>GPU 尖峰 · 41 ms · 300 ms</b><em>已归档</em></div>
-              <div class="sl-row"><span>14:32:07</span><b>GPU 尖峰 · 46 ms · 500 ms</b><em class="hot">本次</em></div>
-              <div class="sl-row"><span>14:36:22</span><b>加载切换 · 38 ms · 400 ms</b><em>已归档</em></div>
-            </div>
-            <div class="lock" data-r="0.62">会话文件按次保存，回放不依赖云端；报告里每个结论都能回到原始指标。</div>
-            <div class="scene-foot" data-r="0.8"><span class="sf-label">本轮产物</span><span class="sf-item">SessionRecorder.cs</span><span class="sf-item">ReportExporter.cs</span><span class="sf-item ok">30 秒会话</span></div>
-          </div>
-
-          <!-- 5 ai -->
+          <!-- 5 api + mcp -->
           <div class="scene" data-scene="5">
-            <div class="rv-kicker">ROUND 05 · AI ATTRIBUTION</div>
-            <h3 class="rv-title">证据链先于人话</h3>
-            <div class="evidence">
-              <div class="rules">
-                <div class="rule hit" data-r="0.08">GPU 尖峰</div>
-                <div class="rule" data-r="0.14">1% Low 下探</div>
-                <div class="rule" data-r="0.20">帧间隔抖动</div>
-                <div class="rule" data-r="0.26">CPU 饱和</div>
-                <div class="rule" data-r="0.32">磁盘等待</div>
-                <div class="rule" data-r="0.38">加载切换</div>
-                <div class="rule" data-r="0.44">硬件降频</div>
+            <div class="rv-kicker">ROUND 05 · LLM API + MCP</div>
+            <h3 class="rv-title">模型由用户选，数据由 Agent 读</h3>
+            <div class="api-grid">
+              <div class="api-card" data-r="0.08">
+                <header>LLM 分析接口<span class="tag">OpenAI 兼容</span></header>
+                <div class="api-code"><b>POST</b> /v1/chat/completions
+model   用户填写
+key     Windows 凭据管理器</div>
+                <div class="api-foot">报告只带脱敏后的指标摘要，可先本地规则再复核。</div>
               </div>
-              <div class="arrow" data-r="0.40">→</div>
-              <div class="ai-card" data-r="0.46">
-                <span class="ai-chip">AI 复核 · 可选</span>
-                <h4>主因：GPU 尖峰</h4>
-                <ul><li>帧时间 46 ms，GPU 占用 71%</li><li>CPU、磁盘与采集无同步异常</li><li>建议：关闭后台录制 / 降一档画质</li></ul>
-                <div class="conf">置信度 0.82 · 仅点击时联网 · 可关闭</div>
+              <div class="api-card" data-r="0.18">
+                <header>MCP 服务<span class="tag">stdio · 只读</span></header>
+                <div class="mcp-row">hardware.snapshot<em>实时</em></div>
+                <div class="mcp-row">frames.summary<em>会话</em></div>
+                <div class="mcp-row">sessions.list<em>只读</em></div>
+                <div class="mcp-row">logs.query<em>脱敏</em></div>
+                <div class="api-foot">Agent 连上就能调试设备，不需要读界面。</div>
               </div>
             </div>
-            <div class="evidence-strip" data-r="0.62">
-              <div><span>EVIDENCE 01</span><b>帧时间 46 ms &gt; 2× 中位 18 ms</b></div>
-              <div><span>EVIDENCE 02</span><b>GPU 71% · CPU 42% · 无磁盘等待</b></div>
-              <div><span>EVIDENCE 03</span><b>建议：关闭后台录制 / 降画质</b></div>
+            <div class="rule-row">
+              <span class="hit" data-r="0.32">本地规则先判</span>
+              <span data-r="0.36">只点击时联网</span>
+              <span data-r="0.4">预算上限</span>
+              <span data-r="0.44">Key 不落盘</span>
             </div>
-            <div class="lock" data-r="0.72">🔒 API Key 只存 Windows 凭据管理器，不进入设置文件、日志与会话记录。</div>
-            <div class="scene-foot" data-r="0.84"><span class="sf-label">本轮产物</span><span class="sf-item">LocalAttribution.cs</span><span class="sf-item">AiAnalysis.cs</span><span class="sf-item ok">Key 不落盘</span></div>
+            <div class="lock" data-r="0.52">API Key 不写入设置文件、日志与会话记录；MCP 只暴露只读硬件数据。</div>
+            <div class="ai-sample" data-r="0.58">
+              <div class="ai-sample-h">报告摘要 · 本地规则先判，模型再复核</div>
+              <div class="ai-line"><b>主因</b>GPU 渲染队列尖峰，帧时间 46 ms</div>
+              <div class="ai-line"><b>进程</b>GenshinImpact · GPU 71.2% · 3.2 s 后恢复</div>
+              <div class="ai-line"><b>建议</b>关闭后台录制；画质降一档；观察下一次会话</div>
+            </div>
+            <div class="scene-foot" data-r="0.7"><span class="sf-label">本轮产物</span><span class="sf-item">OpenAiCompatibleClient.cs</span><span class="sf-item">McpServer.cs</span><span class="sf-item ok">只读 4 个工具</span></div>
           </div>
 
-          <!-- 6 footprint -->
+          <!-- 6 logs -->
           <div class="scene" data-scene="6">
-            <div class="rv-kicker">ROUND 06 · LOW FOOTPRINT</div>
-            <h3 class="rv-title">常驻后台，像不存在一样</h3>
+            <div class="rv-kicker">ROUND 06 · LOGS &amp; 8 FIXES</div>
+            <h3 class="rv-title">日志常开，问题逐条查</h3>
+            <div class="split">
+              <div class="tree" data-r="0.08"><b>logs/</b>
+<span class="dim">├─</span> runtime/ <span class="dim">ui-2026-11-09.log</span>
+<span class="dim">├─</span> issues/ <span class="dim">issues-2026-11.log</span>
+<span class="dim">└─</span> diagnostics/ <span class="dim">diag-…/summary.txt</span>
+   samples.csv · events.jsonl</div>
+              <div class="rot" data-r="0.2">
+                <div class="rot-title">默认每 3 天轮换 · 可自定义</div>
+                <div class="rot-files"><span>issues-07.log</span><span>issues-08.log</span><span class="hot">issues-09.log</span></div>
+                <div class="rot-bar"><i data-bar="1"></i></div>
+                <small>应用启动到关闭常态保存，用户可关闭；掉帧标记随日志一起交给 LLM。</small>
+              </div>
+            </div>
+            <div class="log-sample" data-r="0.42">
+              <div><span class="t">14:32:07.412</span><span class="lvl warn">STUTTER</span>46 ms · tagged for LLM · proc GenshinImpact</div>
+              <div><span class="t">14:32:07.913</span><span class="lvl ok">INFO</span>session saved · local only</div>
+              <div><span class="t">14:32:08.004</span><span class="lvl">INFO</span>frame rate restored after 3.2 s</div>
+            </div>
+            <div class="lock" data-r="0.56">8 条问题逐条排查：日志、硬件名、连通测试、轮换、常开、掉帧标记、高负载进程、帧率消失。</div>
+            <div class="fixes">
+              <span data-r="0.6"><i>✓</i>运行日志</span>
+              <span data-r="0.62"><i>✓</i>硬件名称</span>
+              <span data-r="0.64"><i>✓</i>LLM 连通测试</span>
+              <span data-r="0.66"><i>✓</i>3 天轮换</span>
+              <span data-r="0.68"><i>✓</i>日志常开</span>
+              <span data-r="0.7"><i>✓</i>掉帧标记</span>
+              <span data-r="0.72"><i>✓</i>高负载进程</span>
+              <span data-r="0.74"><i>✓</i>帧率消失</span>
+            </div>
+            <div class="scene-foot" data-r="0.8"><span class="sf-label">本轮产物</span><span class="sf-item">LogMaintenance.cs</span><span class="sf-item">DiagnosticBundle.cs</span><span class="sf-item ok">默认 3 天轮换</span></div>
+          </div>
+
+          <!-- 7 footprint -->
+          <div class="scene" data-scene="7">
+            <div class="rv-kicker">ROUND 07 · HIGH-LOAD MODE</div>
+            <h3 class="rv-title">高占用时，先把自己变轻</h3>
             <div class="gauges">
               <div class="gauge" data-r="0.08"><span>界面进程</span><b data-count="50.94" data-dec="2">0</b><em>MB</em><div class="bar"><i data-bar="0.849"></i></div><small>预算 ≤ 60 MB</small></div>
               <div class="gauge" data-r="0.16"><span>采集进程</span><b data-count="11.30" data-dec="2">0</b><em>MB</em><div class="bar"><i data-bar="0.377"></i></div><small>预算 ≤ 30 MB</small></div>
               <div class="gauge" data-r="0.24"><span>采集 CPU</span><b data-count="0.086" data-dec="3">0</b><em>%</em><div class="bar"><i data-bar="0.287"></i></div><small>预算 ≤ 0.3%</small></div>
             </div>
             <div class="mode-row">
-              <span class="pill warn" data-r="0.48">高占用 → 自动降载</span>
-              <span class="pill ok" data-r="0.56">不注入游戏</span>
-              <span class="pill" data-r="0.64">安全模式可关采集</span>
+              <span class="pill warn" data-r="0.44">默认开启 · 自动检测高占用</span>
+              <span class="pill" data-r="0.5">只留检测 / 帧率 / 自动标注</span>
+              <span class="pill ok" data-r="0.56">聚焦恢复全部功能</span>
             </div>
-            <div class="baseline" data-r="0.5">
+            <div class="baseline" data-r="0.48">
               <div><span>30 分钟托盘基线</span><b>50.94 / 11.30 MB</b></div>
               <div><span>采集 CPU 均值</span><b>0.086%</b></div>
-              <div><span>资源预算断言</span><b>325 项通过</b></div>
+              <div><span>模块拆分</span><b>可按需装卸</b></div>
             </div>
-            <div class="lock" data-r="0.7">30 分钟托盘基线实测；资源预算写进自动化断言，超出即构建失败。</div>
-            <div class="scene-foot" data-r="0.84"><span class="sf-label">本轮产物</span><span class="sf-item">PerformanceMode.cs</span><span class="sf-item">BudgetTests.cs</span><span class="sf-item ok">全部低于预算</span></div>
-          </div>
-
-          <!-- 7 logs -->
-          <div class="scene" data-scene="7">
-            <div class="rv-kicker">ROUND 07 · LONG-TERM LOGS</div>
-            <h3 class="rv-title">日志不是临时文件</h3>
-            <div class="split">
-              <div class="tree" data-r="0.10"><b>logs/</b>
-<span class="dim">├─</span> runtime/ <span class="dim">ui-2026-11-15.log</span>
-<span class="dim">├─</span> issues/ <span class="dim">issues-2026-11.log</span>
-<span class="dim">└─</span> diagnostics/ <span class="dim">diag-…/summary.txt</span>
-   samples.csv · events.jsonl</div>
-              <div class="rot" data-r="0.26">
-                <div class="rot-title">按大小 / 月份轮换</div>
-                <div class="rot-files"><span>issues-09.log</span><span>issues-10.log</span><span class="hot">issues-11.log</span></div>
-                <div class="rot-bar"><i data-bar="1"></i></div>
-                <small>两类日志可独立迁移；会话保留前后 15 秒，回放与报告都不依赖云端。</small>
-              </div>
-            </div>
-            <div class="log-sample" data-r="0.5">
-              <div><span class="t">14:32:07.412</span><span class="lvl warn">EVENT</span>frame spike 46ms · merged 500ms window</div>
-              <div><span class="t">14:32:07.913</span><span class="lvl ok">INFO</span>session saved · 30.0s · local only</div>
-              <div><span class="t">14:32:08.004</span><span class="lvl">INFO</span>diagnostics redacted · 0 sensitive fields</div>
-            </div>
-            <div class="lock" data-r="0.66">诊断包自动脱敏：不写窗口标题、路径、用户名与密钥。</div>
-            <div class="scene-foot" data-r="0.82"><span class="sf-label">本轮产物</span><span class="sf-item">LogPaths.cs</span><span class="sf-item">DiagnosticsExporter.cs</span><span class="sf-item ok">已脱敏</span></div>
+            <div class="lock" data-r="0.64">拆成多个模块，降载只停非核心模块，为后续新功能预留开关。</div>
+            <div class="scene-foot" data-r="0.72"><span class="sf-label">本轮产物</span><span class="sf-item">PerformanceMode.cs</span><span class="sf-item">measure.ps1</span><span class="sf-item ok">默认高占用模式</span></div>
           </div>
 
           <!-- 8 tests -->
           <div class="scene" data-scene="8">
             <div class="rv-kicker">ROUND 08 · QUALITY</div>
-            <h3 class="rv-title">能交出去的证据</h3>
+            <h3 class="rv-title">先建能自己验证的通道</h3>
             <div class="big-stats">
-              <div class="big" data-r="0.08"><b data-count="325" data-dec="0">0</b><span>项自动化测试</span></div>
-              <div class="big" data-r="0.16"><b data-count="22" data-dec="0">0</b><span>项 UI 冒烟</span></div>
-              <div class="big" data-r="0.24"><b data-count="0" data-dec="0">0</b><span>Release 警告</span></div>
+              <div class="big" data-r="0.06"><b data-count="325" data-dec="0">0</b><span>项自动化测试</span></div>
+              <div class="big" data-r="0.13"><b data-count="22" data-dec="0">0</b><span>项 UI 冒烟</span></div>
+              <div class="big" data-r="0.2"><b data-count="0" data-dec="0">0</b><span>Release 警告</span></div>
             </div>
-            <div class="terminal" data-r="0.36">
+            <div class="terminal" data-r="0.3">
               <div><i>$</i>dotnet test <span class="ok">325 passed</span></div>
               <div><i>$</i>build/ui-smoke.ps1 <span class="ok">22 passed</span></div>
               <div><i>$</i>dotnet publish -c Release <span class="ok">0 warnings · 0 errors</span></div>
             </div>
-            <div class="commit-row" data-r="0.58">9 天 · 149 次提交 · 每个里程碑先补测试再合并</div>
-            <div class="test-grid" data-r="0.64">
+            <div class="commit-row" data-r="0.48">先做 --no-elevate + UIAutomation 冒烟，再把图表逻辑、资源预算变成硬门槛</div>
+            <div class="test-grid" data-r="0.56">
               <div><b>214</b><span>单元测试</span></div>
               <div><b>61</b><span>集成测试</span></div>
               <div><b>28</b><span>预算 / 性能</span></div>
               <div><b>22</b><span>UI 冒烟</span></div>
             </div>
-            <div class="scene-foot" data-r="0.82"><span class="sf-label">本轮产物</span><span class="sf-item">325 tests</span><span class="sf-item">ui-smoke.ps1</span><span class="sf-item ok">Release 0 警告</span></div>
+            <div class="fixes" data-r="0.64">
+              <span><i>✓</i>UI 冒烟 22 / 22</span>
+              <span><i>✓</i>资源预算硬门槛</span>
+              <span><i>✓</i>Release 0 警告</span>
+              <span><i>✓</i>脱敏诊断包</span>
+            </div>
+            <div class="scene-foot" data-r="0.72"><span class="sf-label">本轮产物</span><span class="sf-item">325 tests</span><span class="sf-item">ui-smoke.ps1</span><span class="sf-item ok">Release 0 警告</span></div>
           </div>
 
           <!-- 9 site -->
           <div class="scene" data-scene="9">
             <div class="rv-kicker">ROUND 09 · SHOWCASE SITE</div>
-            <h3 class="rv-title">截图也要跟着主题换</h3>
+            <h3 class="rv-title">按比赛要求做展示站</h3>
             <div class="browser" data-r="0.06">
               <div class="browser-bar"><i></i><i></i><i></i><span>game-stutter-lab-bgfqcqcjijr.qoder.zone</span><b class="toggle" data-toggle><i data-toggle-knob></i></b></div>
               <div class="browser-body" data-site>
@@ -673,17 +725,17 @@
                 </div>
               </div>
             </div>
-            <div class="site-sections" data-r="0.36">
+            <div class="site-sections" data-r="0.32">
               <div><b>AI 分析</b><span>本地规则 + 证据链复核</span></div>
               <div><b>软件低占用</b><span>50.94 MB · 0.086% CPU</span></div>
               <div><b>日志长期保存</b><span>轮换归档 · 脱敏诊断</span></div>
             </div>
             <div class="site-foot">
-              <span class="pill ok" data-r="0.46">界面截图 → 网页重绘</span>
-              <span class="pill" data-r="0.54">明暗主题自适应</span>
-              <span class="pill accent" data-r="0.66">publish_site · published: true</span>
+              <span class="pill ok" data-r="0.4">界面截图 → 网页重绘</span>
+              <span class="pill" data-r="0.46">明暗主题自适应</span>
+              <span class="pill accent" data-r="0.54">Qoder Sites · 已发布</span>
             </div>
-            <div class="scene-foot" data-r="0.8"><span class="sf-label">本轮产物</span><span class="sf-item">site/dist</span><span class="sf-item">dev-reel.mp4</span><span class="sf-item ok">公网 200</span></div>
+            <div class="scene-foot" data-r="0.64"><span class="sf-label">本轮产物</span><span class="sf-item">site/dist</span><span class="sf-item">dev-reel.mp4</span><span class="sf-item ok">公网 200</span></div>
           </div>
 
         </div>
@@ -709,12 +761,12 @@
 
   <div class="veil" data-intro>
     <div class="intro-inner">
-      <div class="intro-kicker">SESSION REPLAY · 2026 QODER 高校创造力大赛</div>
+      <div class="intro-kicker">REAL SESSION REPLAY · 2026 QODER 高校创造力大赛</div>
       <img class="intro-logo" src="assets/brand-icon.png" alt="">
       <h1>从一句需求到<span>能跑的产品</span></h1>
-      <p class="intro-sub">蓝天游戏助手 · 用 Qoder 完成的 9 天协作开发<br>左侧是会话，右侧是每一轮修改后项目的真实变化（重绘动画）</p>
-      <div class="intro-facts"><span><b>9</b> 天</span><span><b>149</b> 次提交</span><span><b>325</b> 项测试</span><span><b>3</b> 大重点</span></div>
-      <p class="intro-note">会话与项目画面按真实开发过程重绘，数据来自仓库与实测记录。</p>
+      <p class="intro-sub">蓝天游戏助手 · 用 Qoder 完成的 9 天协作开发<br>左侧逐字复现本会话的真实消息，右侧是每一轮之后项目的实际变化</p>
+      <div class="intro-facts"><span><b>9</b> 轮对话</span><span><b>42</b> 条消息</span><span><b>149</b> 次提交</span><span><b>325</b> 项测试</span></div>
+      <p class="intro-note">会话文字逐字取自本会话记录；Qoder 界面按桌面端实际布局重绘；项目画面与数据来自仓库与实测记录。</p>
     </div>
   </div>
 
@@ -738,15 +790,78 @@
 <script>
 (function () {
   var acts = [
-    { name: '需求与文档', scene: 1, user: '按比赛要求，做一个能长期记录游戏卡顿的工具，占用要尽可能小。', agent: '先把指标口径、隐私边界和反作弊约束写清楚，再拆成可验收的里程碑。', tools: ['docs/requirements.md', 'docs/development.md', 'docs/research.md'], chips: ['需求 FR/NFR', '隐私边界', '反作弊约束'], result: ['3 份文档已生成', '边界与指标已固定', '里程碑已拆分'], diff: '+3 文件 · 文档基线', caption: '先定三条主线：帧级真相、可复核的归因、日志长期保存。', commit: 'docs: 初始化需求 / 开发 / 调研', sub: '文档 · 9 天', dur: 4.4 },
-    { name: '基础闭环', scene: 2, user: '先把采集、界面和测试跑通。', agent: '五项目解决方案落地：PDH 指标、共享内存 v2、命名管道；WPF 主界面先出骨架。', tools: ['dotnet build', 'dotnet test', 'build/run-dev.ps1'], chips: ['PDH 指标', '共享内存 v2', '界面骨架'], result: ['5 个项目构建通过', '共享内存 v2 已连通', '主界面可启动'], diff: '+18 文件 · 基础闭环', caption: '采集、界面、测试先跑通，再逐步接入真实指标。', commit: 'feat(m1): 采集与界面闭环', sub: 'M1 · 实时状态', dur: 4.4 },
-    { name: '帧级真相', scene: 3, user: '帧率要准，卡顿要能回看。', agent: '接入 PresentMon，用 1% Low 与帧时间尖峰判定；超过 2 倍帧时间且大于 33ms 记为卡顿。', tools: ['PresentMon.cs', 'FrameTimeline.cs', 'EventDetector.cs'], chips: ['1% Low', '500ms 合并', '事件标记'], result: ['1% Low 计算通过', '卡顿事件可回放', '时间轴标记完成'], diff: '+12 文件 · 帧链路', caption: '把「卡了」变成一条带时间戳、可回看的事件。', commit: 'feat: 帧级真相闭环', sub: '帧采集 · 1 分钟视口', dur: 4.4 },
-    { name: '会话与报告', scene: 4, user: '一次卡顿前后都留下，能导出报告。', agent: '会话录制保留前后 15 秒，支持回放，并导出 Markdown 与时间线 PNG。', tools: ['SessionRecorder.cs', 'ReportExporter.cs', 'sessions/'], chips: ['前后 15 秒', '回放', 'Markdown / PNG'], result: ['前后 15 秒已保存', '回放可定位事件', '报告可导出'], diff: '+9 文件 · 会话与导出', caption: '一次卡顿不再只有结果：前后 15 秒、时间线、可导出的报告。', commit: 'feat: 会话录制与报告导出', sub: '会话 · 14:32:07', dur: 4.4 },
-    { name: 'AI 归因', scene: 5, user: '能不能把「为什么卡」说成人话？', agent: '7 类本地规则先给出可复核归因，AI 只做复核；Key 只存 Windows 凭据管理器。', tools: ['LocalAttribution.cs', 'AiAnalysis.cs', 'CredentialStore.cs'], chips: ['7 类规则', '证据链', 'Key 不落盘'], result: ['7 类规则命中验证', 'Key 存取已隔离', '联网开关可控'], diff: '+21 文件 · 归因与门控', caption: '先给证据，再给解释；AI 是复核者，不是唯一裁判。', commit: 'feat(ai): 证据链与预算门控', sub: 'AI · 本地优先', dur: 4.4 },
-    { name: '低占用', scene: 6, user: '常驻后台，不能打扰游戏。', agent: '30 分钟基线 50.94 + 11.30 MB、采集 CPU 0.086%；高占用时自动降载。', tools: ['PerformanceMode.cs', 'BudgetTests.cs', 'TrayService.cs'], chips: ['50.94 MB', '0.086% CPU', '自动降载'], result: ['资源预算断言通过', '托盘基线已复测', '降载策略生效'], diff: '+14 文件 · 资源预算', caption: '内存与 CPU 是硬约束：超预算直接让构建失败。', commit: 'feat: 高占用模式与资源预算', sub: '托盘 · 降载模式', dur: 4.4 },
-    { name: '日志长期保存', scene: 7, user: '上周那次卡顿，还能找回来吗？', agent: '运行日志与软件日志可独立迁移、按大小轮换；诊断包自动脱敏。', tools: ['LogPaths.cs', 'DiagnosticsExporter.cs', 'logs/issues/'], chips: ['独立目录', '轮换', '脱敏'], result: ['日志目录可迁移', '轮换策略已验证', '诊断包已脱敏'], diff: '+7 文件 · 日志路径', caption: '日志不是临时文件：换目录、按月份归档、脱敏后仍可复盘。', commit: 'feat: 日志目录可配置', sub: '日志 · 长期档案', dur: 4.4 },
-    { name: '质量工程', scene: 8, user: '给我能交出去的证据。', agent: '325 项测试、22 项 UI 冒烟、Release 0 警告；资源预算写进断言。', tools: ['dotnet test (325)', 'ui-smoke.ps1 (22)', 'Release build'], chips: ['325 项测试', '22 项冒烟', '0 警告'], result: ['325 项测试通过', '22 项冒烟通过', 'Release 0 警告'], diff: '+11 文件 · 测试与脚本', caption: '每个结论都有测试兜底，每次提交都可复现。', commit: 'test: 325 项与冒烟脚本', sub: '质量 · 全绿', dur: 4.4 },
-    { name: '参赛站点', scene: 9, user: '做一个只讲项目的展示站，明暗主题下截图也要跟着变。', agent: '站点改为纯展示；界面示意按桌面端布局用 HTML/CSS 重绘，随主题换色。', tools: ['site/index.html', 'site/styles.css', 'publish_site'], chips: ['明暗主题', '网页重绘', 'Qoder Sites'], result: ['明暗主题已验证', '界面示意已重绘', '公网访问 200'], diff: '+13 文件 · 站点改版', caption: '最后一轮：把截图换成随主题重绘的界面示意，并发布到公网。', commit: 'feat(site): 界面示意随主题重绘', sub: '展示站 · 已发布', dur: 4.8 }
+    {
+      name: '需求拆解', scene: 1, dur: 4.4,
+      users: ['1.本项目的目的是做一个性能检测软件，在用户玩游戏时、工作时或其他高负债使用电脑时，出现突然的掉帧卡顿等，但用户找不到原因，该项目就是为了解决这一问题，要求在后台实时抓取电脑的多项数据，包括内存占用情况、CPU负载情况、GPU及显存负载情况，并且要有时间轴一一对应当时的负载情况，做成线性表\n2.本项目的内存占用必须极小\n3.本项目暂时命名为蓝天游戏助手\n4.做好git版本控制，暂时不需要上传GitHub仓库\n5.先不用进行开发，本次任务是撰写需求文档、交接文档和开发文档以及提交规范\n6.交接文档要求每次任务后都必须更新，目的是方便其它agent了解当前项目开发进度和当前状况\n7.提交规范针对git提交、issue和pr，需要你自行整理，要求符合行业规范\n8.你每次提交必须使用qoder，因为你这个agent的名字叫做qoder，如果是其它agent需要提交则需要以它们自己的名字标注，这个要求必须写到提交规范里\n\n开始写开发文档前，我需要你对我进行提问以完全了解我的想法'],
+      agent: '我先看一眼工作目录的现状，再开始向你提问。',
+      steps: [['已思考', '先看工作目录的现状'], ['终端命令', 'pwd && ls -la', '已运行'], ['提问', '需求边界 · 3 个问题'], ['编辑文件', 'docs/requirements.md']],
+      caption: '第一轮没有写代码：先提问、写文档、把边界定下来。',
+      src: '会话原文 · 第 1 轮', sub: '文档 · 2026-11-07'
+    },
+    {
+      name: '选型', scene: 2, dur: 4.4,
+      users: ['从已开源的项目里截取更加优秀的设计，尽量不要造轮子，也不要自研太多模块，gpu传感器尽量使用厂商自带的，我希望我的项目也要有帧级真相，并且加入llm模型api接口，允许直接大模型进行分析，给出成熟的报告和设备优化建议'],
+      agent: '明白，方向调整为：复用成熟开源实现 + 帧级真相 + 厂商原生 GPU 传感器 + LLM 分析。这会把“纯本地、免提权”改成“分模式、可选联网”。我先确认 PresentMon 的两种集成方式和管理员要求，再问你 4 个必须由你拍板的问题。',
+      steps: [['终端命令', 'gh api repos/GameTechDev/PresentMon/readme', '已运行'], ['读取网页', 'PresentMon · CapFrameX'], ['已思考', '确认集成方式与管理要求'], ['编辑文件', 'docs/research.md']],
+      caption: '不从零造轮子：帧采集、传感器、大模型接口都用成熟实现。',
+      src: '会话原文 · 第 2 轮', sub: '选型 · PresentMon'
+    },
+    {
+      name: 'M1 跑通', scene: 3, dur: 4.4,
+      users: ['按照文档开始开发'],
+      agent: '开始按 M1 路线开发。先确认 SDK、WPF/AOT 构建条件与当前仓库状态，再搭解决方案骨架。',
+      steps: [['终端命令', 'dotnet --info', '已运行'], ['创建任务', 'sln + 5 个项目 + Core 遥测'], ['编辑文件', 'src/AzureGameAssistant.Core/Models'], ['终端命令', 'dotnet build', '已运行']],
+      caption: '文档对齐后开第一版：五个项目、采集进程与主界面。',
+      src: '会话原文 · 第 3 轮', sub: 'M1 · 5 个项目'
+    },
+    {
+      name: '补齐采集', scene: 4, dur: 4.4,
+      users: ['采集不到gpu温度、low帧、帧率、平均帧，并且数据浮窗没有提供cpu温度\n采集游戏进程时，注意不要触发反作弊'],
+      agent: "I'll check the sensor sidecar, overlay fields, and frame supervisor to see why these values stay empty.",
+      steps: [['读取文件', 'Sensors/Program.cs'], ['终端命令', 'grep -rn "GpuTemp" src --include=*.cs', '已运行'], ['编辑文件', 'SensorSidecar.cs · OverlayWindow.xaml.cs'], ['终端命令', 'dotnet test', '已运行']],
+      caption: '实测采不到 GPU 温度与低帧，逐项补采集，并守住反作弊。',
+      src: '会话原文 · 第 4 轮', sub: '采集 · 帧与传感器'
+    },
+    {
+      name: 'API + MCP', scene: 5, dur: 4.4,
+      users: ['补齐api接口，我希望用户可以通过api接入llm大模型，让大模型分析硬件数据给出优化建议\n添加MCP服务提供，允许agent链接项目mcp获取硬件数据，便于用户直接使用agent调试设备'],
+      agent: '我先梳理现有 AI 相关代码、遥测读取接口和文档约束，再确定 LLM API 与 MCP 服务的最小完整实现。',
+      steps: [['读取文件', 'docs/requirements.md'], ['终端命令', 'grep -rn "AiService|MCP" src', '已运行'], ['编辑文件', 'Ai/OpenAiCompatibleClient.cs'], ['编辑文件', 'Mcp/McpServer.cs']],
+      caption: '补齐 LLM API 与 MCP：用户自带 Key，Agent 可直读硬件数据。',
+      src: '会话原文 · 第 5 轮', sub: 'AI · API + MCP'
+    },
+    {
+      name: '日志与 8 项', scene: 6, dur: 4.4,
+      users: ['1.查看日志看看运行期间有什么问题\n2.给cpu、gpu的卡片添加硬件名称\n3.给api链接添加llm连通测试按钮\n4.添加日志轮换功能，每三天自动以新的日志替换旧的日志，具体轮换时间用户可以自定义，默认三天\n5.日志我希望是常态保存，应用开始运行直到关闭都要保存，这个功能可以有用户自己关闭\n6.添加自动检测掉帧并标记功能，要把标记好的日志传给llm，让llm分析该标记为什么会掉帧\n7.如果有硬件高负载，需要记录造成该硬件高负载原因的进程，ai分析时需要提供这个进程，并且ai分析后要返回是哪个进程造成高负载\n8.我在测试三角洲时发现，帧率会突然消失无法读取，一小段时间后自动回复，看看这个bug'],
+      agent: '开始排查运行期日志与实际诊断数据。',
+      steps: [['读取文件', '%LOCALAPPDATA%/AzureGameAssistant/logs'], ['读取文件', 'ui-20261109-124827-970.log'], ['编辑文件', 'LogMaintenance.cs · LogPaths.cs'], ['终端命令', 'dotnet test', '已运行']],
+      caption: '8 条问题逐条排查：日志、常开、掉帧标记、高负载进程。',
+      src: '会话原文 · 第 6 轮', sub: '日志 · 8 条问题'
+    },
+    {
+      name: '高占用模式', scene: 7, dur: 4.4,
+      users: ['给软件添加高占用模式，并默认开启，该模式下会自动检测高占用软件，如果出现高占用软件，则大幅降低本软件的硬件占用，我希望你可以把软件拆成多个模块，高占用模式下只保留检测占用和帧率以及自动标注卡顿的能力，其它功能暂时关闭，如果用户点击软件让软件成为焦点则自动恢复所有功能，同时高占用模式功能要为未来添加的新功能做好准备'],
+      agent: '我先梳理当前界面与采集侧有哪些常驻任务，再设计可扩展的模块化降载机制。',
+      steps: [['读取文件', 'UI/ViewModels/MainViewModel.cs'], ['已思考', '梳理常驻任务与可降载模块'], ['编辑文件', 'Performance/PerformanceMode.cs'], ['终端命令', 'build/measure.ps1', '已运行']],
+      caption: '默认高占用模式：只保留检测、帧率与自动标注。',
+      src: '会话原文 · 第 7 轮', sub: '降载 · 默认开启'
+    },
+    {
+      name: '质量门槛', scene: 8, dur: 4.4,
+      users: ['你认为该项目还有什么优化和前进的空间，按照重要程度列10个', '如果我不参与，全程由你来完成，重新列一下做什么，游戏测试之后会做'],
+      agent: '排除需要你本人或真实游戏环境的部分后，我重新排了 10 项，全部由我完成并自验：',
+      steps: [['创建任务', '--no-elevate + UIAutomation 冒烟'], ['创建任务', '图表视口逻辑抽成可测纯逻辑类'], ['终端命令', 'measure.ps1 增加阈值与退出码', '已运行'], ['终端命令', 'dotnet test', '已运行']],
+      caption: '不问 UI 细节，先建能自验的测试通道与资源硬门槛。',
+      src: '会话原文 · 第 8 轮', sub: '质量 · 325 项测试'
+    },
+    {
+      name: '参赛站点', scene: 9, dur: 4.8,
+      users: ['按照https://tianchi.aliyun.com/competition/entrance/532536?spm=5176.12281973.J_6-HJZaSjQocH7SIdvbK02.2.2b263b74lzOeiS 这个比赛的要求帮我做这个项目在Qoder Sites上的网站并且要满足这个比赛的要求'],
+      agent: '我先读取天池比赛页面，确认提交要求，再决定站点结构。',
+      steps: [['读取网页', 'tianchi.aliyun.com · 比赛要求'], ['终端命令', 'curl competitionInfo?competitionId=532536', '已运行'], ['编辑文件', 'site/index.html · styles.css'], ['终端命令', 'publish_site', '已运行']],
+      caption: '最后一轮：按比赛要求做展示站，并发布到公网。',
+      src: '会话原文 · 第 9 轮', sub: '站点 · 已发布'
+    }
   ];
 
   var TOTAL = 46;
@@ -754,7 +869,8 @@
   var OUTRO_START = 42.8;
   var introEl = document.querySelector('[data-intro]');
   var outroEl = document.querySelector('[data-outro]');
-  var scales = {};
+  var scroller = document.querySelector('[data-qscroll]');
+  var turnsEl = document.querySelector('[data-turns]');
 
   function clamp(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
   function ease(x) { x = clamp(x); return 1 - Math.pow(1 - x, 3); }
@@ -766,15 +882,9 @@
     var r = Math.round(ar + (br - ar) * k), g = Math.round(ag + (bg - ag) * k), bl = Math.round(ab + (bb - ab) * k);
     return 'rgb(' + r + ',' + g + ',' + bl + ')';
   }
-  function typeInto(el, text, p, start, span) {
-    if (!el) return;
-    var chars = Array.from(text);
-    var n = Math.floor(chars.length * clamp((p - start) / span));
-    el.textContent = chars.slice(0, n).join('');
-  }
   function setOpacity(el, o) {
     el.style.opacity = o;
-    el.style.transform = 'translateY(' + ((1 - o) * 12).toFixed(1) + 'px)';
+    el.style.transform = 'translateY(' + ((1 - o) * 10).toFixed(1) + 'px)';
   }
   function countUp(el, p, start, span) {
     var target = parseFloat(el.getAttribute('data-count'));
@@ -783,33 +893,59 @@
     el.textContent = (target * k).toFixed(dec);
   }
 
-  // build rail ticks
+  // build turns from real messages
+  var turnEls = acts.map(function (a) {
+    var turn = document.createElement('div');
+    turn.className = 'turn';
+    var bubbles = a.users.map(function (txt) {
+      var b = document.createElement('div');
+      b.className = 'bubble';
+      b.textContent = txt;
+      turn.appendChild(b);
+      return b;
+    });
+    var state = document.createElement('div');
+    state.className = 'state';
+    state.innerHTML = '<span class="chev">›</span>已处理';
+    turn.appendChild(state);
+    var reply = document.createElement('div');
+    reply.className = 'reply';
+    turn.appendChild(reply);
+    var steps = document.createElement('div');
+    steps.className = 'steps';
+    var stepEls = a.steps.map(function (s) {
+      var row = document.createElement('div');
+      row.className = 'step';
+      row.innerHTML = '<span class="ring"></span><b></b><span class="sx"><i class="run" style="display:none">●</i></span>';
+      row.querySelector('b').textContent = s[0];
+      row.querySelector('.sx').appendChild(document.createTextNode(' ' + s[1] + (s[2] ? ' · ' + s[2] : '')));
+      if (s[2]) row.querySelector('.run').style.display = 'inline';
+      steps.appendChild(row);
+      return row;
+    });
+    turn.appendChild(steps);
+    turnsEl.appendChild(turn);
+    return { root: turn, bubbles: bubbles, state: state, reply: reply, steps: stepEls };
+  });
+
+  // rail ticks
   var ticks = document.querySelector('[data-ticks]');
-  var tickEls = [];
-  acts.forEach(function (a, i) {
+  var tickEls = acts.map(function (a, i) {
     var t = document.createElement('span');
     t.className = 'tick';
     t.textContent = '0' + (i + 1);
     ticks.appendChild(t);
-    tickEls.push(t);
+    return t;
   });
 
-  // cache scene elements
+  // scenes
   var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
   scenes.forEach(function (s) {
     s.__items = Array.prototype.slice.call(s.querySelectorAll('[data-r]'));
   });
 
   var els = {
-    chatTitle: document.querySelector('[data-chat-title]'),
-    user: document.querySelector('[data-type="user"]'),
-    agent: document.querySelector('[data-type="agent"]'),
-    tools: Array.prototype.slice.call(document.querySelectorAll('[data-tool]')),
-    chips: Array.prototype.slice.call(document.querySelectorAll('[data-chip]')),
-    result: document.querySelector('[data-result-box]'),
-    resultRows: Array.prototype.slice.call(document.querySelectorAll('[data-result]')),
     ghost: document.querySelector('[data-ghost]'),
-    diff: document.querySelector('[data-diff]'),
     projSub: document.querySelector('[data-proj-sub]'),
     capNum: document.querySelector('[data-cap-num]'),
     capKicker: document.querySelector('[data-cap-kicker]'),
@@ -830,92 +966,104 @@
     return { i: 0, p: 0, start: INTRO_END, end: INTRO_END + acts[0].dur };
   }
 
+  var done = -1;
+  function finalizeTurn(i) {
+    if (i <= done) return;
+    var prev = turnEls[i];
+    prev.bubbles.forEach(function (b) { b.style.opacity = 1; b.style.transform = 'none'; });
+    prev.state.style.opacity = 1;
+    prev.reply.textContent = acts[i].agent;
+    prev.steps.forEach(function (s) { s.style.opacity = 1; });
+    prev.root.style.display = 'block';
+    done = i;
+  }
+
   function renderAt(t) {
     t = Math.max(0, Math.min(TOTAL, t));
     var a = actAt(t), act = acts[a.i], p = a.p;
 
-    // intro / outro
     if (t < 2.0) { introEl.classList.remove('hidden'); introEl.style.opacity = 1; }
     else if (t < INTRO_END) { introEl.classList.remove('hidden'); introEl.style.opacity = 1 - ease((t - 2.0) / 0.8); }
     else { introEl.classList.add('hidden'); }
     if (t > OUTRO_START) { outroEl.classList.remove('hidden'); outroEl.style.opacity = ease((t - OUTRO_START) / 0.9); }
     else { outroEl.classList.add('hidden'); outroEl.style.opacity = 0; }
 
-    // chat
-    var activeSession = document.querySelectorAll('.sessions .session')[a.i];
-    Array.prototype.forEach.call(document.querySelectorAll('.sessions .session'), function (s, i) { s.classList.toggle('on', i === a.i); });
-    els.chatTitle.textContent = act.name + ' · Qoder 会话';
-    typeInto(els.user, act.user, p, 0.02, 0.24);
-    typeInto(els.agent, act.agent, p, 0.20, 0.28);
-    els.tools.forEach(function (row, i) {
-      var o = clamp((p - (0.42 + i * 0.07)) / 0.12);
-      row.style.opacity = o;
-      row.style.transform = 'translateX(' + ((1 - o) * 8).toFixed(1) + 'px)';
-      row.querySelector('code').textContent = act.tools[i] || '';
+    // conversation: previous turns complete, future hidden, current revealed
+    for (var j = 0; j < a.i; j++) finalizeTurn(j);
+    turnEls.forEach(function (tr, j) {
+      if (j > a.i) tr.root.style.display = 'none';
+      if (j < a.i) tr.root.style.display = 'block';
     });
-    els.chips.forEach(function (chip, i) {
-      var o = clamp((p - (0.62 + i * 0.05)) / 0.12);
-      chip.style.opacity = o;
-      chip.textContent = act.chips[i] || '';
+    var cur = turnEls[a.i];
+    cur.root.style.display = 'block';
+    var bubbleStart = 0.03;
+    cur.bubbles.forEach(function (b, k) {
+      var o = ease(clamp((p - bubbleStart - k * 0.035) / 0.07));
+      b.style.opacity = o;
+      b.style.transform = 'translateY(' + ((1 - o) * 5).toFixed(1) + 'px)';
     });
-    els.diff.textContent = act.diff;
-    els.diff.style.opacity = clamp((p - 0.8) / 0.1);
-    els.projSub.textContent = act.sub;
-    els.ghost.textContent = '0' + (a.i + 1);
-    els.result.style.opacity = clamp((p - 0.74) / 0.12);
-    els.resultRows.forEach(function (row, i) { row.textContent = act.result[i] || ''; });
+    var stateO = clamp((p - 0.14) / 0.06);
+    cur.state.style.opacity = stateO;
+    var replyStart = 0.2, replySpan = 0.16;
+    var chars = Array.from(act.agent);
+    cur.reply.textContent = chars.slice(0, Math.floor(chars.length * clamp((p - replyStart) / replySpan))).join('');
+    cur.steps.forEach(function (s, k) {
+      s.style.opacity = clamp((p - (0.28 + k * 0.055)) / 0.07);
+    });
 
-    // scenes
+    // keep view pinned: read the message, then glide to the result
+    var topTarget = Math.max(0, cur.root.offsetTop - 8);
+    var bottomTarget = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+    var target;
+    if (p < 0.2) target = topTarget;
+    else if (p < 0.36) target = topTarget + (bottomTarget - topTarget) * ease((p - 0.2) / 0.16);
+    else target = bottomTarget;
+    scroller.scrollTop = Math.max(0, Math.min(bottomTarget, target));
+
+    // project changes after the message lands
+    var sp = clamp((p - 0.26) / 0.5);
     scenes.forEach(function (s) {
-      var idx = parseInt(s.getAttribute('data-scene'), 10);
-      var isOn = idx === act.scene;
+      var isOn = parseInt(s.getAttribute('data-scene'), 10) === act.scene;
       s.classList.toggle('on', isOn);
       if (isOn) {
         s.__items.forEach(function (el) {
           var d = parseFloat(el.getAttribute('data-r') || '0');
-          var o = ease(clamp((p - d) / 0.16));
-          setOpacity(el, o);
+          setOpacity(el, ease(clamp((sp - d) / 0.18)));
         });
       }
     });
 
-    // per scene
-    if (act.scene === 3) {
-      var draw = ease(clamp((p - 0.12) / 0.5));
-      Array.prototype.forEach.call(document.querySelectorAll('[data-scene="3"] .rv-line'), function (path) {
+    if (act.scene === 4) {
+      var draw = ease(clamp((sp - 0.1) / 0.48));
+      Array.prototype.forEach.call(document.querySelectorAll('[data-scene="4"] .rv-line'), function (path) {
         path.setAttribute('stroke-dashoffset', String(100 - 100 * draw));
       });
-      var ev = document.querySelector('[data-scene="3"] .rv-event');
-      ev.setAttribute('opacity', String(clamp((p - 0.55) / 0.12)));
-      var tiles = document.querySelectorAll('[data-scene="3"] [data-count]');
-      tiles.forEach(function (el, i) { countUp(el, p, 0.34 + i * 0.05, 0.26); });
-    }
-    if (act.scene === 4) {
-      Array.prototype.forEach.call(document.querySelectorAll('[data-scene="4"] [data-grow]'), function (el, i) {
-        el.style.opacity = String(ease(clamp((p - 0.15 - i * 0.08) / 0.3)));
+      document.querySelector('[data-scene="4"] .rv-event').setAttribute('opacity', String(clamp((sp - 0.52) / 0.12)));
+      Array.prototype.forEach.call(document.querySelectorAll('[data-scene="4"] [data-count]'), function (el, i) {
+        countUp(el, sp, 0.34 + i * 0.05, 0.24);
       });
     }
     if (act.scene === 6) {
-      Array.prototype.forEach.call(document.querySelectorAll('[data-scene="6"] [data-count]'), function (el, i) {
-        countUp(el, p, 0.1 + i * 0.04, 0.26);
-      });
-      Array.prototype.forEach.call(document.querySelectorAll('[data-scene="6"] [data-bar]'), function (el, i) {
-        var w = parseFloat(el.getAttribute('data-bar'));
-        el.style.width = (w * 100 * ease(clamp((p - 0.12 - i * 0.05) / 0.3))).toFixed(1) + '%';
+      Array.prototype.forEach.call(document.querySelectorAll('[data-scene="6"] [data-bar]'), function (el) {
+        el.style.width = (100 * ease(clamp((sp - 0.32) / 0.38))).toFixed(1) + '%';
       });
     }
     if (act.scene === 7) {
-      Array.prototype.forEach.call(document.querySelectorAll('[data-scene="7"] [data-bar]'), function (el) {
-        el.style.width = (100 * ease(clamp((p - 0.35) / 0.4))).toFixed(1) + '%';
+      Array.prototype.forEach.call(document.querySelectorAll('[data-scene="7"] [data-count]'), function (el, i) {
+        countUp(el, sp, 0.08 + i * 0.04, 0.24);
+      });
+      Array.prototype.forEach.call(document.querySelectorAll('[data-scene="7"] [data-bar]'), function (el, i) {
+        var w = parseFloat(el.getAttribute('data-bar'));
+        el.style.width = (w * 100 * ease(clamp((sp - 0.1 - i * 0.04) / 0.28))).toFixed(1) + '%';
       });
     }
     if (act.scene === 8) {
       Array.prototype.forEach.call(document.querySelectorAll('[data-scene="8"] [data-count]'), function (el, i) {
-        countUp(el, p, 0.06 + i * 0.05, 0.28);
+        countUp(el, sp, 0.05 + i * 0.05, 0.26);
       });
     }
     if (act.scene === 9) {
-      var k = ease(clamp((p - 0.12) / 0.22));
+      var k = ease(clamp((sp - 0.1) / 0.2));
       var body = document.querySelector('[data-site]');
       body.style.setProperty('--bs-bg', mix('#0e131b', '#f5f7fa', k));
       body.style.setProperty('--bs-surface', mix('#151c26', '#ffffff', k));
@@ -928,21 +1076,21 @@
       var toggle = document.querySelector('[data-toggle]');
       toggle.style.background = mix('#263140', '#e1eeff', k);
       toggle.style.borderColor = mix('#344156', '#b9d4f5', k);
-      var tag = document.querySelector('[data-mock-tag]');
-      tag.textContent = p > 0.45 ? '网页重绘 · 随主题' : '界面示意';
+      document.querySelector('[data-mock-tag]').textContent = sp > 0.4 ? '网页重绘 · 随主题' : '界面示意';
     }
 
-    // caption + rail
+    els.ghost.textContent = '0' + (a.i + 1);
+    els.projSub.textContent = act.sub;
     els.capNum.textContent = '0' + (a.i + 1);
     els.capKicker.textContent = act.name;
     els.capText.textContent = act.caption;
-    els.commit.textContent = act.commit;
+    els.commit.textContent = act.src;
     var frac = t / TOTAL;
     els.railFill.style.width = (frac * 100).toFixed(2) + '%';
     els.railHead.style.left = (frac * 100).toFixed(2) + '%';
     tickEls.forEach(function (elm, i) { elm.classList.toggle('on', i <= a.i); });
-    var sec = Math.floor(t), total = Math.floor(TOTAL);
-    els.time.textContent = '00:' + ('0' + sec).slice(-2) + ' / 00:' + total;
+    var sec = Math.floor(t);
+    els.time.textContent = '00:' + ('0' + sec).slice(-2) + ' / 00:46';
   }
 
   window.renderAt = renderAt;
