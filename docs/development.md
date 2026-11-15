@@ -2018,34 +2018,39 @@ Agent 配置示例（stdio）：
 
 ### 23.1 定位
 
-面向 2026 Qoder 高校创造力大赛（LifeHack 赛道）的单页体验站：评委无需安装软件，拖入 PresentMon CSV 或点内置示例，即可在浏览器本地得到帧率曲线、1% Low、卡顿事件与主因判定。站点与桌面版共用同一套判定思路，但不调用桌面进程。
+面向 2026 Qoder 高校创造力大赛（LifeHack 赛道）的项目展示页：首页先给出项目图标、一句话定位与实机截图，下滑后依次展开痛点、三大重点（AI 分析 / 软件低占用 / 日志长期保存）、同类方案对比、界面速览、判定逻辑、5 步上手与 Qoder 开发过程。站点不提供在线解析工具，也不调用桌面进程，只负责把项目讲清楚。
 
 ### 23.2 源码与发布目录
 
 ```
 site/
-├─ index.html      # 单页结构：在线体检、判定逻辑、桌面版、5 步上手、Qoder 过程、隐私边界
-├─ styles.css      # 深色实验室风格；消费全部 --site-* Nudge 变量
-├─ app.js          # CSV 解析、分位统计、断帧排除、卡顿合并、归因、评分、时间轴绘制
-├─ assets/         # app-main.png、app-settings.png（桌面版截图）
-└─ dist/           # 发布输出，由 index.html / styles.css / app.js / assets 拷贝而来
+├─ index.html      # 单页结构：首屏、痛点、三大重点、对比、界面、判定、上手、Qoder、隐私
+├─ styles.css      # 明暗双主题；消费全部 --site-* Nudge 变量
+├─ site.js         # 主题切换与持久化、系统主题跟随、theme-color 同步
+├─ assets/         # brand-icon.png、favicon、apple-touch-icon、app-main.png、shot-*.png
+└─ dist/           # 发布输出，由 index.html / styles.css / site.js / assets 拷贝而来
 ```
 
 - 发布时 `webDirectory` 固定为 `dist`，不使用站点根目录。
 - `.站点名称.qoder.site` 与 `site/.qoder/` 为工具生成的本地绑定/编辑记录，加入 `.gitignore`，不提交。
 - 站点无构建步骤、无外部字体与 CDN 依赖；无后端、无上传接口。
 
-### 23.3 判定与评分
+### 23.3 明暗主题
 
-- 解析：兼容 PresentMon 常见列名（`msBetweenPresents` / `msBetweenDisplayChange` / `CPUStartTime` 等）与通用 `time_ms` + `frametime_ms`；支持带引号字段。
-- 统计：平均 FPS、1% Low、0.1% Low、最长单帧；超过 1 秒的缺口不进入帧统计，并单独计为采集中断。
-- 卡顿：超过动态阈值的连续帧合并为一次事件；按次数/分钟判断加载类尖峰。
-- 归因优先级：采集缺口占比 → GPU 高占用且低帧 → GPU 有余量但低帧（CPU）→ 周期性尖峰（加载）→ 健康。
-- 评分：45% 平均帧 + 40% 1% Low + 15% 卡顿惩罚；采集中断额外扣分并限制上限，避免“数据不可信却评高分”。
-- 隐私：CSV 只在页面内存解析，不上传、不落地、不记录文件名以外的信息。
+- 深色与浅色两套色板均落在 `--site-*` 变量上；深色为默认回退，浅色由 `:root[data-theme="light"]` 覆盖。
+- 首次访问按 `prefers-color-scheme` 选择，用户点击右上角开关后写入 `localStorage["aga-theme"]`；系统主题变化仅在用户未手动选择时生效。
+- 切换时同步更新 `<meta name="theme-color">` 与按钮的 `aria-label` / `aria-pressed`，并保留 `prefers-reduced-motion` 处理。
+- 页面内所有面板、表格、按钮、页脚都通过变量取色，不在业务样式里硬编码单主题颜色。
 
-### 23.4 验证
+### 23.4 图标与截图
 
-- 四个内置场景回归：CPU 瓶颈 76/B、加载尖峰 85/A、健康基线 100/S、采集中断 68/B，判定与数据质量文案一致。
-- 深链 `#lab?demo=<id>` 可直接带出报告（新标签页有效）。
-- 公网发布后匿名访问 200，现场点击示例可正常出报告；桌面版截图已替换为当前界面。
+- 项目图标使用用户提供的 512×512 PNG：站点品牌、favicon、apple-touch-icon 直接复用；桌面端生成 16/24/32/48/64/128/256 七档 `app-icon.ico`，覆盖窗口、托盘与 exe 图标。
+- 桌面版主界面截图来自当前 Release 实机运行（AMD R5 5600 + RTX 4060），并裁出时间轴、进程与状态两块细节图用于能力卡片。
+- 设置页截图已从站点移除；页面只展示主界面与能力相关区域。
+
+### 23.5 验证
+
+- 本地与公网均检查：首屏图标与截图、三大重点、对比表、界面区、5 步流程、页脚链接。
+- 明暗主题各验证一次：切换后 `data-theme`、按钮文案与配色同步；刷新后保持上次选择。
+- 1440 宽桌面与 430 宽移动端布局检查通过；无横向溢出，导航在窄屏隐藏、主题开关保留。
+- 公网匿名访问 200，发布状态 `published: true`、`access_mode: public`。

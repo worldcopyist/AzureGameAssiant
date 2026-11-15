@@ -19,11 +19,11 @@
 | 项 | 值 |
 | --- | --- |
 | 产品阶段 | M1（v0.1）完成；M2（帧级真相）完成核心闭环；M3-1 权限与自动采集闭环完成；M3 的 AI 手动分析与 MCP 只读服务已落地；界面与采集稳定性进入收尾 |
-| 最新里程碑 | 参赛站点已发布（3.48）：`site/` 单页站 + Qoder Sites 公网发布，`https://game-stutter-lab-bgfqcqcjijr.qoder.zone` 匿名可访问；四个内置场景回归通过（CPU 76/B、加载 85/A、健康 100/S、采集 68/B），桌面版主界面截图已更新为当前版本；天池提交帖草稿见 `docs/competition-submission.md`，待用户发帖。上一里程碑：运行日志与软件日志保存位置可配置（3.47）。 |
+| 最新里程碑 | 展示站改版已发布（3.49）：项目图标替换到桌面程序与站点；站点改为纯展示，首屏图标+实机截图，重点 AI 分析、低占用、日志长期保存，并提供明暗双主题；新 action 发布成功，公网 `https://game-stutter-lab-bgfqcqcjijr.qoder.zone` 匿名可访问。上一里程碑：参赛站点首发（3.48）。 |
 | 可运行产物 | `build/run-dev.ps1` 可启动；`build/package.ps1` 默认 AOT 流程可生成便携 ZIP（含 PresentMon）；`build/publish-mcp.ps1` 生成 `artifacts/mcp/AzureGameAssistant.Mcp.exe`；二号屏桌面快捷方式指向 Release |
 | 代码分支 | `main`（`feat/m1-foundation` 已 squash 合入，分支保留） |
-| 当前提交 | `69167cc` |
-| 未提交变更 | 无 |
+| 当前提交 | `659d1b6`（图标与展示站改版）；上一提交 `712f860` |
+| 未提交变更 | 仅本轮文档（`docs/handoff.md`、`docs/development.md`、`docs/competition-submission.md`） |
 | 阻塞事项 | 帧率准确性需在用户真实游戏（原神 60 帧、三角洲行动）长测确认；AI 窗口与“测试连接”按钮待点击验证；掉帧/高负载标记需在真实游戏复现后核对事件与报告；3 款游戏 PresentMon 实测与反作弊评估待用户游戏环境（已测明日方舟、三角洲行动）；深模式内存/CPU 与 60 分钟连续性待专项测量；本机默认热键 `Ctrl+Alt+M` 被其他程序占用，需用户在设置页改键（实测 `Ctrl+Alt+F9` 可用）；卡顿判定召回率与误报需真实游戏长测；会话级 AI 分析（3.16）待配置 API Key 后点击验证；图表导出对话框、诊断包导出与安全模式真实网游表现待用户点按复核 |
 
 ## 2. 环境
@@ -587,6 +587,17 @@
 - 提交材料：`docs/competition-submission.md` 已含自我介绍、一句话场景、为什么做、5 步上手、Qoder 过程与截图清单、检查表；剩余动作是用户在天池论坛发帖（截止 2026-11-30 18:00）。
 - 注意：工作台描述文件与 `site/dist/` 均被 `.gitignore` 忽略；站点源码与文档正常提交，不推送远端。
 
+### 3.49 项目图标替换与展示站改版（2026-11-15）
+
+- 图标：使用用户提供的 512×512 PNG 生成 7 档 `app-icon.ico`（16–256），替换窗口、托盘与 exe 图标；桌面快捷方式 `IconLocation` 指向新 exe，站点 favicon、apple-touch-icon 与品牌标识复用同一图。
+- 站点定位改为纯展示：移除在线 CSV 体检、示例场景与设置页截图；首页首屏给出项目图标、定位语、四个关键事实与实机主界面截图，下滑依次为痛点、三大重点、同类方案对比、界面速览、四步判定、5 步上手、Qoder 过程与隐私边界。
+- 三大重点：AI 分析（7 类本地规则 + 可选大模型复核、Key 存凭据管理器）、低占用（50.94 MB / 11.30 MB / 0.086%）、日志长期保存（两类日志独立目录、轮换、会话前后 15 秒、脱敏）。
+- 明暗双主题：`:root[data-theme="light"]` 覆盖整套 `--site-*` 变量；默认跟随系统，手动切换写入 `localStorage["aga-theme"]`，同步 `theme-color` 与按钮 `aria-label/pressed`；所有面板与表格均消费变量。
+- 截图：重新从新版本运行实例捕获主界面（1068×714），裁出时间轴与进程/状态两块细节图；删除设置页截图与旧 `app.js`。
+- 验证：325 项测试与 Release 构建（0 警告）通过；桌面 1440、移动 430 宽检查通过；深/浅主题切换与刷新保持均验证；公网 `published: true`、匿名访问 200，浅色模式在公网实测可切换。
+- 发布：新 action `6c9aca23-c6e0-4f41-9e00-498ae2d66dd9`（沿用 projectId），`prepare_site` → `publish_site` → `published: true`；`show_publish_confirmation` 已刷新工作台。
+- 文档：`docs/competition-submission.md` 的定位、5 步与截图清单同步改为展示站版本；开发文档第 23 节重写。
+
 ## 4. 进行中
 
 - **会话 AI 分析（3.16）**：按钮与写入链路已完成并通过单测；待配置 API Key 后在会话窗口点一次“AI 分析”，确认报告写入 `<会话>.ai.json`、详情区出现 AI 段、导出 Markdown 末尾附带 AI 章节。
@@ -607,6 +618,7 @@
 - **十项自主优化（3.45、3.46）**：代码、单测与自动化检查均已完成；待用户点按复核图表键盘/图例、PNG/CSV 保存对话框、设置页诊断包导出与质量徽标，并在真实网游中观察 `--safe-mode` 的帧率可用性是否符合预期。
 - **日志保存位置（3.47）**：自动化与临时目录实测已通过；待用户在设置页点“更改…”选择真实目录并保存，确认窗口内路径刷新、“打开”“打开问题日志”跳转正确、采集/传感器重启后新目录出现对应日志，再点“恢复默认”确认回到默认目录。
 - **参赛站点（3.48）**：站点已公网发布并通过交互回归；待用户在天池论坛发布提交帖（草稿在 `docs/competition-submission.md`），按清单补 5 张截图，可选按统一标题同步社媒。若后续改站点源码，需重新 `prepare_site`（新 action）并发布。
+- **展示站改版（3.49）**：新版已发布并通过桌面/移动端与双主题检查；待用户确认桌面快捷方式与窗口图标显示是否符合预期（如资源管理器缓存旧图标，刷新或重建快捷方式即可），并按 `docs/competition-submission.md` 更新后的清单补截图后发帖。
 
 ## 5. 下一步（按顺序）
 
@@ -633,7 +645,8 @@
 21. **图表交互与导出复验（见 3.45）**：点击图表后按 ←/→/↑/↓/+/−/Home/Space/E 核对平移、缩放、暂停与跳到事件；点击图例项隐藏再恢复曲线；暂停并平移后分别导出 PNG 与 CSV，确认图片内容与当前视口一致、CSV 行只含视口范围且时间戳为 UTC ISO。
 22. **诊断包与安全模式复验（见 3.46）**：设置页点击“导出脱敏诊断包”，确认 ZIP 内含 summary/samples/events/processes/resources、hardware.json 与 settings-summary.json，且不含用户名、绝对路径、密钥、邮箱与 IP；用 `AzureGameAssistant.exe --safe-mode` 启动一个网游，确认顶部显示安全模式、无 PresentMon 与传感器进程，系统指标仍刷新、帧率显示“—”。
 23. **日志保存位置复验（见 3.47）**：设置页“日志”卡片点“更改…”分别选择运行日志与软件日志目录并保存，确认路径文本立即刷新、状态行无错误；点“打开”“打开问题日志”确认跳转；保存后采集与传感器自动重启，新目录出现 `ui-*` / `sensors-*` / `issues-*`；点“恢复默认”保存后确认回到 `%LOCALAPPDATA%\AzureGameAssistant\logs`。旧目录文件不会自动搬家。
-24. **参赛提交（见 3.48）**：打开 https://game-stutter-lab-bgfqcqcjijr.qoder.zone 核对公网访问与四个示例；按 `docs/competition-submission.md` 补齐 Qoder 过程截图，在天池论坛发布帖子（标题建议含“2026 Qoder 高校创造力大赛”），截止 2026-11-30 18:00；可选按统一标题同步社媒。
+24. **参赛提交（见 3.48）**：打开 https://game-stutter-lab-bgfqcqcjijr.qoder.zone 核对公网访问与展示内容；按 `docs/competition-submission.md` 补齐 Qoder 过程截图，在天池论坛发布帖子（标题建议含“2026 Qoder 高校创造力大赛”），截止 2026-11-30 18:00；可选按统一标题同步社媒。
+25. **展示站改版复验（见 3.49）**：核对桌面快捷方式、任务栏与窗口图标已换成蓝色猫头像（资源管理器缓存旧图标时刷新或重建快捷方式）；打开站点确认首屏是图标+实机截图、设置页截图已移除、明暗切换可记住选择；按更新后的清单补“展示站深色/浅色”截图再发帖。若之后还要改站点源码，需重新 prepare 并发布。
 
 每个步骤完成后：更新本文件 → 按提交规范提交 → 在交接日志追加一行。
 
@@ -886,7 +899,13 @@ MCP 冒烟（无需 Agent 客户端，直接走 stdio）：
 | 2026-11-14 | Qoder | 修复高占用模式不触发：前台判断从 WPF `Window.IsActive` 改为 `GetForegroundWindow` 进程 PID（窗口被遮挡后 IsActive 仍为 true 会永久挡住降载）；工作集读数下限 1 MB；实机复验 3 秒内进入降载、12 秒自动恢复，降载助手合计 55.6 MB（0.34%）、含 MCP 110.2 MB（0.68%）；246 项测试通过，Release 0 警告 0 错误；补充 handoff 3.40 | `ff670e6` |
 | 2026-11-14 | Qoder | 悬浮窗默认固定在 1 号显示器（FR-012 v1.23）：`overlay.monitor` 默认 `\\.\DISPLAY1`，设置页按编号列出全部显示器并标注主显示器/未连接，保留“主显示器”与“跟随主窗口”；schema 4 迁移旧默认 `Follow`；251 项测试通过，Release 0 警告 0 错误；实机主窗口在二号竖屏时悬浮窗落在 1 号屏 20,20；补充 handoff 3.41，下拉切换待用户点按复核 | `77a9ce7` |
 | 2026-11-15 | Qoder | 时间轴阅读暂停（FR-005 v1.24）：点击图表冻结视口并显示“已暂停”，鼠标移出 1.5 秒后经 `DispatcherTimer` 自动恢复跟随；暂停期间跳过重绘，缩放/平移/悬停不受影响；新增 `ChartPaused` 资源键；251 项测试通过，Release 0 警告 0 错误；补充 handoff 3.42，暂停观感待用户点按复核 | `8af7dcd` |
+| 2026-11-15 | Qoder | 非提权 UI 冒烟通道：`build/ui-smoke.ps1` 用 UIA + 鼠标注入验证主窗口、合并图、点击暂停/1.5 秒恢复与设置窗开关，截图输出到 `artifacts/ui-smoke/`；`TimelineChart` 增加 AutomationPeer 状态输出；脚本 12 项检查全过，251 项测试通过，Release 0 警告 0 错误；补充 handoff 3.43 | `908e23c` |
+| 2026-11-15 | Qoder | 图表核心逻辑拆分：新增 `Core/Charts/ChartViewport` 与 `ChartAggregation`，`TimelineChart` 只保留绘制与输入转发；新增 28 项单测覆盖暂停恢复、数据回退、平移夹取、缩放边界、空列/窗口外/负值、帧尖峰与纵轴档位；测试总数 279，Release 0 警告 0 错误；补充 handoff 3.44 | `21cdb69` |
+| 2026-11-15 | Qoder | 图表交互深化：键盘平移/缩放/暂停/跳事件、图例点击隐藏、视口 PNG/CSV 导出；`ChartViewport` 增加导出范围与事件跳转；测试总数 289，Release 0 警告 0 错误；补充 handoff 3.45 | `1c4bce7` |
+| 2026-11-15 | Qoder | 十项自主优化：资源预算断言、`resources.csv` 句柄记录、脱敏诊断包、数据质量徽标、`--safe-mode`、NVML 功耗补源、AI 成本来源明细；测试总数 315，Release 0 警告 0 错误；`ui-smoke.ps1` 16 项、`safe-mode-check.ps1` 9 项全过；补充 handoff 3.46 | `66fcbec`、`fb392a0` |
+| 2026-11-15 | Qoder | 日志保存位置可配置（3.47）：`logs.directory` / `logs.issueDirectory` 支持绝对路径与 `%ENV%`，空值为默认；`LogPaths` 统一校验，界面进程保存后 `Relocate`、采集/传感器重启生效、MCP 下次拉起生效；设置页两条路径 + 更改 + 恢复默认并保存前验证可写；新增 10 项测试，总数 325，Release 0 警告 0 错误；`ui-smoke.ps1` 22 项全过；临时目录实测三进程均写新目录且默认目录无新增 | `d75ede0` |
 | 2026-11-15 | Qoder | 参赛站点：`site/` 单页在线体检 + Qoder Sites 公网发布；PresentMon CSV 本地解析、分位统计、缺口排除、四类归因与评分；四示例回归通过；公网匿名 200，桌面截图接入；提交帖草稿与清单见 `docs/competition-submission.md`；补充 handoff 3.48 | `69167cc` |
+| 2026-11-15 | Qoder | 图标与展示站改版（3.49）：项目图标换成蓝色猫头像并重新生成 7 尺寸 ICO，桌面 exe/窗口/托盘与站点 favicon 统一；站点移除在线体检、示例与设置页截图，改为纯展示，首屏图标+实机截图，重点 AI 分析/低占用/长期日志，明暗双主题可记忆并跟随系统；重截主界面与两张细节图；325 项测试通过，Release 0 警告 0 错误（仅图标资源变更）；新 action 发布成功，公网匿名 200；同步开发文档 §23 与提交帖草稿 | `659d1b6` |
 
 ## 10. 下次交接模板
 
@@ -922,8 +941,3 @@ MCP 冒烟（无需 Agent 客户端，直接走 stdio）：
 - [ ] 新增限制写入第 7 节
 - [ ] 交接日志追加一行
 - [ ] 按提交规范提交，footer 含 `Agent: <名称>`
-| 2026-11-15 | Qoder | 非提权 UI 冒烟通道：`build/ui-smoke.ps1` 用 UIA + 鼠标注入验证主窗口、合并图、点击暂停/1.5 秒恢复与设置窗开关，截图输出到 `artifacts/ui-smoke/`；`TimelineChart` 增加 AutomationPeer 状态输出；脚本 12 项检查全过，251 项测试通过，Release 0 警告 0 错误；补充 handoff 3.43 | `908e23c` |
-| 2026-11-15 | Qoder | 图表核心逻辑拆分：新增 `Core/Charts/ChartViewport` 与 `ChartAggregation`，`TimelineChart` 只保留绘制与输入转发；新增 28 项单测覆盖暂停恢复、数据回退、平移夹取、缩放边界、空列/窗口外/负值、帧尖峰与纵轴档位；测试总数 279，Release 0 警告 0 错误；UI 冒烟 12 项全过；补充 handoff 3.44 | `21cdb69` |
-| 2026-11-15 | Qoder | 图表交互深化：键盘平移/缩放/暂停/跳事件、图例点击隐藏、视口 PNG/CSV 导出；`ChartViewport` 增加导出范围与事件跳转；新增/扩充单测，测试总数 289，Release 0 警告 0 错误；补充 handoff 3.45 | `1c4bce7` |
-| 2026-11-15 | Qoder | 十项自主优化：资源预算断言、`resources.csv` 句柄记录、脱敏诊断包、数据质量徽标、`--safe-mode`、NVML 功耗补源、AI 成本来源明细；新增诊断/质量/脱敏单测，测试总数 315，Release 0 警告 0 错误；`ui-smoke.ps1` 16 项、`safe-mode-check.ps1` 9 项全过；补充 handoff 3.46 | `66fcbec`、`fb392a0` |
-| 2026-11-15 | Qoder | 日志保存位置可配置（3.47）：`logs.directory` / `logs.issueDirectory` 支持绝对路径与 `%ENV%`，空值为默认；`LogPaths` 统一校验，界面进程保存后 `Relocate`、采集/传感器重启生效、MCP 下次拉起生效；设置页两条路径 + 更改 + 恢复默认并保存前验证可写；新增 10 项测试，总数 325，Release 0 警告 0 错误；`ui-smoke.ps1` 22 项全过；临时目录实测三进程均写新目录且默认目录无新增 | `d75ede0` |
