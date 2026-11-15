@@ -145,7 +145,8 @@ foreach ($license in $licenseFiles) {
 }
 
 if (-not $licenseCopied) {
-    Write-Warning "Package has no LICENSE file: the project license is undecided (K-05); add one before the first public release."
+    Write-Error "Package has no LICENSE file. Add the project license before packaging."
+    exit 1
 }
 
 $readme = Join-Path $root "README.md"
@@ -171,6 +172,7 @@ if (Test-Path $thirdPartyLicenses) {
 
 $required = @(
     "AzureGameAssistant.exe",
+    "LICENSE",
     "README.md",
     "THIRD-PARTY-NOTICES.md",
     "LICENSES\LibreHardwareMonitorLib-MPL-2.0.txt",

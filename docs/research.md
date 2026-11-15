@@ -7,7 +7,7 @@
 | 状态 | 已确认（2026-11-07） |
 | 作者 | Qoder |
 | 适用范围 | 技术选型、第三方依赖、许可证合规 |
-| 最后更新 | 2026-11-07 |
+| 最后更新 | 2026-11-16 |
 
 配套文档：[需求文档](requirements.md) · [开发文档](development.md) · [交接文档](handoff.md)
 
@@ -138,23 +138,28 @@
 | 自研 ETW consumer | PresentMon 已覆盖，且需要大量呈现队列知识 |
 | 自研 NVML / ADL / IGCL 绑定 | LHM 已封装；仅当 LHM 不可用时才考虑直接 P/Invoke |
 | OCAT 代码 | 许可证不明确 |
-| SidebarDiagnostics 代码 | GPL-3.0，不适合当前未定许可证的项目 |
+| SidebarDiagnostics 代码 | GPL-3.0 与本项目许可证一致，但体量与定位不同，仅参考布局思路，未复制代码 |
 | System Informer 架构 | 体量与驱动模型不符合“低开销、无驱动” |
 | 第三方图表库 | 与 80MB UI 预算冲突，自绘更可控 |
 
 ## 5. 许可证义务
 
-| 依赖 | 许可证 | 分发方式 | 义务 |
-| --- | --- | --- | --- |
-| PresentMon | MIT | 随包分发官方 exe | 保留版权声明与 MIT 许可证全文；不得暗示 Intel 背书 |
-| LibreHardwareMonitorLib | MPL-2.0 | NuGet 动态链接，未修改 | 保留许可证与源码获取方式；修改过的文件需公开 |
-| CapFrameX | MIT | 仅参考设计，不复制代码 | 如后续复制代码，保留版权与许可声明 |
-| StutterScope | MIT | 仅参考设计 | 同上 |
-| game-stutter-recorder | MIT | 仅参考设计 | 同上 |
-| stutter-test | 无 | 仅参考概念 | 禁止复制代码、注释、文案 |
-| OCAT | 不明确 | 不使用 | 无 |
+本项目自 2026-11-16 起以 **GPL-3.0** 发布（`LICENSE`，Copyright (C) 2026 worldcopyist）。下表逐项说明上游许可证与本项目的关系：
 
-发布前必须生成 `THIRD-PARTY-NOTICES.md`，并在“关于”窗口提供入口。CI 增加许可证清单检查（M3）。
+| 依赖 | 许可证 | 分发方式 | 与本项目 GPL-3.0 的关系 | 义务 |
+| --- | --- | --- | --- | --- |
+| PresentMon | MIT | 随包分发官方 exe | 兼容 | 保留版权声明与 MIT 许可证全文；不得暗示 Intel 背书 |
+| LibreHardwareMonitorLib（及 DiskInfoToolkit、RAMSPDToolkit-NDD、BlackSharp.Core） | MPL-2.0 | NuGet 动态链接，未修改 | 兼容（MPL-2.0 §3.3 次级许可） | 保留许可证与源码获取方式；修改过的文件需公开 |
+| HidSharp | Apache-2.0 | 随 LHM 传递，未修改 | 兼容 | 保留 Apache-2.0 许可证 |
+| System.Management / .NET 8 运行时 | MIT | NuGet / 自包含发布 | 兼容 | 保留版权与许可证声明 |
+| PawnIO | GPL-2.0 | 不随包分发，用户自行安装 | 独立程序，不构成组合作品 | 不承担再分发义务 |
+| CapFrameX | MIT | 仅参考设计，不复制代码 | 兼容 | 如后续复制代码，保留版权与许可声明 |
+| StutterScope | MIT | 仅参考设计 | 兼容 | 同上 |
+| game-stutter-recorder | MIT | 仅参考设计 | 兼容 | 同上 |
+| stutter-test | 无 | 仅参考概念 | 未使用代码 | 禁止复制代码、注释、文案 |
+| OCAT | 不明确 | 不使用 | 无 | 无 |
+
+`THIRD-PARTY-NOTICES.md` 随仓库与发布包分发，逐项登记版本、哈希、许可证路径；其中第 4 节给出兼容性结论。CI 许可证清单检查列入 M3 后续项。
 
 ## 6. “不重复造轮子”的边界
 
@@ -193,3 +198,4 @@
 | 版本 | 日期 | 作者 | 变更 |
 | --- | --- | --- | --- |
 | v1.0 | 2026-11-07 | Qoder | 建立竞品矩阵，确认 PresentMon、LHM、PDH 的复用边界与许可证义务 |
+| v1.1 | 2026-11-16 | Qoder | 项目许可证确定为 GPL-3.0；补充全部捆绑依赖（含 LHM 传递依赖、HidSharp、.NET 运行时）与参考项目的兼容性结论 |

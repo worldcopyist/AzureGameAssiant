@@ -2072,3 +2072,32 @@ site/
 - 单帧截图带 25 秒超时；超时后自动关闭并重启浏览器，从失败帧继续渲染（`--resume`），避免长任务中断。
 - 明暗两版共用同一套 `renderAt(t)`：`dev-reel.html` 读取 `?theme=light` 写入 `data-theme`，浅色覆盖集中在样式表末尾的 `:root[data-theme="light"]` 段（舞台、顶部栏、Qoder 窗口、项目窗口、场景卡片、字幕轨、片头片尾），浅色强调色为 `#1f6fd0`，界面示意层复用站点 `--site-*` 变量。
 - `build/render-reel.mjs --theme light` 输出到 `artifacts/reel-frames-light/`，编码为 `dev-reel-light.mp4` 与 `dev-reel-light-poster.jpg`；不加参数仍渲染深色版，两版互不覆盖。
+
+## 24. 开源仓库、许可与发布
+
+### 24.1 仓库与远端
+
+- 唯一远端为 `origin` → `https://github.com/worldcopyist/AzureGameAssiant.git`，默认分支 `main`。
+- 站点源码（含两版回放视频，约 6.3 MB）直接进入仓库，不使用 Git LFS；构建产物、`artifacts/`、`dist/` 与本地绑定文件继续忽略。
+- 提交规范见 [提交规范](commit-guidelines.md)：提交信息中文、尾部 `Agent: Qoder`，发布用 `v<版本>` 标签。
+
+### 24.2 许可证布局
+
+| 文件 | 内容 |
+| --- | --- |
+| `LICENSE` | GPL-3.0 全文，Copyright (C) 2026 worldcopyist |
+| `THIRD-PARTY-NOTICES.md` | 捆绑/链接组件清单（版本、哈希、许可证路径）、参考项目清单、GPL-3.0 兼容性结论 |
+| `third_party/licenses/` | LibreHardwareMonitorLib 的 MPL-2.0 全文 |
+| `third_party/presentmon/` | PresentMon 官方 exe、MIT 全文与 SHA256SUMS |
+
+- `package.ps1` 把 `LICENSE`、`README.md`、`THIRD-PARTY-NOTICES.md` 与 `LICENSES/` 拷入发布包，并把 `LICENSE` 加入必需文件校验，缺失即失败。
+- 兼容性：MIT、Apache-2.0、MPL-2.0 均可并入 GPL-3.0 组合作品；PawnIO（GPL-2.0）不随包分发，属独立程序。详见 `THIRD-PARTY-NOTICES.md` 第 4 节。
+
+### 24.3 发布流程
+
+1. `dotnet build AzureGameAssistant.sln -c Release` 与 `dotnet test` 全绿；
+2. 退出运行中的桌面程序，执行 `pwsh -File build/package.ps1`（默认 AOT），生成 `artifacts/AzureGameAssistant-<版本>-win-x64.zip`；
+3. 重启桌面程序并确认采集正常；
+4. 提交并推送 `main`，打标签 `v<版本>` 后推送标签；
+5. `gh release create v<版本> artifacts/AzureGameAssistant-<版本>-win-x64.zip --title ... --notes-file ...`；
+6. 展示站页脚与首屏提供仓库与 Releases 链接，内容变更后按 §23.2 重新发布站点。

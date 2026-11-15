@@ -5,6 +5,8 @@
 
 **当前状态：v0.1.0-dev · 系统 / 帧 / 传感器采集、AI 手动分析（OpenAI 兼容）与 MCP 只读服务已落地**
 
+[GitHub 仓库](https://github.com/worldcopyist/AzureGameAssiant) · [Releases 下载](https://github.com/worldcopyist/AzureGameAssiant/releases) · [第三方与开源声明](THIRD-PARTY-NOTICES.md) · 许可证 [GPL-3.0](LICENSE)
+
 ---
 
 ## 为什么做它
@@ -40,6 +42,14 @@
 | 卡顿事件可查看延迟 | ≤ 2 秒 |
 
 > 具体测量与验收方法见 [需求文档 NFR 章节](docs/requirements.md#7-非功能需求)。
+
+## 下载与运行
+
+便携包发布在 [GitHub Releases](https://github.com/worldcopyist/AzureGameAssiant/releases)：
+
+- `AzureGameAssistant-0.1.0-win-x64.zip`：解压即用，内含界面、NativeAOT 采集进程、传感器边车与 Intel PresentMon，无需另装 .NET。
+- 系统要求 Windows 10 1909+ / Windows 11 x64；深度帧采集需管理员权限；反作弊敏感游戏可用 `--safe-mode` 启动。
+- 源码构建与测试命令见下文「开发与参与」。
 
 ## 技术栈
 
@@ -140,10 +150,22 @@ NativeAOT 采集进程打包需要 Visual Studio Build Tools 的“使用 C++ �
 
 ## 许可
 
-本项目自身许可证尚未确定，待首次公开发布前补充。
+本项目以 [GNU General Public License v3.0](LICENSE) 发布，Copyright (C) 2026 worldcopyist。
 
-第三方组件：
+在 GPL-3.0 条款下，你可以自由使用、修改与再分发；分发修改后的版本时，需同样以 GPL-3.0 开源并提供完整源码。
 
-- Intel PresentMon：MIT，随包分发官方可执行文件；
-- LibreHardwareMonitorLib：MPL-2.0，NuGet 动态链接，未修改；
-- 详见发布包内 `THIRD-PARTY-NOTICES.md` 与 `LICENSES/`。
+### 参考与使用的开源项目
+
+| 项目 | 许可证 | 与本项目的关系 |
+| --- | --- | --- |
+| [Intel PresentMon](https://github.com/GameTechDev/PresentMon) | MIT | 随包分发官方控制台程序，提供逐帧呈现数据 |
+| [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor) | MPL-2.0 | 通过 `LibreHardwareMonitorLib` 读取厂商 GPU 传感器（未修改） |
+| [CapFrameX](https://github.com/CXWorld/CapFrameX) | MIT | 参考 PresentMon 子进程托管、帧环形缓冲与会话元数据设计，未复制代码 |
+| [StutterScope](https://github.com/AdenXie/StutterScope) | MIT | 参考离线报告结构，未复制代码 |
+| [game-stutter-recorder](https://github.com/jieke7k7k/game-stutter-recorder) | MIT | 参考游戏识别与结论写作思路，未复制代码 |
+| [stutter-test](https://github.com/jkoens3/stutter-test) | 无许可证 | 仅采纳卡顿分类概念并净室实现，未复制任何代码 |
+| [System Informer](https://github.com/winsiderss/systeminformer) | MIT | 参考进程信息的交互思路，未复制代码 |
+| [SidebarDiagnostics](https://github.com/ArcadeRenegade/SidebarDiagnostics) | GPL-3.0 | 参考桌面监控侧栏布局，未复制代码；与本项目许可证一致 |
+
+- 可选的 PawnIO 内核驱动不随包分发，由用户自行安装，为独立程序。
+- 完整的组件版本、哈希、许可证全文位置与 GPL-3.0 兼容性说明见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)；调研与复用边界见 [开源调研](docs/research.md)。
