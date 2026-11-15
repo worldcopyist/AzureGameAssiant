@@ -30,6 +30,10 @@ logs/
 *.snupkg
 dist/
 
+# Qoder Sites local bindings
+*.qoder.site
+.qoder/
+
 # Signing material
 *.pfx
 *.snk
