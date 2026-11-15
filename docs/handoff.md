@@ -608,6 +608,17 @@
 - 发布：沿用 projectId，新 action `9879564b-d1e0-46ae-abd6-d198bb104275`；`prepare_site` → `publish_site` → `published: true`，本地描述符已更新；公网匿名 200，返回内容已含新界面示意（`viewBox 0 0 1000 270`）。
 - 注意：`prepare_site` 的 `projectRoot` 必须指向 `site/`、`webDirectory=dist`；误传仓库根会因找不到 `dist` 目录而只返回 `sites_unavailable`。
 
+### 3.51 开发过程复盘视频（2026-11-15）
+
+- 目的：回应“把整个开发过程做成视频放在网页上，展示 Qoder 会话，会话内容做成动画，每一轮修改用项目变化体现”。
+- 动画页：`site/dev-reel.html` 是确定性动画舞台（固定 1440×810，`window.renderAt(t)` 驱动，无 CSS 过渡）。左侧为 Qoder 会话窗口（9 个会话条目、逐字打字的用户/Agent 消息、工具调用行、结果块），右侧为项目窗口，按 9 轮切换：需求与文档 → M1 基础闭环 → 帧级真相 → 会话与报告 → AI 归因 → 低占用 → 日志长期保存 → 质量工程 → 参赛站点；每轮页脚标注可交付物与提交意图。
+- 渲染：`build/render-reel.mjs` 用 headless Edge + CDP 逐帧 `renderAt(t)` 并截图，24 fps × 46 s = 1104 帧；ffmpeg libx264（crf 20、yuv420p、faststart）输出 `site/assets/dev-reel.mp4`，1.6 s 帧导出 `dev-reel-poster.jpg`。渲染器带请求超时、崩溃自动重启、断点续渲（`--resume`）与每次启动独立调试端口。
+- 站点接入：`site/index.html` 在 Qoder 区顶部嵌入 `<video controls playsinline poster>`，下方章节标签与“按真实开发顺序重绘、不是录屏”的说明；`.dev-reel` 样式随站点明暗主题取色。
+- 数据口径：消息与提交说明取自真实开发轮次；低占用轮用 30 分钟托盘基线 50.94 MB / 11.30 MB / 0.086%；质量轮用 325 项测试、22 项 UI 冒烟、Release 0 警告。
+- 成片：1440×810 / 24 fps / 46 s / 2.23 MB（H.264 crf 20，faststart），海报 63 KB；抽帧核对第 6、7 轮与片尾数字，断点续渲边界（约 28.8 s）画面连续。AI 轮规则块与文案统一为 7 类（移除“采集中断”，它属于数据质量提示），仅重渲该段后重新编码。
+- 发布：沿用 projectId，新 action `3babeffc-8edf-4bc6-8c9e-bfb636a441f5`；公网首页 200 且含 `dev-reel.mp4` / 海报引用，视频资源按 Range 请求返回 206（2,228,479 字节）。
+- 注意：`prepare_site.projectRoot` 需要绝对路径（`...\275e2b44\site`），相对路径 `site` 会返回 `sites_unavailable`。
+
 ## 4. 进行中
 
 - **会话 AI 分析（3.16）**：按钮与写入链路已完成并通过单测；待配置 API Key 后在会话窗口点一次“AI 分析”，确认报告写入 `<会话>.ai.json`、详情区出现 AI 段、导出 Markdown 末尾附带 AI 章节。
@@ -630,6 +641,7 @@
 - **参赛站点（3.48）**：站点已公网发布并通过交互回归；待用户在天池论坛发布提交帖（草稿在 `docs/competition-submission.md`），按清单补 5 张截图，可选按统一标题同步社媒。若后续改站点源码，需重新 `prepare_site`（新 action）并发布。
 - **展示站改版（3.49）**：新版已发布并通过桌面/移动端与双主题检查；待用户确认桌面快捷方式与窗口图标显示是否符合预期（如资源管理器缓存旧图标，刷新或重建快捷方式即可），并按 `docs/competition-submission.md` 更新后的清单补截图后发帖。
 - **界面示意重绘（3.50）**：已发布并核对公网内容，界面示意随浅/深主题切换；待用户打开站点确认首屏与“界面速览”在浅色下的观感，并刷新发帖截图。
+- **开发过程复盘视频（3.51）**：动画页、渲染脚本、成片发布与公网核验已完成；待用户播放确认 9 轮内容与项目变化的对应关系，并核对视频在移动端与浅色主题下的观感。
 
 ## 5. 下一步（按顺序）
 
@@ -659,6 +671,7 @@
 24. **参赛提交（见 3.48）**：打开 https://game-stutter-lab-bgfqcqcjijr.qoder.zone 核对公网访问与展示内容；按 `docs/competition-submission.md` 补齐 Qoder 过程截图，在天池论坛发布帖子（标题建议含“2026 Qoder 高校创造力大赛”），截止 2026-11-30 18:00；可选按统一标题同步社媒。
 25. **展示站改版复验（见 3.49）**：核对桌面快捷方式、任务栏与窗口图标已换成蓝色猫头像（资源管理器缓存旧图标时刷新或重建快捷方式）；打开站点确认首屏是图标+界面示意、设置页截图已移除、明暗切换可记住选择；按更新后的清单补“展示站深色/浅色”截图再发帖。若之后还要改站点源码，需重新 prepare 并发布。
 26. **界面示意复验（见 3.50）**：打开公网站点切换浅色，核对首屏、界面速览与两处能力示意的底色、文字和曲线颜色；窄屏检查对比表左右滑动与首列固定。后续更新站点时 `projectRoot` 指向 `site/`、`webDirectory=dist`。
+27. **复盘视频复验（见 3.51）**：打开站点 Qoder 区播放 46 秒视频，核对 9 轮会话与右侧界面变化一一对应、数字与文档一致；移动端确认视频按 16:9 缩放且章节标签不溢出。若改动画内容，重跑 `node build/render-reel.mjs`（中断后用 `--resume`），再刷新 `site/dist` 并重新发布。
 
 每个步骤完成后：更新本文件 → 按提交规范提交 → 在交接日志追加一行。
 
@@ -787,6 +800,9 @@ powershell -File build/measure.ps1 -DurationMinutes 1
 powershell -File build/measure.ps1 -DurationMinutes 30 -OutputPath artifacts/measurements/soak.csv
 powershell -File build/package.ps1          # 默认 NativeAOT 便携包
 powershell -File build/publish-mcp.ps1      # 生成 Agent 可接入的 MCP 单文件服务
+node build/render-reel.mjs --probe 6,14,30 # 复盘动画抽帧（artifacts/reel-probe）
+node build/render-reel.mjs --resume        # 全量渲染 MP4，中断后可续渲
+node build/render-reel.mjs --encode        # 仅用已有帧重新编码
 ```
 
 MCP 冒烟（无需 Agent 客户端，直接走 stdio）：
@@ -919,6 +935,7 @@ MCP 冒烟（无需 Agent 客户端，直接走 stdio）：
 | 2026-11-15 | Qoder | 参赛站点：`site/` 单页在线体检 + Qoder Sites 公网发布；PresentMon CSV 本地解析、分位统计、缺口排除、四类归因与评分；四示例回归通过；公网匿名 200，桌面截图接入；提交帖草稿与清单见 `docs/competition-submission.md`；补充 handoff 3.48 | `69167cc` |
 | 2026-11-15 | Qoder | 图标与展示站改版（3.49）：项目图标换成蓝色猫头像并重新生成 7 尺寸 ICO，桌面 exe/窗口/托盘与站点 favicon 统一；站点移除在线体检、示例与设置页截图，改为纯展示，首屏图标+实机截图，重点 AI 分析/低占用/长期日志，明暗双主题可记忆并跟随系统；重截主界面与两张细节图；325 项测试通过，Release 0 警告 0 错误（仅图标资源变更）；新 action 发布成功，公网匿名 200；同步开发文档 §23 与提交帖草稿 | `659d1b6` |
 | 2026-11-15 | Qoder | 界面示意改为网页重绘（3.50）：首屏、界面速览、AI 分析与日志示意全部按桌面端布局用 HTML/CSS 重绘，删除 3 张界面截图并随站点明暗主题切换；修正图表“0%/现在”重叠，窄屏对比表增加滑动提示并固定首列；1440 深浅整页与 430 窄屏验证通过，页面无横向溢出；同步开发文档 §23 与提交帖清单；新 action 发布成功，公网匿名 200 且已含新界面示意 | `332a79c` |
+| 2026-11-15 | Qoder | 开发过程复盘视频（3.51）：新增 `dev-reel.html` 确定性动画（左侧 Qoder 会话逐字打字，右侧项目按 9 轮变化）与 `render-reel.mjs` 逐帧渲染编码，站点 Qoder 区嵌入 46 s / 1440×810 / 24 fps 视频与海报；渲染器支持超时重启与断点续渲；AI 轮规则块修正为 7 类后局部重渲；新 action 发布成功，公网首页 200 且视频 Range 206；同步开发文档 §23.6 与提交帖清单 | `6a03eb4` |
 
 ## 10. 下次交接模板
 

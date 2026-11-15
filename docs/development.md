@@ -2027,7 +2027,7 @@ site/
 ├─ index.html      # 单页结构：首屏、痛点、三大重点、对比、界面、判定、上手、Qoder、隐私
 ├─ styles.css      # 明暗双主题；消费全部 --site-* Nudge 变量
 ├─ site.js         # 主题切换与持久化、系统主题跟随、theme-color 同步
-├─ assets/         # brand-icon.png、favicon-48.png、apple-touch-icon.png
+├─ assets/         # brand-icon.png、favicon-48.png、apple-touch-icon.png、dev-reel.mp4、dev-reel-poster.jpg
 └─ dist/           # 发布输出，由 index.html / styles.css / site.js / assets 拷贝而来
 ```
 
@@ -2057,3 +2057,12 @@ site/
 - 1440 宽桌面与 430 宽移动端布局检查通过；`scrollWidth` 与视口同宽，无横向溢出；对比表在窄屏内部横向滚动并固定首列，附滑动提示。
 - 深色与浅色下分别核对界面示意的底色、边框、文字与曲线颜色；图表时间轴标签与右侧百分比标签不再重叠。
 - 公网匿名访问 200，发布状态 `published: true`、`access_mode: public`。
+
+### 23.6 开发过程动画
+
+- `#qoder` 区嵌入 46 秒、1440×810、24 fps 的复盘视频，`controls` + `preload="metadata"` + 首帧海报；窄屏可全屏观看。
+- 动画按真实开发顺序分为 9 轮：需求与文档、M1 基础闭环、帧级真相、会话与报告、AI 归因、低占用、日志长期保存、质量工程、参赛站点。
+- 左侧为 Qoder 会话重绘：会话列表、用户输入、Agent 回复、工具调用行、「本轮结果」清单与变更文件数；右侧项目窗口随每一轮切换场景：文档卡、骨架主界面、帧时间尖峰、会话录制与报告、规则到 AI 的证据链、资源仪表、日志树、测试计数、明暗主题下的站点。
+- 所有数字使用文档与实测记录：50.94 / 11.30 MB、0.086% CPU、325 项测试、22 项 UI 冒烟、149 次提交、9 天。视频明确标注「会话与项目画面按真实开发过程重绘」，不冒充录屏。
+- 实现为确定性动画：`site/dev-reel.html` 暴露 `window.renderAt(t)`，不使用 CSS 动画与随机数；`build/render-reel.mjs` 用 Edge headless + CDP 逐帧调用并截图，再由 ffmpeg 以 `libx264 / yuv420p / crf 20 / +faststart` 编码，海报取 1.6 秒帧。
+- 单帧截图带 25 秒超时；超时后自动关闭并重启浏览器，从失败帧继续渲染，避免长任务中断。
