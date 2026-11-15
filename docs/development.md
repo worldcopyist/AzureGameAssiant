@@ -2027,7 +2027,7 @@ site/
 ├─ index.html      # 单页结构：首屏、痛点、三大重点、对比、界面、判定、上手、Qoder、隐私
 ├─ styles.css      # 明暗双主题；消费全部 --site-* Nudge 变量
 ├─ site.js         # 主题切换与持久化、系统主题跟随、theme-color 同步
-├─ assets/         # brand-icon.png、favicon-48.png、apple-touch-icon.png、dev-reel.mp4、dev-reel-poster.jpg
+├─ assets/         # brand-icon.png、favicon-48.png、apple-touch-icon.png、dev-reel.mp4、dev-reel-poster.jpg、dev-reel-light.mp4、dev-reel-light-poster.jpg
 └─ dist/           # 发布输出，由 index.html / styles.css / site.js / assets 拷贝而来
 ```
 
@@ -2041,6 +2041,8 @@ site/
 - 首次访问按 `prefers-color-scheme` 选择，用户点击右上角开关后写入 `localStorage["aga-theme"]`；系统主题变化仅在用户未手动选择时生效。
 - 切换时同步更新 `<meta name="theme-color">` 与按钮的 `aria-label` / `aria-pressed`，并保留 `prefers-reduced-motion` 处理。
 - 页面内所有面板、表格、按钮、页脚都通过变量取色，不在业务样式里硬编码单主题颜色。
+- 回放视频同样分深、浅两版（`dev-reel.mp4` / `dev-reel-light.mp4`）。`site.js` 在应用主题时更新 `<source>` 与海报，记录当前播放时间与播放状态，`load()` 后在 `loadedmetadata` 里恢复到同一时间点并继续播放，避免切换主题把进度清零。
+- `.dev-reel-frame` 与 `video` 的背景色随主题切换；浅色下使用 `#e9f0ee`，不留深色边框。
 
 ### 23.4 图标与界面重绘
 
@@ -2068,3 +2070,5 @@ site/
 - 所有数字使用文档与实测记录：50.94 / 11.30 MB、0.086% CPU、325 项测试、22 项 UI 冒烟、149 次提交、9 天。页面说明明确区分：会话文字逐字来自会话记录，Qoder 界面按实际布局重绘，项目画面为示意重绘，不冒充录屏。
 - 实现为确定性动画：`site/dev-reel.html` 暴露 `window.renderAt(t)`，不使用 CSS 动画与随机数；`build/render-reel.mjs` 用 Edge headless + CDP 逐帧调用并截图，再由 ffmpeg 以 `libx264 / yuv420p / crf 20 / +faststart` 编码，海报取 1.6 秒帧。
 - 单帧截图带 25 秒超时；超时后自动关闭并重启浏览器，从失败帧继续渲染（`--resume`），避免长任务中断。
+- 明暗两版共用同一套 `renderAt(t)`：`dev-reel.html` 读取 `?theme=light` 写入 `data-theme`，浅色覆盖集中在样式表末尾的 `:root[data-theme="light"]` 段（舞台、顶部栏、Qoder 窗口、项目窗口、场景卡片、字幕轨、片头片尾），浅色强调色为 `#1f6fd0`，界面示意层复用站点 `--site-*` 变量。
+- `build/render-reel.mjs --theme light` 输出到 `artifacts/reel-frames-light/`，编码为 `dev-reel-light.mp4` 与 `dev-reel-light-poster.jpg`；不加参数仍渲染深色版，两版互不覆盖。
