@@ -9,7 +9,7 @@
   <meta property="og:title" content="蓝天游戏助手 · 游戏卡顿体检站">
   <meta property="og:description" content="常驻记录帧率与卡顿，用 AI 把卡顿拆成证据链。低占用、日志长期保存、不注入游戏。">
   <meta property="og:type" content="website">
-  <meta property="og:image" content="assets/app-main.png">
+  <meta property="og:image" content="assets/brand-icon.png">
   <link rel="icon" type="image/png" sizes="48x48" href="assets/favicon-48.png">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="stylesheet" href="styles.css">
@@ -86,9 +86,125 @@
         </div>
 
         <figure class="hero-shot">
-          <div class="window-bar" aria-hidden="true"><span></span><span></span><span></span><em>蓝天游戏助手 · 实时监测</em></div>
-          <img src="assets/app-main.png" alt="蓝天游戏助手主界面：CPU、GPU、内存等指标卡，合并帧率时间轴，进程排行与运行状态" width="1068" height="714">
-          <figcaption>主界面 · 指标卡、时间轴、进程排行与运行状态都在一屏</figcaption>
+          <div class="app-mock app-ui" role="img" aria-label="蓝天游戏助手主界面示意：顶部六张指标卡显示 CPU 51.1%、GPU 28.0%、内存 31.6%、显存 22.4%、磁盘 4.2%、定时抖动 1.8%；中部为 CPU、GPU、内存、磁盘与帧时间合并的实时时间轴，标出 14:32:07 的一次卡顿；底部为进程排行、最近卡顿与采集状态。界面随网页主题切换明暗。">
+            <div class="app-mock-scale">
+              <div class="am-titlebar">
+                <img class="am-logo" src="assets/favicon-48.png" alt="">
+                <span class="am-title">蓝天游戏助手</span>
+                <span class="am-winbtns" aria-hidden="true"><i>—</i><i>▢</i><i>✕</i></span>
+              </div>
+              <div class="am-body">
+                <div class="am-head">
+                  <div>
+                    <p class="am-app-title">蓝天游戏助手</p>
+                    <p class="am-app-sub">实时系统负载时间轴与卡顿诊断</p>
+                  </div>
+                  <div class="am-head-tools">
+                    <span class="am-chip"><i class="am-dot"></i>已连接</span>
+                    <span class="am-btn">AI 分析</span>
+                    <span class="am-btn">暂停</span>
+                    <span class="am-btn">设置</span>
+                  </div>
+                </div>
+
+                <div class="am-cards">
+                  <div class="am-card"><span class="am-label">CPU</span><strong class="am-value">51.1%</strong><span class="am-sub">负载 · 16 线程</span><span class="am-hw">AMD Ryzen 5 5600</span></div>
+                  <div class="am-card"><span class="am-label">GPU</span><strong class="am-value">28.0%</strong><span class="am-sub">负载 · 温度 58°C</span><span class="am-hw">NVIDIA RTX 4060</span></div>
+                  <div class="am-card"><span class="am-label">内存</span><strong class="am-value">31.6%</strong><span class="am-sub">5.05 / 15.9 GB</span></div>
+                  <div class="am-card"><span class="am-label">显存</span><strong class="am-value">22.4%</strong><span class="am-sub">1.80 / 8.00 GB</span></div>
+                  <div class="am-card"><span class="am-label">磁盘占用</span><strong class="am-value">4.2%</strong><span class="am-sub">读写 0.6 MB/s</span></div>
+                  <div class="am-card"><span class="am-label">定时抖动</span><strong class="am-value">1.8%</strong><span class="am-sub">采样 16.2 ms</span></div>
+                </div>
+
+                <section class="am-chart-panel">
+                  <div class="am-chart-head">
+                    <span class="am-chart-title">实时时间轴</span>
+                    <span class="am-tools">
+                      <span class="am-btn am-btn-sm">定位卡顿</span>
+                      <span class="am-btn am-btn-sm">导出图</span>
+                      <span class="am-btn am-btn-sm">导出 CSV</span>
+                      <span class="am-select">1 分钟</span>
+                    </span>
+                  </div>
+                  <div class="am-chart-body">
+                    <svg class="am-svg" viewBox="0 0 1000 270" aria-hidden="true">
+                      <g class="am-grid">
+                        <line x1="0" y1="13" x2="1000" y2="13"/><line x1="0" y1="71" x2="1000" y2="71"/>
+                        <line x1="0" y1="129" x2="1000" y2="129"/><line x1="0" y1="187" x2="1000" y2="187"/>
+                        <line x1="0" y1="245" x2="1000" y2="245"/>
+                        <line x1="200" y1="13" x2="200" y2="245"/><line x1="400" y1="13" x2="400" y2="245"/>
+                        <line x1="600" y1="13" x2="600" y2="245"/><line x1="800" y1="13" x2="800" y2="245"/>
+                      </g>
+                      <g class="am-axis">
+                        <text x="994" y="22" text-anchor="end">100%</text>
+                        <text x="994" y="136" text-anchor="end">50%</text>
+                        <text x="994" y="252" text-anchor="end">0%</text>
+                        <text x="4" y="266">-60s</text>
+                        <text x="500" y="266" text-anchor="middle">-30s</text>
+                        <text x="994" y="266" text-anchor="end">现在</text>
+                      </g>
+                      <polyline class="am-line am-cpu" points="0,129 50,124 100,131 150,117 200,127 250,134 300,122 350,110 400,122 450,113 500,120 550,129 600,97 650,131 700,122 750,115 800,127 850,131 900,124 950,129 1000,120"/>
+                      <polyline class="am-line am-gpu" points="0,175 50,173 100,178 150,171 200,180 250,182 300,185 350,178 400,180 450,168 500,173 550,180 600,157 650,185 700,180 750,175 800,178 850,182 900,185 950,182 1000,178"/>
+                      <polyline class="am-line am-mem" points="0,172 50,171 100,172 150,171 200,172 250,172 300,171 350,171 400,170 450,171 500,172 550,172 600,171 650,171 700,170 750,171 800,172 850,172 900,171 950,171 1000,172"/>
+                      <polyline class="am-line am-disk" points="0,235 50,236 100,235 150,235 200,234 250,235 300,236 350,235 400,234 450,235 500,236 550,235 600,235 650,234 700,235 750,236 800,235 850,235 900,234 950,235 1000,236"/>
+                      <polyline class="am-line am-frame" points="0,167 50,166 100,168 150,164 200,167 250,169 300,166 350,163 400,167 450,165 500,168 550,169 600,32 650,134 700,157 750,165 800,168 850,166 900,167 950,169 1000,165"/>
+                      <g class="am-event">
+                        <line x1="600" y1="13" x2="600" y2="245"/>
+                        <circle cx="600" cy="32" r="3.4"/>
+                        <text x="612" y="26">卡顿 14:32:07</text>
+                      </g>
+                    </svg>
+                  </div>
+                  <ul class="am-legend">
+                    <li><i style="--c: var(--app-cpu)"></i>CPU</li>
+                    <li><i style="--c: var(--app-gpu)"></i>GPU</li>
+                    <li><i style="--c: var(--app-mem)"></i>内存</li>
+                    <li><i style="--c: var(--app-disk)"></i>磁盘</li>
+                    <li><i style="--c: var(--app-frame)"></i>帧时间</li>
+                  </ul>
+                </section>
+
+                <div class="am-bottom">
+                  <section class="am-panel">
+                    <div class="am-panel-title">进程排行</div>
+                    <div class="am-row am-row--proc am-row-head"><span>进程</span><span>PID</span><span>CPU</span><span>GPU</span><span>内存</span></div>
+                    <div class="am-row am-row--proc am-row-self"><span>蓝天游戏助手</span><span>28288</span><span>0.1%</span><span>—</span><span>0.34%</span></div>
+                    <div class="am-row am-row--proc"><span class="am-fg">GenshinImpact<i>前台</i></span><span>18432</span><span>42.6%</span><span>71.2%</span><span>24.1%</span></div>
+                    <div class="am-row am-row--proc"><span>chrome</span><span>9024</span><span>8.4%</span><span>12.1%</span><span>8.3%</span></div>
+                    <div class="am-row am-row--proc"><span>steamwebhelper</span><span>12016</span><span>3.1%</span><span>1.4%</span><span>1.9%</span></div>
+                    <div class="am-row am-row--proc"><span>WeChat</span><span>15480</span><span>1.8%</span><span>0.6%</span><span>1.2%</span></div>
+                    <div class="am-divider"></div>
+                    <div class="am-panel-head-inline">
+                      <span class="am-panel-title">最近卡顿</span>
+                      <span class="am-note">共 3 次 · 最长 0.8 秒</span>
+                      <span class="am-mini-btns"><i>会话</i><i>标记卡顿</i></span>
+                    </div>
+                    <div class="am-row am-row--stut am-row-head"><span>时间</span><span>评分</span><span>原因</span><span>信号</span><span>时长</span></div>
+                    <div class="am-row am-row--stut"><span>14:32:07</span><span>86</span><span>GPU 尖峰</span><span>帧 46ms · 1% Low 98ms</span><span>0.8s</span></div>
+                    <div class="am-row am-row--stut"><span>14:11:42</span><span>61</span><span>采集缺口</span><span>断帧 1.2s</span><span>0.3s</span></div>
+                  </section>
+
+                  <section class="am-panel am-status">
+                    <div class="am-panel-title">状态</div>
+                    <div class="am-kv">
+                      <span>采集进程</span><b>1.0.0 · 已连接</b>
+                      <span>采样间隔</span><b>1000 ms</b>
+                      <span>运行时长</span><b>00:42:18</b>
+                      <span>采样数</span><b>2538</b>
+                      <span>心跳</span><b>0.4 s</b>
+                      <span>运行模式</span><b>全功能</b>
+                    </div>
+                    <div class="am-divider"></div>
+                    <p class="am-panel-subtitle">帧采集</p>
+                    <div class="am-select-wide">GenshinImpact · PID 18432<span>▾</span></div>
+                    <div class="am-btns"><span class="am-btn">开始</span><span class="am-btn">停止</span><span class="am-btn">刷新</span><span class="am-btn">权限自检</span></div>
+                    <p class="am-live">已连接 · 139.5 FPS · 1% Low 121.8</p>
+                  </section>
+                </div>
+              </div>
+            </div>
+          </div>
+          <figcaption>主界面 · 指标卡、时间轴、进程排行与运行状态都在一屏（按桌面端布局在网页中重绘）</figcaption>
         </figure>
       </div>
     </section>
@@ -144,7 +260,45 @@
               <li>报告写明依据与置信边界；没有温度、功耗数据时不下「降频」结论</li>
             </ul>
             <figure class="detail-shot">
-              <img src="assets/shot-process.png" alt="主界面进程排行与运行状态区域：本软件内存占用、采集进程 PID、运行时长与心跳" loading="lazy" width="1040" height="218">
+              <div class="detail-ui app-ui">
+                <div class="detail-scale">
+                  <div class="am-bottom">
+                    <section class="am-panel">
+                      <div class="am-panel-title">进程排行</div>
+                      <div class="am-row am-row--proc am-row-head"><span>进程</span><span>PID</span><span>CPU</span><span>GPU</span><span>内存</span></div>
+                      <div class="am-row am-row--proc am-row-self"><span>蓝天游戏助手</span><span>28288</span><span>0.1%</span><span>—</span><span>0.34%</span></div>
+                      <div class="am-row am-row--proc"><span class="am-fg">GenshinImpact<i>前台</i></span><span>18432</span><span>42.6%</span><span>71.2%</span><span>24.1%</span></div>
+                      <div class="am-row am-row--proc"><span>chrome</span><span>9024</span><span>8.4%</span><span>12.1%</span><span>8.3%</span></div>
+                      <div class="am-row am-row--proc"><span>steamwebhelper</span><span>12016</span><span>3.1%</span><span>1.4%</span><span>1.9%</span></div>
+                      <div class="am-divider"></div>
+                      <div class="am-panel-head-inline">
+                        <span class="am-panel-title">最近卡顿</span>
+                        <span class="am-note">共 3 次 · 最长 0.8 秒</span>
+                        <span class="am-mini-btns"><i>会话</i><i>标记卡顿</i></span>
+                      </div>
+                      <div class="am-row am-row--stut am-row-head"><span>时间</span><span>评分</span><span>原因</span><span>信号</span><span>时长</span></div>
+                      <div class="am-row am-row--stut"><span>14:32:07</span><span>86</span><span>GPU 尖峰</span><span>帧 46ms · 1% Low 98ms</span><span>0.8s</span></div>
+                      <div class="am-row am-row--stut"><span>14:11:42</span><span>61</span><span>采集缺口</span><span>断帧 1.2s</span><span>0.3s</span></div>
+                    </section>
+                    <section class="am-panel am-status">
+                      <div class="am-panel-title">状态</div>
+                      <div class="am-kv">
+                        <span>采集进程</span><b>1.0.0 · 已连接</b>
+                        <span>采样间隔</span><b>1000 ms</b>
+                        <span>运行时长</span><b>00:42:18</b>
+                        <span>采样数</span><b>2538</b>
+                        <span>心跳</span><b>0.4 s</b>
+                        <span>运行模式</span><b>全功能</b>
+                      </div>
+                      <div class="am-divider"></div>
+                      <p class="am-panel-subtitle">帧采集</p>
+                      <div class="am-select-wide">GenshinImpact · PID 18432<span>▾</span></div>
+                      <div class="am-btns"><span class="am-btn">开始</span><span class="am-btn">停止</span><span class="am-btn">刷新</span><span class="am-btn">权限自检</span></div>
+                      <p class="am-live">已连接 · 139.5 FPS · 1% Low 121.8</p>
+                    </section>
+                  </div>
+                </div>
+              </div>
               <figcaption>进程排行 + 运行状态：谁在占用、采集是否健康，一眼可见</figcaption>
             </figure>
           </article>
@@ -185,7 +339,52 @@
               <li>诊断包自动脱敏：不写窗口标题、路径、用户名与密钥</li>
             </ul>
             <figure class="detail-shot">
-              <img src="assets/shot-timeline.png" alt="主界面实时时间轴：CPU、GPU、内存、磁盘占用与帧时间同轴展示" loading="lazy" width="1040" height="210">
+              <div class="detail-ui app-ui">
+                <div class="detail-scale">
+                  <section class="am-chart-panel am-chart--mini">
+                    <div class="am-chart-head">
+                      <span class="am-chart-title">实时时间轴</span>
+                      <span class="am-tools"><span class="am-select">1 分钟</span></span>
+                    </div>
+                    <div class="am-chart-body">
+                      <svg class="am-svg" viewBox="0 0 1000 270" aria-hidden="true">
+                        <g class="am-grid">
+                          <line x1="0" y1="13" x2="1000" y2="13"/><line x1="0" y1="71" x2="1000" y2="71"/>
+                          <line x1="0" y1="129" x2="1000" y2="129"/><line x1="0" y1="187" x2="1000" y2="187"/>
+                          <line x1="0" y1="245" x2="1000" y2="245"/>
+                          <line x1="200" y1="13" x2="200" y2="245"/><line x1="400" y1="13" x2="400" y2="245"/>
+                          <line x1="600" y1="13" x2="600" y2="245"/><line x1="800" y1="13" x2="800" y2="245"/>
+                        </g>
+                        <g class="am-axis">
+                          <text x="994" y="22" text-anchor="end">100%</text>
+                          <text x="994" y="136" text-anchor="end">50%</text>
+                          <text x="994" y="252" text-anchor="end">0%</text>
+                          <text x="4" y="266">-60s</text>
+                          <text x="500" y="266" text-anchor="middle">-30s</text>
+                          <text x="994" y="266" text-anchor="end">现在</text>
+                        </g>
+                        <polyline class="am-line am-cpu" points="0,129 50,124 100,131 150,117 200,127 250,134 300,122 350,110 400,122 450,113 500,120 550,129 600,97 650,131 700,122 750,115 800,127 850,131 900,124 950,129 1000,120"/>
+                        <polyline class="am-line am-gpu" points="0,175 50,173 100,178 150,171 200,180 250,182 300,185 350,178 400,180 450,168 500,173 550,180 600,157 650,185 700,180 750,175 800,178 850,182 900,185 950,182 1000,178"/>
+                        <polyline class="am-line am-mem" points="0,172 50,171 100,172 150,171 200,172 250,172 300,171 350,171 400,170 450,171 500,172 550,172 600,171 650,171 700,170 750,171 800,172 850,172 900,171 950,171 1000,172"/>
+                        <polyline class="am-line am-disk" points="0,235 50,236 100,235 150,235 200,234 250,235 300,236 350,235 400,234 450,235 500,236 550,235 600,235 650,234 700,235 750,236 800,235 850,235 900,234 950,235 1000,236"/>
+                        <polyline class="am-line am-frame" points="0,167 50,166 100,168 150,164 200,167 250,169 300,166 350,163 400,167 450,165 500,168 550,169 600,32 650,134 700,157 750,165 800,168 850,166 900,167 950,169 1000,165"/>
+                        <g class="am-event">
+                          <line x1="600" y1="13" x2="600" y2="245"/>
+                          <circle cx="600" cy="32" r="3.4"/>
+                          <text x="612" y="26">卡顿 14:32:07</text>
+                        </g>
+                      </svg>
+                    </div>
+                    <ul class="am-legend">
+                      <li><i style="--c: var(--app-cpu)"></i>CPU</li>
+                      <li><i style="--c: var(--app-gpu)"></i>GPU</li>
+                      <li><i style="--c: var(--app-mem)"></i>内存</li>
+                      <li><i style="--c: var(--app-disk)"></i>磁盘</li>
+                      <li><i style="--c: var(--app-frame)"></i>帧时间</li>
+                    </ul>
+                  </section>
+                </div>
+              </div>
               <figcaption>多信号同轴：帧时间与硬件占用对齐，便于回溯</figcaption>
             </figure>
           </article>
@@ -258,6 +457,7 @@
             </tbody>
           </table>
         </div>
+        <p class="table-hint">窄屏下可左右滑动表格，查看与其他方案的完整对比。</p>
       </div>
     </section>
 
@@ -266,20 +466,127 @@
         <header class="section-head">
           <p class="eyebrow">INTERFACE</p>
           <h2>一屏看清：指标、时间轴、进程与状态</h2>
-          <p>实机截图（AMD R5 5600 + RTX 4060）。主界面把「当前发生了什么」与「本软件自己占了多少」放在一起。</p>
+          <p>界面按桌面端同一套布局由网页重绘，随站点主题切换明暗（数值取自 AMD R5 5600 + RTX 4060 的实测会话）。</p>
         </header>
 
-        <figure class="shot-frame shot-main">
-          <img src="assets/app-main.png" alt="蓝天游戏助手主界面完整截图" loading="lazy" width="1068" height="714">
-          <figcaption>主界面 · 实时时间轴默认合并 CPU / GPU / 内存 / 磁盘 / 帧时间</figcaption>
-        </figure>
+        <div class="screens-board app-ui" role="img" aria-label="主界面完整示意：六张指标卡、CPU、GPU、内存、磁盘与帧时间合并的实时时间轴、进程排行、最近卡顿与采集状态，全部随网页明暗主题切换。">
+          <div class="app-shell-scale">
+            <div class="am-head">
+              <div>
+                <p class="am-app-title">蓝天游戏助手</p>
+                <p class="am-app-sub">实时系统负载时间轴与卡顿诊断</p>
+              </div>
+              <div class="am-head-tools">
+                <span class="am-chip"><i class="am-dot"></i>已连接</span>
+                <span class="am-btn">AI 分析</span>
+                <span class="am-btn">暂停</span>
+                <span class="am-btn">设置</span>
+              </div>
+            </div>
+
+            <div class="am-cards">
+              <div class="am-card"><span class="am-label">CPU</span><strong class="am-value">51.1%</strong><span class="am-sub">负载 · 16 线程</span><span class="am-hw">AMD Ryzen 5 5600</span></div>
+              <div class="am-card"><span class="am-label">GPU</span><strong class="am-value">28.0%</strong><span class="am-sub">负载 · 温度 58°C</span><span class="am-hw">NVIDIA RTX 4060</span></div>
+              <div class="am-card"><span class="am-label">内存</span><strong class="am-value">31.6%</strong><span class="am-sub">5.05 / 15.9 GB</span></div>
+              <div class="am-card"><span class="am-label">显存</span><strong class="am-value">22.4%</strong><span class="am-sub">1.80 / 8.00 GB</span></div>
+              <div class="am-card"><span class="am-label">磁盘占用</span><strong class="am-value">4.2%</strong><span class="am-sub">读写 0.6 MB/s</span></div>
+              <div class="am-card"><span class="am-label">定时抖动</span><strong class="am-value">1.8%</strong><span class="am-sub">采样 16.2 ms</span></div>
+            </div>
+
+            <section class="am-chart-panel">
+              <div class="am-chart-head">
+                <span class="am-chart-title">实时时间轴</span>
+                <span class="am-tools">
+                  <span class="am-btn am-btn-sm">定位卡顿</span>
+                  <span class="am-btn am-btn-sm">导出图</span>
+                  <span class="am-btn am-btn-sm">导出 CSV</span>
+                  <span class="am-select">1 分钟</span>
+                </span>
+              </div>
+              <div class="am-chart-body">
+                <svg class="am-svg" viewBox="0 0 1000 270" aria-hidden="true">
+                  <g class="am-grid">
+                    <line x1="0" y1="13" x2="1000" y2="13"/><line x1="0" y1="71" x2="1000" y2="71"/>
+                    <line x1="0" y1="129" x2="1000" y2="129"/><line x1="0" y1="187" x2="1000" y2="187"/>
+                    <line x1="0" y1="245" x2="1000" y2="245"/>
+                    <line x1="200" y1="13" x2="200" y2="245"/><line x1="400" y1="13" x2="400" y2="245"/>
+                    <line x1="600" y1="13" x2="600" y2="245"/><line x1="800" y1="13" x2="800" y2="245"/>
+                  </g>
+                  <g class="am-axis">
+                    <text x="994" y="22" text-anchor="end">100%</text>
+                    <text x="994" y="136" text-anchor="end">50%</text>
+                    <text x="994" y="252" text-anchor="end">0%</text>
+                    <text x="4" y="266">-60s</text>
+                    <text x="500" y="266" text-anchor="middle">-30s</text>
+                    <text x="994" y="266" text-anchor="end">现在</text>
+                  </g>
+                  <polyline class="am-line am-cpu" points="0,129 50,124 100,131 150,117 200,127 250,134 300,122 350,110 400,122 450,113 500,120 550,129 600,97 650,131 700,122 750,115 800,127 850,131 900,124 950,129 1000,120"/>
+                  <polyline class="am-line am-gpu" points="0,175 50,173 100,178 150,171 200,180 250,182 300,185 350,178 400,180 450,168 500,173 550,180 600,157 650,185 700,180 750,175 800,178 850,182 900,185 950,182 1000,178"/>
+                  <polyline class="am-line am-mem" points="0,172 50,171 100,172 150,171 200,172 250,172 300,171 350,171 400,170 450,171 500,172 550,172 600,171 650,171 700,170 750,171 800,172 850,172 900,171 950,171 1000,172"/>
+                  <polyline class="am-line am-disk" points="0,235 50,236 100,235 150,235 200,234 250,235 300,236 350,235 400,234 450,235 500,236 550,235 600,235 650,234 700,235 750,236 800,235 850,235 900,234 950,235 1000,236"/>
+                  <polyline class="am-line am-frame" points="0,167 50,166 100,168 150,164 200,167 250,169 300,166 350,163 400,167 450,165 500,168 550,169 600,32 650,134 700,157 750,165 800,168 850,166 900,167 950,169 1000,165"/>
+                  <g class="am-event">
+                    <line x1="600" y1="13" x2="600" y2="245"/>
+                    <circle cx="600" cy="32" r="3.4"/>
+                    <text x="612" y="26">卡顿 14:32:07</text>
+                  </g>
+                </svg>
+              </div>
+              <ul class="am-legend">
+                <li><i style="--c: var(--app-cpu)"></i>CPU</li>
+                <li><i style="--c: var(--app-gpu)"></i>GPU</li>
+                <li><i style="--c: var(--app-mem)"></i>内存</li>
+                <li><i style="--c: var(--app-disk)"></i>磁盘</li>
+                <li><i style="--c: var(--app-frame)"></i>帧时间</li>
+              </ul>
+            </section>
+
+            <div class="am-bottom">
+              <section class="am-panel">
+                <div class="am-panel-title">进程排行</div>
+                <div class="am-row am-row--proc am-row-head"><span>进程</span><span>PID</span><span>CPU</span><span>GPU</span><span>内存</span></div>
+                <div class="am-row am-row--proc am-row-self"><span>蓝天游戏助手</span><span>28288</span><span>0.1%</span><span>—</span><span>0.34%</span></div>
+                <div class="am-row am-row--proc"><span class="am-fg">GenshinImpact<i>前台</i></span><span>18432</span><span>42.6%</span><span>71.2%</span><span>24.1%</span></div>
+                <div class="am-row am-row--proc"><span>chrome</span><span>9024</span><span>8.4%</span><span>12.1%</span><span>8.3%</span></div>
+                <div class="am-row am-row--proc"><span>steamwebhelper</span><span>12016</span><span>3.1%</span><span>1.4%</span><span>1.9%</span></div>
+                <div class="am-row am-row--proc"><span>WeChat</span><span>15480</span><span>1.8%</span><span>0.6%</span><span>1.2%</span></div>
+                <div class="am-divider"></div>
+                <div class="am-panel-head-inline">
+                  <span class="am-panel-title">最近卡顿</span>
+                  <span class="am-note">共 3 次 · 最长 0.8 秒</span>
+                  <span class="am-mini-btns"><i>会话</i><i>标记卡顿</i></span>
+                </div>
+                <div class="am-row am-row--stut am-row-head"><span>时间</span><span>评分</span><span>原因</span><span>信号</span><span>时长</span></div>
+                <div class="am-row am-row--stut"><span>14:32:07</span><span>86</span><span>GPU 尖峰</span><span>帧 46ms · 1% Low 98ms</span><span>0.8s</span></div>
+                <div class="am-row am-row--stut"><span>14:11:42</span><span>61</span><span>采集缺口</span><span>断帧 1.2s</span><span>0.3s</span></div>
+              </section>
+
+              <section class="am-panel am-status">
+                <div class="am-panel-title">状态</div>
+                <div class="am-kv">
+                  <span>采集进程</span><b>1.0.0 · 已连接</b>
+                  <span>采样间隔</span><b>1000 ms</b>
+                  <span>运行时长</span><b>00:42:18</b>
+                  <span>采样数</span><b>2538</b>
+                  <span>心跳</span><b>0.4 s</b>
+                  <span>运行模式</span><b>全功能</b>
+                </div>
+                <div class="am-divider"></div>
+                <p class="am-panel-subtitle">帧采集</p>
+                <div class="am-select-wide">GenshinImpact · PID 18432<span>▾</span></div>
+                <div class="am-btns"><span class="am-btn">开始</span><span class="am-btn">停止</span><span class="am-btn">刷新</span><span class="am-btn">权限自检</span></div>
+                <p class="am-live">已连接 · 139.5 FPS · 1% Low 121.8</p>
+              </section>
+            </div>
+          </div>
+        </div>
 
         <ul class="screens-points">
           <li><strong>指标卡</strong><span>CPU、GPU、内存、显存、磁盘与定时抖动，硬件名称直接标出。</span></li>
           <li><strong>时间轴</strong><span>多信号同轴；定位卡顿、导出图表与 CSV，回溯不靠记忆。</span></li>
           <li><strong>进程与状态</strong><span>高占用进程排行；采集 PID、心跳与运行模式随时可见。</span></li>
         </ul>
-        <p class="screens-note">截图来自项目实机运行；设置页与个人配置不在此展示。</p>
+        <p class="screens-note">页面中的界面为按桌面端布局重绘的示意，数值取自实测会话；设置页与个人配置不在此展示。</p>
       </div>
     </section>
 
