@@ -4,179 +4,282 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>蓝天游戏助手 · 游戏卡顿体检站 | 2026 Qoder 高校创造力大赛</title>
-  <meta name="description" content="拖入 PresentMon CSV 或使用内置示例，3 分钟得到帧率曲线、1% Low、卡顿事件与主因归因。全部在浏览器本地解析，文件不上传。">
+  <meta name="description" content="给 PC 玩家的一站式卡顿监测：常驻后台记录帧率与卡顿，用 AI 把「为什么卡」拆成可复核的证据链。界面 50.94 MB、采集 11.30 MB、CPU 0.086%，日志与报告长期留在本地。">
   <meta name="theme-color" content="#0a0e13">
   <meta property="og:title" content="蓝天游戏助手 · 游戏卡顿体检站">
-  <meta property="og:description" content="把一次卡顿，拆成可解释的证据链。浏览器本地解析 PresentMon CSV。">
+  <meta property="og:description" content="常驻记录帧率与卡顿，用 AI 把卡顿拆成证据链。低占用、日志长期保存、不注入游戏。">
   <meta property="og:type" content="website">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a0e13'/%3E%3Cpath d='M6 21h5l3-10 4 14 3-7h5' fill='none' stroke='%2363e6be' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <meta property="og:image" content="assets/app-main.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="assets/favicon-48.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="stylesheet" href="styles.css">
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem("aga-theme");
+        var theme = saved || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+        document.documentElement.dataset.theme = theme;
+      } catch (error) {
+        document.documentElement.dataset.theme = "dark";
+      }
+    })();
+  </script>
 </head>
 <body>
-  <a class="skip-link" href="#lab">跳到在线体检</a>
+  <a class="skip-link" href="#main">跳到正文</a>
 
   <header class="topbar">
     <div class="topbar-inner">
       <a class="brand" href="#top" aria-label="蓝天游戏助手首页">
-        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
-          <rect x="0.5" y="0.5" width="31" height="31" rx="8" fill="none" stroke="currentColor" stroke-opacity="0.35"></rect>
-          <path d="M6 21h5l3-10 4 14 3-7h5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path>
-        </svg>
+        <img class="brand-icon" src="assets/brand-icon.png" alt="" width="34" height="34">
         <span class="brand-text">
           <strong>蓝天游戏助手</strong>
           <em>游戏卡顿体检站</em>
         </span>
       </a>
       <nav class="topnav" aria-label="页面导航">
-        <a href="#lab">在线体检</a>
-        <a href="#how">判定逻辑</a>
-        <a href="#desktop">桌面版</a>
+        <a href="#why">为什么做</a>
+        <a href="#pillars">核心能力</a>
+        <a href="#compare">优势对比</a>
+        <a href="#screens">界面速览</a>
         <a href="#start">5 步上手</a>
         <a href="#qoder">Qoder 过程</a>
       </nav>
-      <span class="contest-badge" title="2026 Qoder 高校创造力大赛 · LifeHack 生活娱乐赛道">
-        2026 Qoder 高校创造力大赛 · LifeHack
-      </span>
+      <div class="topbar-tools">
+        <span class="contest-badge" title="2026 Qoder 高校创造力大赛 · LifeHack 生活娱乐赛道">
+          2026 Qoder 高校创造力大赛 · LifeHack
+        </span>
+        <button class="theme-toggle" type="button" id="theme-toggle" aria-label="切换到浅色模式">
+          <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.4A8.4 8.4 0 0 1 9.6 4a8.6 8.6 0 1 0 10.4 10.4Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
     </div>
   </header>
 
-  <main id="top">
-    <section class="lab" id="lab">
-      <div class="lab-inner">
-        <div class="lab-heading">
-          <p class="eyebrow">GAME STUTTER LAB / 本地运行</p>
-          <h1>把一次卡顿，拆成可解释的证据链。</h1>
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="hero-inner">
+        <div class="hero-copy">
+          <div class="hero-brand">
+            <img class="hero-icon" src="assets/brand-icon.png" alt="蓝天游戏助手图标" width="76" height="76">
+            <div>
+              <p class="eyebrow">GAME STUTTER DIAGNOSTICS / 本地优先</p>
+              <p class="hero-name">蓝天游戏助手 <span>· 游戏卡顿体检站</span></p>
+            </div>
+          </div>
+          <h1>卡了，但不该只知道「卡了」。</h1>
           <p class="lede">
-            导入 PresentMon 帧数据，或直接点一个示例场景。这里会给出帧率曲线、1% Low、卡顿事件、主因判定与可执行的调整建议——
-            和桌面版「蓝天游戏助手」用的是同一套判定思路。
+            常驻后台记录帧率、卡顿与进程负载，用 7 类本地规则先给出可复核的归因，
+            再让可选 AI 把证据串成一份能照着改的报告。内存占用压到 50 MB 级，日志和报告长期留在自己的硬盘里。
           </p>
-          <ul class="lab-facts">
-            <li>CSV 全程在浏览器内存解析</li>
-            <li>不上传、不登录、不联网分析</li>
-            <li>示例场景 3 秒出报告</li>
+          <ul class="hero-facts">
+            <li><strong>AI 归因</strong><span>本地规则 + 可选大模型复核</span></li>
+            <li><strong>50.94 MB</strong><span>界面进程 · 30 分钟基线</span></li>
+            <li><strong>0.086%</strong><span>采集进程 CPU 占用</span></li>
+            <li><strong>本地保存</strong><span>日志目录可迁、可长期回看</span></li>
           </ul>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#pillars">看核心能力</a>
+            <a class="btn" href="#compare">和常见工具对比</a>
+          </div>
         </div>
 
-        <div class="lab-grid">
-          <aside class="panel controls" aria-label="数据输入">
-            <div class="panel-head">
-              <h2>01 / 选择数据</h2>
-              <span class="panel-note">支持 PresentMon 2.x CSV</span>
-            </div>
+        <figure class="hero-shot">
+          <div class="window-bar" aria-hidden="true"><span></span><span></span><span></span><em>蓝天游戏助手 · 实时监测</em></div>
+          <img src="assets/app-main.png" alt="蓝天游戏助手主界面：CPU、GPU、内存等指标卡，合并帧率时间轴，进程排行与运行状态" width="1068" height="714">
+          <figcaption>主界面 · 指标卡、时间轴、进程排行与运行状态都在一屏</figcaption>
+        </figure>
+      </div>
+    </section>
 
-            <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-describedby="drop-hint">
-              <input type="file" id="file-input" accept=".csv,.txt,text/csv" hidden>
-              <svg viewBox="0 0 24 24" aria-hidden="true" class="drop-icon"><path d="M12 16V4m0 0 4 4m-4-4L8 8M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              <p class="drop-title">拖入 CSV，或点击选择</p>
-              <p class="drop-hint" id="drop-hint">桌面版在「帧采集」面板可一键导出 CSV；也支持 time_ms / frametime_ms 两列的通用格式。</p>
-            </div>
-
-            <div class="sample-block">
-              <p class="sample-label">没有数据？用内置场景：</p>
-              <div class="sample-list">
-                <button class="sample" type="button" data-scenario="teamfight">
-                  <span class="sample-name">团战掉帧</span>
-                  <span class="sample-meta">CPU 瓶颈 · 90 秒</span>
-                </button>
-                <button class="sample" type="button" data-scenario="shader">
-                  <span class="sample-name">着色器编译</span>
-                  <span class="sample-meta">加载尖峰 · 72 秒</span>
-                </button>
-                <button class="sample" type="button" data-scenario="healthy">
-                  <span class="sample-name">稳定 60 帧</span>
-                  <span class="sample-meta">健康基线 · 60 秒</span>
-                </button>
-                <button class="sample" type="button" data-scenario="gap">
-                  <span class="sample-name">采集中断</span>
-                  <span class="sample-meta">质量保护 · 75 秒</span>
-                </button>
-              </div>
-            </div>
-
-            <div class="source-meta" id="source-meta" aria-live="polite">
-              <span class="dot" aria-hidden="true"></span>
-              <span id="source-label">等待数据</span>
-            </div>
-          </aside>
-
-          <section class="panel report" id="report" aria-live="polite" aria-busy="false">
-            <div class="empty-state" id="empty-state">
-              <div class="empty-graph" aria-hidden="true">
-                <svg viewBox="0 0 320 120" preserveAspectRatio="none">
-                  <path d="M0 92h36l10-22 12 30 14-44 10 36 18-10 12 26 20-58 14 40 16-16 14 30 22-46 14 34 16-8 14 22 18-30 14 18 16-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-              <h2>报告区还是空的</h2>
-              <p>选一个示例场景，或拖入自己的 PresentMon CSV。3 秒内会生成完整报告，不需要注册。</p>
-            </div>
-
-            <div class="report-body" id="report-body" hidden>
-              <div class="report-head">
-                <div class="grade-block">
-                  <div class="grade-ring" id="grade-ring" aria-hidden="true">
-                    <span class="grade-letter" id="grade-letter">A</span>
-                  </div>
-                  <div>
-                    <p class="grade-label">体感评分</p>
-                    <p class="grade-score"><span id="score-value">86</span><small>/100</small></p>
-                  </div>
-                </div>
-                <div class="headline">
-                  <h2 id="verdict-title">主因：CPU / 引擎瓶颈</h2>
-                  <p id="verdict-text">帧时间被 CPU 提交与引擎逻辑拖住，GPU 还有余量。</p>
-                  <div class="chips" id="evidence-chips"></div>
-                </div>
-              </div>
-
-              <dl class="metrics" id="metrics">
-                <div><dt>平均 FPS</dt><dd><span id="m-avg">—</span><small>fps</small></dd></div>
-                <div><dt>1% Low</dt><dd><span id="m-low1">—</span><small>fps</small></dd></div>
-                <div><dt>0.1% Low</dt><dd><span id="m-low01">—</span><small>fps</small></dd></div>
-                <div><dt>卡顿事件</dt><dd><span id="m-stutter">—</span><small>次</small></dd></div>
-                <div><dt>最长单帧</dt><dd><span id="m-worst">—</span><small>ms</small></dd></div>
-                <div><dt>有效时长</dt><dd><span id="m-duration">—</span><small>s</small></dd></div>
-              </dl>
-
-              <figure class="timeline">
-                <figcaption>
-                  <span>帧率与卡顿时间轴</span>
-                  <span class="legend">
-                    <i class="key key-fps"></i>每秒 FPS
-                    <i class="key key-stutter"></i>卡顿
-                    <i class="key key-gap"></i>采集中断
-                  </span>
-                </figcaption>
-                <div class="canvas-wrap" id="canvas-wrap">
-                  <canvas id="timeline" height="220" aria-label="帧率时间轴"></canvas>
-                  <div class="tooltip" id="tooltip" hidden></div>
-                </div>
-                <p class="quality-line" id="quality-line">数据质量：—</p>
-              </figure>
-
-              <div class="diagnosis-grid">
-                <div class="diagnosis-card">
-                  <h3>判定依据</h3>
-                  <ul class="evidence-list" id="evidence-list"></ul>
-                </div>
-                <div class="diagnosis-card">
-                  <h3>优先尝试</h3>
-                  <ol class="advice-list" id="advice-list"></ol>
-                </div>
-              </div>
-
-              <div class="stutter-block">
-                <h3>最明显的卡顿</h3>
-                <ul class="stutter-list" id="stutter-list"></ul>
-              </div>
-
-              <div class="report-actions">
-                <button class="btn btn-primary" type="button" id="download-report">下载报告 (.md)</button>
-                <button class="btn" type="button" id="copy-report">复制结论</button>
-                <button class="btn btn-ghost" type="button" id="reset-report">清空</button>
-              </div>
-            </div>
-          </section>
+    <section class="section" id="why">
+      <div class="section-inner">
+        <header class="section-head">
+          <p class="eyebrow">WHY IT EXISTS</p>
+          <h2>大多数时候，玩家只拿到了「卡」这个结果</h2>
+          <p>帧率软件能告诉你掉到了 40 帧，但很少告诉你：是 CPU 提交、GPU 压力、加载尖峰，还是采集本身出了问题。</p>
+        </header>
+        <div class="why-grid">
+          <article class="why-card">
+            <span class="why-no">01</span>
+            <h3>卡顿缺少证据</h3>
+            <p>「刚才卡了一下」很难复现。没有事件时间点、前后帧数据和当时的进程负载，调整只能靠猜。</p>
+          </article>
+          <article class="why-card">
+            <span class="why-no">02</span>
+            <h3>监测本身成了负担</h3>
+            <p>叠加层、录屏和重型分析器会占用内存、CPU 甚至 GPU；长期常驻时，工具自己就会影响被测游戏。</p>
+          </article>
+          <article class="why-card">
+            <span class="why-no">03</span>
+            <h3>问题过后无法回看</h3>
+            <p>日志随手被覆盖、会话只在内存里。想对比「调参前 / 调参后」，往往已经没有数据。</p>
+          </article>
         </div>
+      </div>
+    </section>
+
+    <section class="section section-alt" id="pillars">
+      <div class="section-inner">
+        <header class="section-head">
+          <p class="eyebrow">THREE PILLARS</p>
+          <h2>重点解决三件事：会说人话、几乎无感、留得下来</h2>
+          <p>AI 分析负责解释，低占用保证不打扰游戏，长期日志让每一次调整都有据可查。</p>
+        </header>
+
+        <div class="pillar-grid">
+          <article class="pillar pillar-ai">
+            <div class="pillar-head">
+              <span class="pillar-tag">AI ANALYSIS</span>
+              <h3>把卡顿拆成可复核的证据链</h3>
+            </div>
+            <p class="pillar-lede">
+              本地规则先判断「像什么」，AI 再解释「为什么」并给出调整顺序。结论里保留原始指标，能逐条回到证据。
+            </p>
+            <ul class="pillar-list">
+              <li>7 类主因规则：CPU / GPU / 加载 / 采集缺口等，先过滤误报再交给 AI</li>
+              <li>支持 DeepSeek、OpenAI 兼容接口，可关闭；关闭后本地归因照常工作</li>
+              <li>API Key 只存 Windows 凭据管理器，不进入设置文件与日志</li>
+              <li>报告写明依据与置信边界；没有温度、功耗数据时不下「降频」结论</li>
+            </ul>
+            <figure class="detail-shot">
+              <img src="assets/shot-process.png" alt="主界面进程排行与运行状态区域：本软件内存占用、采集进程 PID、运行时长与心跳" loading="lazy" width="1040" height="218">
+              <figcaption>进程排行 + 运行状态：谁在占用、采集是否健康，一眼可见</figcaption>
+            </figure>
+          </article>
+
+          <article class="pillar pillar-low">
+            <div class="pillar-head">
+              <span class="pillar-tag">LOW FOOTPRINT</span>
+              <h3>常驻后台，像不存在一样</h3>
+            </div>
+            <p class="pillar-lede">
+              内存与 CPU 是项目的硬约束，不是「优化项」。资源预算写进自动化断言，超出就构建失败。
+            </p>
+            <div class="budget">
+              <p class="budget-title">30 分钟托盘基线 · 本机实测</p>
+              <div class="budget-row"><span>界面进程</span><strong>50.94 MB</strong><em>预算 ≤ 60 MB</em></div>
+              <div class="budget-row"><span>采集进程</span><strong>11.30 MB</strong><em>预算 ≤ 30 MB</em></div>
+              <div class="budget-row"><span>采集 CPU</span><strong>0.086%</strong><em>预算 ≤ 0.3%</em></div>
+            </div>
+            <ul class="pillar-list">
+              <li>按需采样：空闲时降低刷新，游戏开始才进入高频采集</li>
+              <li>高占用模式可按模块降载，传感器、图表与历史数据分别取舍</li>
+              <li>不注入游戏、不读取窗口标题，不触碰反作弊</li>
+            </ul>
+          </article>
+
+          <article class="pillar pillar-log">
+            <div class="pillar-head">
+              <span class="pillar-tag">LONG-TERM LOGS</span>
+              <h3>日志不是临时文件，是长期档案</h3>
+            </div>
+            <p class="pillar-lede">
+              运行日志与软件日志可以分别指定保存位置，配合轮换与脱敏，让「上周那次卡顿」仍然找得回来。
+            </p>
+            <ul class="pillar-list">
+              <li>两类日志独立目录：偏好设置与迁移入口都在设置页，无需手动改文件</li>
+              <li>按大小与日期轮换，长期常驻也不会无限增长</li>
+              <li>会话记录保留卡顿前后各 15 秒，可回放并导出报告</li>
+              <li>诊断包自动脱敏：不写窗口标题、路径、用户名与密钥</li>
+            </ul>
+            <figure class="detail-shot">
+              <img src="assets/shot-timeline.png" alt="主界面实时时间轴：CPU、GPU、内存、磁盘占用与帧时间同轴展示" loading="lazy" width="1040" height="210">
+              <figcaption>多信号同轴：帧时间与硬件占用对齐，便于回溯</figcaption>
+            </figure>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="compare">
+      <div class="section-inner">
+        <header class="section-head">
+          <p class="eyebrow">COMPARISON</p>
+          <h2>和常见方案相比，它补的是「解释」和「留存」</h2>
+          <p>不是替代专业性能分析器，而是让日常游戏中的卡顿有一个低成本的记录与解释入口。</p>
+        </header>
+        <div class="table-wrap">
+          <table class="compare-table">
+            <caption>按典型使用方式对比，具体工具的实现与版本可能不同</caption>
+            <thead>
+              <tr>
+                <th scope="col">能力</th>
+                <th scope="col" class="col-us">蓝天游戏助手</th>
+                <th scope="col">帧率叠加 / OSD</th>
+                <th scope="col">专业性能分析器</th>
+                <th scope="col">录屏 + 事后回看</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">卡顿自动事件化</th>
+                <td class="col-us"><span class="yes">支持</span><small>阈值可调，500ms 内合并</small></td>
+                <td><span class="no">无</span><small>只看实时数值</small></td>
+                <td><span class="part">部分</span><small>需人工标注</small></td>
+                <td><span class="no">无</span><small>靠肉眼回看</small></td>
+              </tr>
+              <tr>
+                <th scope="row">AI 归因与调整建议</th>
+                <td class="col-us"><span class="yes">支持（可选）</span><small>本地规则 + 大模型复核</small></td>
+                <td><span class="no">无</span></td>
+                <td><span class="no">无</span><small>依赖人工解读</small></td>
+                <td><span class="no">无</span></td>
+              </tr>
+              <tr>
+                <th scope="row">常驻开销</th>
+                <td class="col-us"><span class="yes">50.94 + 11.30 MB</span><small>采集 CPU 0.086%</small></td>
+                <td><span class="yes">轻</span></td>
+                <td><span class="part">中</span><small>采集项越多越高</small></td>
+                <td><span class="no">较高</span><small>视频编码开销</small></td>
+              </tr>
+              <tr>
+                <th scope="row">长期日志与回看</th>
+                <td class="col-us"><span class="yes">目录可迁 + 轮换</span><small>会话保留前后 15 秒</small></td>
+                <td><span class="no">通常不保存</span></td>
+                <td><span class="part">需手动导出</span></td>
+                <td><span class="part">视频体积大</span><small>定位靠拖时间轴</small></td>
+              </tr>
+              <tr>
+                <th scope="row">反作弊安全</th>
+                <td class="col-us"><span class="yes">不注入</span><small>安全模式可关采集</small></td>
+                <td><span class="yes">不注入</span></td>
+                <td><span class="yes">一般不注入</span></td>
+                <td><span class="yes">不注入</span></td>
+              </tr>
+              <tr>
+                <th scope="row">数据去向</th>
+                <td class="col-us"><span class="yes">本地优先</span><small>仅启用 AI 时发送摘要</small></td>
+                <td><span class="yes">本地</span></td>
+                <td><span class="yes">本地</span></td>
+                <td><span class="yes">本地</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt" id="screens">
+      <div class="section-inner">
+        <header class="section-head">
+          <p class="eyebrow">INTERFACE</p>
+          <h2>一屏看清：指标、时间轴、进程与状态</h2>
+          <p>实机截图（AMD R5 5600 + RTX 4060）。主界面把「当前发生了什么」与「本软件自己占了多少」放在一起。</p>
+        </header>
+
+        <figure class="shot-frame shot-main">
+          <img src="assets/app-main.png" alt="蓝天游戏助手主界面完整截图" loading="lazy" width="1068" height="714">
+          <figcaption>主界面 · 实时时间轴默认合并 CPU / GPU / 内存 / 磁盘 / 帧时间</figcaption>
+        </figure>
+
+        <ul class="screens-points">
+          <li><strong>指标卡</strong><span>CPU、GPU、内存、显存、磁盘与定时抖动，硬件名称直接标出。</span></li>
+          <li><strong>时间轴</strong><span>多信号同轴；定位卡顿、导出图表与 CSV，回溯不靠记忆。</span></li>
+          <li><strong>进程与状态</strong><span>高占用进程排行；采集 PID、心跳与运行模式随时可见。</span></li>
+        </ul>
+        <p class="screens-note">截图来自项目实机运行；设置页与个人配置不在此展示。</p>
       </div>
     </section>
 
@@ -185,7 +288,7 @@
         <header class="section-head">
           <p class="eyebrow">HOW IT THINKS</p>
           <h2>四步判定，不做玄学</h2>
-          <p>和桌面版一致：先确认数据是否可信，再谈帧率和卡顿；每条结论都能回到具体证据。</p>
+          <p>先把数据质量看清楚，再谈帧率与卡顿；每条结论都能回到具体指标。</p>
         </header>
         <ol class="steps">
           <li class="step-card">
@@ -201,123 +304,73 @@
           <li class="step-card">
             <span class="step-no">03</span>
             <h3>事件化卡顿</h3>
-            <p>以中位数帧时间为基准，帧时间超过 2 倍且大于 33ms 记为卡顿；500ms 内连续卡顿合并成一次事件。</p>
+            <p>以中位数帧时间为基准，帧时间超过 2 倍且大于 33ms 记为卡顿；500ms 内连续卡顿合并为一次事件。</p>
           </li>
           <li class="step-card">
             <span class="step-no">04</span>
             <h3>证据归因</h3>
-            <p>用 GPU 忙碌占比、1% Low 与卡顿频率交叉判断 CPU / GPU / 加载 / 采集中断，输出可执行的调整顺序。</p>
+            <p>用 GPU 忙碌占比、1% Low、卡顿频率与进程负载交叉判断 CPU / GPU / 加载 / 采集中断，再决定是否请 AI 复核。</p>
           </li>
         </ol>
       </div>
     </section>
 
-    <section class="section section-alt" id="desktop">
-      <div class="section-inner">
-        <header class="section-head">
-          <p class="eyebrow">DESKTOP COMPANION</p>
-          <h2>网页版是体检，桌面版是长期监测</h2>
-          <p>桌面版用 PresentMon 抓真实帧、用传感器边车读温度与功耗，再把卡顿、会话和归因记录在本地。</p>
-        </header>
-        <div class="desktop-grid">
-          <figure class="shot-frame">
-            <img src="assets/app-main.png" alt="蓝天游戏助手桌面版主界面：指标卡、合并帧率时间轴、进程排行与状态" loading="lazy" width="1068" height="714">
-            <figcaption>桌面版主界面 · 深色主题 · 合并帧率时间轴</figcaption>
-          </figure>
-          <div class="desktop-copy">
-            <ul class="feature-list">
-              <li><strong>实时帧率与低帧</strong>每秒刷新 FPS、平均帧、1% Low，并在短暂无帧时保持读数。</li>
-              <li><strong>卡顿自动标记</strong>帧、显示、CPU、GPU、内存、磁盘多信号评分，自动过滤误报。</li>
-              <li><strong>会话录制与回放</strong>一键标记卡顿，记录前后各 15 秒，生成可回看的会话与报告。</li>
-              <li><strong>本地归因报告</strong>7 类主因规则，断帧与尖峰分开判断，不把采集缺口算作游戏问题。</li>
-              <li><strong>反作弊安全模式</strong>不注入、不绕过；安全模式下不启动 PresentMon 与传感器，只保留系统指标。</li>
-            </ul>
-            <div class="budget">
-              <p class="budget-title">30 分钟托盘基线 · 本机实测</p>
-              <div class="budget-row">
-                <span>界面进程</span><strong>50.94 MB</strong><em>预算 ≤ 60 MB</em>
-              </div>
-              <div class="budget-row">
-                <span>采集进程</span><strong>11.30 MB</strong><em>预算 ≤ 30 MB</em>
-              </div>
-              <div class="budget-row">
-                <span>采集 CPU</span><strong>0.086%</strong><em>预算 ≤ 0.3%</em>
-              </div>
-              <p class="budget-note">全部 PASS。内存与占用是项目的硬约束：只做采样与本地分析，常驻后台也不打扰游戏。</p>
-            </div>
-          </div>
-        </div>
-        <figure class="shot-frame shot-wide">
-          <img src="assets/app-settings.png" alt="蓝天游戏助手设置页：采样间隔、图表开关、主题与权限、CPU 温度来源" loading="lazy" width="725" height="975">
-          <figcaption>设置页 · 采样间隔、图表开关与界面选项</figcaption>
-        </figure>
-      </div>
-    </section>
-
-    <section class="section" id="start">
+    <section class="section section-alt" id="start">
       <div class="section-inner">
         <header class="section-head">
           <p class="eyebrow">START IN 5 STEPS</p>
           <h2>评委照着点，就能用起来</h2>
         </header>
         <ol class="quick-steps">
-          <li><span>1</span><p>打开本页，点「团战掉帧」示例。</p></li>
-          <li><span>2</span><p>看体感评分、1% Low 和时间轴上的红色卡顿标记。</p></li>
-          <li><span>3</span><p>读「主因判定」与「判定依据」，确认结论有证据。</p></li>
-          <li><span>4</span><p>拖入自己的 PresentMon CSV，或换一个示例场景对比。</p></li>
-          <li><span>5</span><p>下载报告，按「优先尝试」逐条调整后再测一次。</p></li>
+          <li><span>1</span><p>启动桌面版（便携包或桌面快捷方式），确认底部采集进程显示「已连接」。</p></li>
+          <li><span>2</span><p>进入游戏，主界面会自动识别前台游戏并开始记录帧率。</p></li>
+          <li><span>3</span><p>出现卡顿时看时间轴标记，或在会话面板点「手动标记」留下事件。</p></li>
+          <li><span>4</span><p>打开会话回放，读本地归因证据；需要更细的解释时再点「AI 分析」。</p></li>
+          <li><span>5</span><p>导出报告，按建议逐条调整；日志与会话保存在自定义目录，方便前后对比。</p></li>
         </ol>
         <p class="start-note">
-          没有 CSV？桌面版「帧采集」面板支持导出；也可以在浏览器里直接体验四个内置场景，全部数据在本地生成。
+          不需要账号；未配置 API Key 时，帧采集、卡顿判定、会话回放与本地归因全部可用。
         </p>
       </div>
     </section>
 
-    <section class="section section-alt" id="qoder">
+    <section class="section" id="qoder">
       <div class="section-inner">
         <header class="section-head">
           <p class="eyebrow">BUILT WITH QODER</p>
           <h2>从需求文档到公网站点，都由 Qoder 完成</h2>
-          <p>这个项目不是一次性的 demo：先写需求和开发文档，再用 Qoder 分阶段实现桌面端、测试和这個网站。</p>
+          <p>这个项目不是一次性 demo：先写需求与开发文档，再用 Qoder 分阶段实现桌面端、测试和这个展示站。</p>
         </header>
         <div class="qoder-grid">
           <ol class="process">
             <li>
               <h3>需求与架构</h3>
-              <p>用 Qoder 把「游戏卡顿归因」拆成需求文档、开发文档与调研，先定指标口径与隐私边界。</p>
+              <p>把「游戏卡顿归因」拆成需求文档、开发文档与调研，先定指标口径、隐私边界与反作弊约束。</p>
             </li>
             <li>
               <h3>桌面端实现</h3>
-              <p>WPF 界面、采集进程、共享内存、传感器边车、会话录制与 AI 分析，按里程碑逐步落地。</p>
+              <p>WPF 界面、采集进程、共享内存、传感器边车、会话录制、日志迁移与 AI 分析，按里程碑逐步落地。</p>
             </li>
             <li>
               <h3>测试与自动化</h3>
               <p>325 项单元测试、22 项 UI 冒烟和资源预算断言全部由 Qoder 编写并跑通，Release 0 警告。</p>
             </li>
             <li>
-              <h3>网页版与发布</h3>
-              <p>把同样的帧统计与归因规则改写成浏览器端 TypeScript/JavaScript，并用 Qoder Sites 部署公网。</p>
+              <h3>展示站与发布</h3>
+              <p>这页展示站同样由 Qoder 开发，并通过 Qoder Sites 部署到公网。</p>
             </li>
           </ol>
           <div class="qoder-side">
-            <div class="stat-card">
-              <strong>325</strong><span>项自动化测试</span>
-            </div>
-            <div class="stat-card">
-              <strong>22</strong><span>项 UI 冒烟检查</span>
-            </div>
-            <div class="stat-card">
-              <strong>0</strong><span>Release 警告</span>
-            </div>
-            <div class="stat-card">
-              <strong>100%</strong><span>本地解析，不上传</span>
-            </div>
+            <div class="stat-card"><strong>325</strong><span>项自动化测试</span></div>
+            <div class="stat-card"><strong>22</strong><span>项 UI 冒烟检查</span></div>
+            <div class="stat-card"><strong>0</strong><span>Release 警告</span></div>
+            <div class="stat-card"><strong>2 类</strong><span>日志可独立迁移</span></div>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="section" id="privacy">
+    <section class="section section-alt" id="privacy">
       <div class="section-inner">
         <header class="section-head">
           <p class="eyebrow">PRIVACY &amp; LIMITS</p>
@@ -325,27 +378,27 @@
         </header>
         <div class="privacy-grid">
           <div>
-            <h3>这个网页</h3>
+            <h3>安全</h3>
             <ul>
-              <li>CSV 只在当前浏览器内存中解析，关闭页面即消失。</li>
-              <li>没有账号体系，不收集设备信息，不写 Cookie。</li>
-              <li>示例数据由本地生成，不代表任何真实玩家的机器。</li>
+              <li>不注入游戏进程、不读取窗口标题，不绕过反作弊。</li>
+              <li>反作弊安全模式下不启动 PresentMon 与传感器，只保留系统指标。</li>
+              <li>API Key 只存 Windows 凭据管理器，不进入设置文件与日志。</li>
             </ul>
           </div>
           <div>
-            <h3>桌面版</h3>
+            <h3>隐私</h3>
             <ul>
-              <li>不注入游戏进程、不读取窗口标题，不绕过反作弊。</li>
-              <li>API Key 只存 Windows 凭据管理器，不进入设置文件与日志。</li>
+              <li>帧数据、会话与日志默认只在本机处理与保存。</li>
+              <li>仅在你主动点击 AI 分析时，才把脱敏后的指标摘要发送给所选模型服务。</li>
               <li>诊断与日志在本地脱敏，路径、用户名与密钥不会上传。</li>
             </ul>
           </div>
           <div>
             <h3>结论的边界</h3>
             <ul>
-              <li>网页版只能看到帧与 GPU 时间，无法判断具体后台进程；桌面版会补齐进程归因。</li>
               <li>没有温度与功耗数据时，不会把降频当成结论。</li>
               <li>超过 1 秒的采集缺口会被排除，不用它推断游戏性能。</li>
+              <li>AI 建议需要结合具体硬件与游戏验证，报告会保留原始证据供复核。</li>
             </ul>
           </div>
         </div>
@@ -355,18 +408,21 @@
 
   <footer class="footer">
     <div class="footer-inner">
-      <div>
-        <p class="footer-brand">蓝天游戏助手 · 游戏卡顿体检站</p>
-        <p class="footer-meta">2026 Qoder 高校创造力大赛 · LifeHack 生活娱乐赛道</p>
+      <div class="footer-brand-block">
+        <img src="assets/favicon-48.png" alt="" width="28" height="28">
+        <div>
+          <p class="footer-brand">蓝天游戏助手 · 游戏卡顿体检站</p>
+          <p class="footer-meta">2026 Qoder 高校创造力大赛 · LifeHack 生活娱乐赛道</p>
+        </div>
       </div>
       <div class="footer-links">
         <a href="https://tianchi.aliyun.com/competition/entrance/532536" target="_blank" rel="noreferrer">大赛赛题页</a>
-        <a href="#lab">再测一次</a>
+        <a href="#top">回到顶部</a>
       </div>
     </div>
-    <p class="footer-fine">由 Qoder 开发并部署于 Qoder Sites · 桌面端与网页端均为原创实现</p>
+    <p class="footer-fine">由 Qoder 开发并部署于 Qoder Sites · 桌面端与展示站均为原创实现</p>
   </footer>
 
-  <script src="app.js"></script>
+  <script src="site.js"></script>
 </body>
 </html>
