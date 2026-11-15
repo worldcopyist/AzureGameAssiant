@@ -19,11 +19,11 @@
 | 项 | 值 |
 | --- | --- |
 | 产品阶段 | M1（v0.1）完成；M2（帧级真相）完成核心闭环；M3-1 权限与自动采集闭环完成；M3 的 AI 手动分析与 MCP 只读服务已落地；界面与采集稳定性进入收尾 |
-| 最新里程碑 | 参赛文章（3.56）：新增 `docs/competition-article.md`，从普通玩家“不知道为什么卡”切入，说明语言、架构、实现、AI 建议、MCP 与低占用实测，并附局限与下一步。上一里程碑：README 双语改版（3.55）。 |
+| 最新里程碑 | 参赛文章改为大赛五段式并内嵌截图（3.57）：自我介绍（作者）→ 作品是什么（一句话）→ 为什么做 → 5 步上手 → Qoder 开发过程，截图存于 `docs/assets/competition/`。上一里程碑：参赛文章初稿（3.56）。 |
 | 可运行产物 | `build/run-dev.ps1` 可启动；`build/package.ps1` 默认 AOT 流程可生成便携 ZIP（含 PresentMon、传感器边车与 LICENSE）；`build/publish-mcp.ps1` 生成 `artifacts/mcp/AzureGameAssistant.Mcp.exe`；二号屏桌面快捷方式指向 Release |
 | 代码分支 | `main`（已跟踪 `origin/main`；`feat/m1-foundation` 已 squash 合入，分支保留） |
-| 当前提交 | `b9b9a23`（README 改版后的仓库快照）；上一提交 `4f4e0be`；远端标签 `v0.1.0` |
-| 未提交变更 | `docs/competition-article.md`、`docs/competition-submission.md`、`docs/handoff.md` |
+| 当前提交 | `6e982b5`（参赛文章初稿）；上一提交 `b9b9a23`；远端标签 `v0.1.0` |
+| 未提交变更 | `docs/competition-article.md`（五段式重写）、`docs/competition-submission.md`、`docs/assets/competition/`（3 张截图）、`docs/handoff.md` |
 | 阻塞事项 | 帧率准确性需在用户真实游戏（原神 60 帧、三角洲行动）长测确认；AI 窗口与“测试连接”按钮待点击验证；掉帧/高负载标记需在真实游戏复现后核对事件与报告；3 款游戏 PresentMon 实测与反作弊评估待用户游戏环境（已测明日方舟、三角洲行动）；深模式内存/CPU 与 60 分钟连续性待专项测量；本机默认热键 `Ctrl+Alt+M` 被其他程序占用，需用户在设置页改键（实测 `Ctrl+Alt+F9` 可用）；卡顿判定召回率与误报需真实游戏长测；会话级 AI 分析（3.16）待配置 API Key 后点击验证；图表导出对话框、诊断包导出与安全模式真实网游表现待用户点按复核 |
 
 ## 2. 环境
@@ -668,6 +668,14 @@
 - 数据与边界：引用开发机 30 分钟托盘基线 50.94 MB / 11.30 MB / 0.086%、325 项测试、22 项 UI 冒烟与 0 警告；明确单机验证、反作弊敏感性与 AI 建议仅供参考。
 - 入口：`docs/competition-submission.md` 顶部加入文章链接，原有提交清单保留。
 
+### 3.57 参赛文章按大赛五段式重排并内嵌截图（2026-11-16）
+
+- 结构：`docs/competition-article.md` 改为大赛要求的五部分——自我介绍、我的作品是什么（一句话说清谁在什么场景下用）、为什么做、怎么用（5 步）、用 Qoder 做出来的过程，另保留技术语言 / 架构 / 局限 / 附录作为“不限于以下内容”的补充。
+- 自我介绍：按用户提供信息写作（作者，智能科学与技术 2023 级，7 月接触 AI 后爱不释手），只做措辞美化，不增删事实；表达对作品的在意与 Qoder 带来国内最好 Agent 体验的感受。
+- 截图：三张用户截图存入 `docs/assets/competition/`——`01-app-and-requirements.png`（主界面 + 最初需求）、`02-qoder-decisions.png`（选型追问）、`03-qoder-readme.png`（README 交付），分别对应 5.1 / 5.2 / 5.5，均带图注；相对路径 `assets/competition/...` 在 GitHub 渲染正常。
+- Qoder 过程：明确“交给 Qoder 的步骤”（文档拆分、选型问答、分里程碑实现、测试与打包、README 与发布）与“我改了什么”（判定阈值、报告措辞、拒绝自研 ETW / 自动优化 / Key 落盘、站点文案核对、提交前 diff 复核）。
+- 提交帖：`docs/competition-submission.md` 的自我介绍同步为作者版本；截图清单改为指向文章内嵌的三张图。
+
 ## 4. 进行中
 
 - **会话 AI 分析（3.16）**：按钮与写入链路已完成并通过单测；待配置 API Key 后在会话窗口点一次“AI 分析”，确认报告写入 `<会话>.ai.json`、详情区出现 AI 段、导出 Markdown 末尾附带 AI 章节。
@@ -1012,7 +1020,8 @@ MCP 冒烟（无需 Agent 客户端，直接走 stdio）：
 | 2026-11-15 | Qoder | 回放视频深浅两版（3.53）：动画页支持 `?theme=light`，浅色覆盖舞台、Qoder 窗口、项目窗口、场景卡片、字幕轨与片头片尾；场景 9 在浅色版直接以浅色开场；`--theme light` 输出 `dev-reel-light.mp4`（3,177,733 字节、550 kb/s）与海报；站点按主题换源并在 `loadedmetadata` 后恢复播放时间与状态，实测播放中切换后进度连续；深色版不变 | `01a06c4` |
 | 2026-11-16 | Qoder | GPL-3.0 开源与首发（3.54）：新增完整 `LICENSE`、重写 `THIRD-PARTY-NOTICES.md`（随包组件版本/路径、仅参考项目、兼容性表）、README 下载与许可章节、调研文档 §5 兼容性、开发文档 §24；`package.ps1` 缺 `LICENSE` 即失败；325 项测试通过、Release 0 警告 0 错误；重新打包 115,082,881 字节并发布 GitHub Releases v0.1.0；站点首屏/上手/页脚加入仓库与下载链接并重新发布（公网 200、ZIP Range 206） | `ecc9495` |
 | 2026-11-16 | Qoder | README 双语主题改版（3.55）：加入 `docs/assets/azure-avatar.png` 并自头像取色（深海军蓝 / 主蓝 / 青 / 粉）统一标题、徽章、分节色块与 Mermaid 流程图；中文版重排为概览/快速开始/能力/性能/原理/进阶/开发/许可并增加目录、5 步上手表与性能实测表；新增英文 `README.en.md` 与双向语言切换；两版补充 PawnIO 官网、最新安装包直链、2.2.0 版本页与反作弊提示 | `4f4e0be` |
-| 2026-11-16 | Qoder | 参赛文章（3.56）：新增 `docs/competition-article.md`，从普通玩家“不知道为什么卡”切入，完整说明 C# / WPF / NativeAOT 多进程架构、长期低占用采集、7 类本地归因、可选大模型建议与只读 MCP，并记录 50.94 MB / 11.30 MB / 0.086%、325 项测试等开发机数据与局限；提交帖顶部加入文章链接 | `docs(competition): 新增参赛文章` |
+| 2026-11-16 | Qoder | 参赛文章（3.56）：新增 `docs/competition-article.md`，从普通玩家“不知道为什么卡”切入，完整说明 C# / WPF / NativeAOT 多进程架构、长期低占用采集、7 类本地归因、可选大模型建议与只读 MCP，并记录 50.94 MB / 11.30 MB / 0.086%、325 项测试等开发机数据与局限；提交帖顶部加入文章链接 | `6e982b5` |
+| 2026-11-16 | Qoder | 参赛文章五段式重排（3.57）：按大赛要求改为自我介绍 / 作品是什么 / 为什么做 / 5 步上手 / Qoder 开发过程；自我介绍采用作者（智能科学与技术 2023 级）真实信息并美化措辞；三张截图存入 `docs/assets/competition/` 并嵌入 5.1/5.2/5.5；补充“交给 Qoder 的步骤”与“我改了什么”；提交帖自我介绍与截图清单同步 | `docs(competition): 按大赛五段式重排并内嵌截图` |
 
 ## 10. 下次交接模板
 
