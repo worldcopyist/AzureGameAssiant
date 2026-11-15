@@ -19,11 +19,11 @@
 | 项 | 值 |
 | --- | --- |
 | 产品阶段 | M1（v0.1）完成；M2（帧级真相）完成核心闭环；M3-1 权限与自动采集闭环完成；M3 的 AI 手动分析与 MCP 只读服务已落地；界面与采集稳定性进入收尾 |
-| 最新里程碑 | 回放视频分深浅两版（3.53）：动画页支持 `?theme=light`，浅色版重渲 46 秒成片；站点按主题切换 `<source>` 与海报并在切换后恢复播放进度，`.dev-reel-frame` 背景随主题变化。上一里程碑：真实会话回放（3.52）。 |
-| 可运行产物 | `build/run-dev.ps1` 可启动；`build/package.ps1` 默认 AOT 流程可生成便携 ZIP（含 PresentMon）；`build/publish-mcp.ps1` 生成 `artifacts/mcp/AzureGameAssistant.Mcp.exe`；二号屏桌面快捷方式指向 Release |
-| 代码分支 | `main`（`feat/m1-foundation` 已 squash 合入，分支保留） |
-| 当前提交 | `01a06c4`（深浅两版回放视频）；上一提交 `f75d0b8` |
-| 未提交变更 | 仅本轮文档（`docs/handoff.md`、`docs/development.md`、`docs/competition-submission.md`） |
+| 最新里程碑 | 开源仓库与首个 Release（3.54）：项目以 GPL-3.0 开源，代码推送至 `worldcopyist/AzureGameAssiant`，发布 `v0.1.0` 便携包并在站点加入仓库与下载入口。上一里程碑：回放视频深浅两版（3.53）。 |
+| 可运行产物 | `build/run-dev.ps1` 可启动；`build/package.ps1` 默认 AOT 流程可生成便携 ZIP（含 PresentMon、传感器边车与 LICENSE）；`build/publish-mcp.ps1` 生成 `artifacts/mcp/AzureGameAssistant.Mcp.exe`；二号屏桌面快捷方式指向 Release |
+| 代码分支 | `main`（已跟踪 `origin/main`；`feat/m1-foundation` 已 squash 合入，分支保留） |
+| 当前提交 | `ecc9495`（GPL-3.0 与开源声明、站点仓库链接）；远端标签 `v0.1.0`；上一提交 `7476bbb` |
+| 未提交变更 | 仅本轮文档（`docs/handoff.md`、`docs/development.md`、`docs/competition-submission.md`、`README.md`） |
 | 阻塞事项 | 帧率准确性需在用户真实游戏（原神 60 帧、三角洲行动）长测确认；AI 窗口与“测试连接”按钮待点击验证；掉帧/高负载标记需在真实游戏复现后核对事件与报告；3 款游戏 PresentMon 实测与反作弊评估待用户游戏环境（已测明日方舟、三角洲行动）；深模式内存/CPU 与 60 分钟连续性待专项测量；本机默认热键 `Ctrl+Alt+M` 被其他程序占用，需用户在设置页改键（实测 `Ctrl+Alt+F9` 可用）；卡顿判定召回率与误报需真实游戏长测；会话级 AI 分析（3.16）待配置 API Key 后点击验证；图表导出对话框、诊断包导出与安全模式真实网游表现待用户点按复核 |
 
 ## 2. 环境
@@ -37,7 +37,7 @@
 | Git 身份 | `worldcopyist <2767263382@qq.com>` |
 | 仓库路径 | `C:\Users\worldcopyist\Documents\Qoder\2026-11-07\275e2b44` |
 | NativeAOT 工具链 | VS Build Tools 17.14（C++ x64）安装于 `F:\VS2022BuildTools`；Windows SDK 10.0.22621（C 盘既有） |
-| 远端 | 无（暂不上传 GitHub） |
+| 远端 | `origin` → `https://github.com/worldcopyist/AzureGameAssiant.git`（公开仓库，`main` 已推送，标签 `v0.1.0`） |
 | 内核驱动 | PawnIO 2.2.0（用户确认后安装；`DEMAND_START`，签名者 `namazso.eu`，安装包 SHA256 `1f519a22…3032`）；CPU 温度驱动模式使用 |
 | 备注 | 仓库根 `NuGet.Config` 清空 fallbackPackageFolders，规避本机无效共享源 `D:\VS2022\Shared\NuGetPackages` |
 
@@ -641,6 +641,17 @@
 - 站点接入：`index.html` 的 `<video>` 带 `data-src-dark` / `data-src-light` 与对应海报，`<source id="dev-reel-source">`；`site.js` 在应用主题时换源并 `load()`，记录 `currentTime` 与播放状态，在 `loadedmetadata` 后恢复时间点并继续播放。实测：播放中切换主题后 `src` 变为浅色、`currentTime` 连续、`paused=false`、`readyState=4`。
 - 样式：`.dev-reel-frame` 与 `video` 的背景随主题切换（浅色 `#e9f0ee`），不再露黑边。
 
+### 3.54 开源仓库与首个 Release（2026-11-16）
+
+- 许可证：项目自身确定为 GPL-3.0，根目录新增 `LICENSE`（35,149 字节，Copyright (C) 2026 worldcopyist）；GitHub 许可证识别为 `GPL-3.0`。
+- 开源声明：重写 `THIRD-PARTY-NOTICES.md`，把组件分为“随包分发/链接”和“仅参考设计”两类，登记 PresentMon 2.6.0（MIT）、LHM 0.9.6 及传递依赖 DiskInfoToolkit 1.1.2 / RAMSPDToolkit-NDD 1.4.2 / BlackSharp.Core 1.0.7（MPL-2.0）、HidSharp 2.6.4（Apache-2.0）、Mono.Posix.NETStandard 1.0.0 / System.Management 10.0.2 / .NET 8 运行时（MIT）；参考项目列出 CapFrameX、StutterScope、game-stutter-recorder、stutter-test、System Informer、SidebarDiagnostics、OCAT，并注明除随包组件外均未复制代码。第 4 节给出 GPL-3.0 兼容性结论：PawnIO（GPL-2.0）不随包分发，属独立程序。
+- 脚本：`package.ps1` 把 `LICENSE` 加入必需文件校验，缺失即失败；复制逻辑保持“LICENSE / README / NOTICES / LICENSES”四项。
+- 文档：README 增加仓库、Releases、展示站入口与“参考与使用的开源项目”表；`docs/research.md` 升至 v1.1，更新许可证义务表；`docs/development.md` 新增 §24（仓库、许可证布局、发布流程）。
+- 构建与测试：Release 构建 0 警告 0 错误，325 项测试全部通过；退出运行中的界面进程后重新打包，AOT 采集器 3,978,240 字节，ZIP 115,082,881 字节（SHA256 `8e956f7c206e6ca821f15e2c0b7405200f2081f8f3edc422657d88410e672a73`），包内 LICENSE / README / NOTICES / LICENSES / presentmon / sensors 齐全；随后经桌面快捷方式重启程序，界面与采集进程均正常。
+- 远端：`origin` 指向 `worldcopyist/AzureGameAssiant`，`main` 218 个文件推送成功，标签 `v0.1.0` 已推送；`gh release create` 发布“蓝天游戏助手 v0.1.0 · 首个公开预览版”，资产状态 `uploaded`、大小与本地一致。
+- 站点：首屏新增“GitHub 仓库”按钮，5 步上手说明加入 Releases 与仓库链接，页脚加入“GitHub 仓库”“Releases 下载”；新 action `0a7ce899-f109-426d-bb94-c5b99fcc6fac` 发布成功（`published: true`，公网 200，页面含 3 处仓库链接与 2 处 Releases 链接）。
+- 验证：仓库、Release 页公开访问 200，资产 Range 请求返回 206；展示站匿名访问 200。
+
 ## 4. 进行中
 
 - **会话 AI 分析（3.16）**：按钮与写入链路已完成并通过单测；待配置 API Key 后在会话窗口点一次“AI 分析”，确认报告写入 `<会话>.ai.json`、详情区出现 AI 段、导出 Markdown 末尾附带 AI 章节。
@@ -664,6 +675,7 @@
 - **展示站改版（3.49）**：新版已发布并通过桌面/移动端与双主题检查；待用户确认桌面快捷方式与窗口图标显示是否符合预期（如资源管理器缓存旧图标，刷新或重建快捷方式即可），并按 `docs/competition-submission.md` 更新后的清单补截图后发帖。
 - **界面示意重绘（3.50）**：已发布并核对公网内容，界面示意随浅/深主题切换；待用户打开站点确认首屏与“界面速览”在浅色下的观感，并刷新发帖截图。
 - **开发过程复盘视频（3.53）**：Qoder 面板与九轮消息已改为真实界面布局与本会话原文，深色与浅色两版成片随站点主题切换；待用户播放确认两种主题下的观感，以及切换主题时进度是否连续。
+- **开源与发布（3.54）**：GPL-3.0、第三方声明、仓库推送与 v0.1.0 Release 已完成；待用户下载 ZIP 实机解压启动，确认包内 LICENSE / NOTICES / 传感器边车齐全，并核对站点的仓库与 Releases 链接。
 
 ## 5. 下一步（按顺序）
 
@@ -694,6 +706,7 @@
 25. **展示站改版复验（见 3.49）**：核对桌面快捷方式、任务栏与窗口图标已换成蓝色猫头像（资源管理器缓存旧图标时刷新或重建快捷方式）；打开站点确认首屏是图标+界面示意、设置页截图已移除、明暗切换可记住选择；按更新后的清单补“展示站深色/浅色”截图再发帖。若之后还要改站点源码，需重新 prepare 并发布。
 26. **界面示意复验（见 3.50）**：打开公网站点切换浅色，核对首屏、界面速览与两处能力示意的底色、文字和曲线颜色；窄屏检查对比表左右滑动与首列固定。后续更新站点时 `projectRoot` 指向 `site/`、`webDirectory=dist`。
 27. **复盘视频复验（见 3.52、3.53）**：分别在深色与浅色站点播放 46 秒视频，逐条核对 9 段用户消息是否与本会话原文一致、右侧变化是否紧随其后；播放中切换主题，确认视频换成同主题版本且进度连续；移动端确认视频按 16:9 缩放且章节标签不溢出。若改动画内容，重跑 `node build/render-reel.mjs`（深色）与 `node build/render-reel.mjs --theme light`（浅色），再刷新 `site/dist` 并重新发布。
+28. **开源发布复验（见 3.54）**：从 https://github.com/worldcopyist/AzureGameAssiant/releases/tag/v0.1.0 下载 ZIP，解压后确认 `LICENSE`、`THIRD-PARTY-NOTICES.md`、`LICENSES/`、`collector/presentmon/`、`collector/sensors/` 齐全并可直接启动；打开仓库确认 README 链接、GPL-3.0 许可证识别与 `THIRD-PARTY-NOTICES.md` 展示正常；站点首屏“GitHub 仓库”按钮、上手说明与页脚链接可跳转。后续发版沿用 §24.3：提交 → 标签 → `gh release create` → 重新发布站点。
 
 每个步骤完成后：更新本文件 → 按提交规范提交 → 在交接日志追加一行。
 
@@ -726,6 +739,8 @@
 | 提交标注 | 人类作者不变，footer 加 `Agent: Qoder`；其他 Agent 用自己名称 | 用户确认 |
 | 分支模型 | 主干 + 短分支 + PR Squash | 用户确认 |
 | 第三方分发 | PresentMon MIT、LHM MPL-2.0；固定版本 + SHA256 + 许可证清单 | 调研结论；ADR-020 |
+| 项目许可证 | GPL-3.0（`LICENSE`，Copyright (C) 2026 worldcopyist） | 用户指定；MIT / Apache-2.0 / MPL-2.0 依赖均与 GPL-3.0 兼容，GPL-2.0 的 PawnIO 不随包分发，只参考未复制代码的项目无许可冲突 |
+| 开源与发布 | GitHub 公开仓库 `worldcopyist/AzureGameAssiant`（main）+ Releases `v0.1.0` 便携 ZIP；站点首屏、上手步骤与页脚提供仓库与下载入口 | 用户要求上传仓库、标注参考项目、发布 Release 并在网页附链接 |
 | UI 渲染 | WPF 软件渲染；界面低频刷新，换取更低常驻内存 | 实测专用工作集约 43MB；ADR-021 |
 | 分指标图表 | 默认一张合并折线图：各指标不同颜色叠加、共用 0–100% 纵轴（显存按容量百分比），帧时间用右侧 ms 副轴；设置中勾选“分开显示图表卡片”才切换为每指标一张独立卡片 | 用户要求默认在一个折线图里用不同颜色表示；多卡片作为可选布局 |
 | 内存口径 | 卡片、图表与 MCP 的“内存使用率”按物理内存计算：`(总物理内存 − Available MBytes) / 总物理内存`，总量由 `GlobalMemoryStatusEx` 读取并缓存；已提交 / 提交上限只用于提交压力判定 | 用户设备 16GB，提交上限（物理 + 页面文件）31.9GB 被误显示为“内存总量”；物理口径与任务管理器一致 |
@@ -752,7 +767,7 @@
 | K-02 | PDH GPU 计数器在不同驱动上实例名/精度可能不同 | GPU 曲线缺失 | 已做实例解析与 `_Total` 过滤；能力探测与 M3 厂商边车补足 |
 | K-03 | 全屏独占游戏可能拦截全局热键 | 手动标记失效 | 文档说明；提供托盘/悬浮条入口（M2） |
 | K-04 | 本机仅安装 .NET SDK 9.0.100 | 构建 `net8.0` 需联网还原目标包 | 首次 `dotnet restore` 需可用网络 |
-| K-05 | 许可证、代码签名未定 | 不影响开发 | M3 前决策；需兼容 MIT / MPL-2.0 |
+| K-05 | ~~许可证、代码签名未定~~ | 已解决（许可证）；签名仍未定 | 2026-11-16 起项目许可证固定为 GPL-3.0，依赖兼容性与分发义务见 `LICENSE`、`THIRD-PARTY-NOTICES.md`；代码签名留待后续 |
 | K-06 | PresentMon 需要管理员或 Performance Log Users | 普通用户无帧数据 | 启动时请求一次提权、取消则浅模式；自检窗口列出缺失项；`--no-elevate` 可跳过 |
 | K-07 | 部分反作弊可能对 ETW 敏感 | 用户账号顾虑 | 只运行官方 PresentMon，不注入；文档不承诺全兼容 |
 | K-08 | ~~LHM GPU-only 是否绝对不加载内核驱动待验证~~ | 已解决 | 边车启动前后检查 WinRing0/inpoutx64/RTCore64/MsIo 服务；本机 GPU-only 未加载驱动，检测到即以退出码 3 停止 |
@@ -826,6 +841,24 @@ node build/render-reel.mjs --probe 6,14,30 # 复盘动画抽帧（artifacts/reel
 node build/render-reel.mjs --resume        # 全量渲染 MP4，中断后可续渲
 node build/render-reel.mjs --encode        # 仅用已有帧重新编码
 node build/render-reel.mjs --theme light   # 浅色版全量渲染（输出 dev-reel-light.mp4）
+```
+
+许可与发布自检：
+
+```powershell
+Get-Content LICENSE -TotalCount 3                       # 应为 GNU GENERAL PUBLIC LICENSE Version 3
+Get-Content THIRD-PARTY-NOTICES.md                      # 随包组件 + 仅参考项目 + 兼容性表
+Get-ChildItem artifacts\AzureGameAssistant-0.1.0-win-x64 | Where-Object Name -in LICENSE,README.md,THIRD-PARTY-NOTICES.md
+Get-FileHash artifacts\AzureGameAssistant-0.1.0-win-x64.zip -Algorithm SHA256
+gh release view v0.1.0 --repo worldcopyist/AzureGameAssiant   # 资产大小应与本地 ZIP 一致
+```
+
+推送与发布（授权凭据一次性注入，不写入 git config）：
+
+```bash
+GH_TOKEN=$(gh auth token) git -c credential.helper='!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f' push origin main
+gh release create v0.1.0 artifacts/AzureGameAssistant-0.1.0-win-x64.zip \
+    --repo worldcopyist/AzureGameAssiant --title "v0.1.0 预览版" --notes-file artifacts/release-notes-v0.1.0.md
 ```
 
 MCP 冒烟（无需 Agent 客户端，直接走 stdio）：
@@ -961,6 +994,7 @@ MCP 冒烟（无需 Agent 客户端，直接走 stdio）：
 | 2026-11-15 | Qoder | 开发过程复盘视频（3.51）：新增 `dev-reel.html` 确定性动画（左侧 Qoder 会话逐字打字，右侧项目按 9 轮变化）与 `render-reel.mjs` 逐帧渲染编码，站点 Qoder 区嵌入 46 s / 1440×810 / 24 fps 视频与海报；渲染器支持超时重启与断点续渲；AI 轮规则块修正为 7 类后局部重渲；新 action 发布成功，公网首页 200 且视频 Range 206；同步开发文档 §23.6 与提交帖清单 | `6a03eb4` |
 | 2026-11-15 | Qoder | 真实会话回放（3.52）：推翻仿 macOS 的臆造面板，按 Qoder CN 0.5.11 实际布局重绘 Windows 标题栏、侧栏、深绿气泡、已处理行、工具时间线与输入区；九轮用户消息逐字取自本会话 JSONL（47,529 行、42 条），新增开源选型场景，右侧场景在消息落位后推进；重渲 3,130,793 字节成片并抽帧核对断点边界；站点说明改为“逐字取自真实记录”，同步开发文档、提交帖与 handoff | `7037995` |
 | 2026-11-15 | Qoder | 回放视频深浅两版（3.53）：动画页支持 `?theme=light`，浅色覆盖舞台、Qoder 窗口、项目窗口、场景卡片、字幕轨与片头片尾；场景 9 在浅色版直接以浅色开场；`--theme light` 输出 `dev-reel-light.mp4`（3,177,733 字节、550 kb/s）与海报；站点按主题换源并在 `loadedmetadata` 后恢复播放时间与状态，实测播放中切换后进度连续；深色版不变 | `01a06c4` |
+| 2026-11-16 | Qoder | GPL-3.0 开源与首发（3.54）：新增完整 `LICENSE`、重写 `THIRD-PARTY-NOTICES.md`（随包组件版本/路径、仅参考项目、兼容性表）、README 下载与许可章节、调研文档 §5 兼容性、开发文档 §24；`package.ps1` 缺 `LICENSE` 即失败；325 项测试通过、Release 0 警告 0 错误；重新打包 115,082,881 字节并发布 GitHub Releases v0.1.0；站点首屏/上手/页脚加入仓库与下载链接并重新发布（公网 200、ZIP Range 206） | `ecc9495` |
 
 ## 10. 下次交接模板
 

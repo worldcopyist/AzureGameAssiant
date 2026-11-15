@@ -1688,7 +1688,7 @@ AzureGameAssistant-<version>-win-x64/
 - 采集进程按 `AppContext.BaseDirectory` 解析 `presentMonPath`，因此 PresentMon 必须位于 `collector\presentmon\`，不能放在包根目录。
 - 打包脚本校验 PresentMon SHA256 与 LICENSE.txt，缺失或不匹配则构建失败。
 - 边车以自包含方式发布到 `collector\sensors\`，采集进程先查该子目录、再查自身目录、最后回退开发树；缺少边车时深模式自动降级为无温度数据，不影响帧采集。`package.ps1` 同时把 `third_party\licenses` 复制到包根 `LICENSES\`。
-- 打包脚本强制复制 `README.md` 与 `THIRD-PARTY-NOTICES.md`，缺失即失败；项目自身 `LICENSE` 尚未确定（K-05），存在时一并复制，不存在时输出警告而不中断打包。
+- 打包脚本强制复制 `LICENSE`、`README.md` 与 `THIRD-PARTY-NOTICES.md`，任一缺失即失败；项目许可证自 v0.1.0 起固定为 GPL-3.0。
 - 所有文件归位后脚本按本节的必需项清单（主程序、README、第三方声明、`LICENSES\LibreHardwareMonitorLib-MPL-2.0.txt`、采集进程、PresentMon 与其许可证、传感器边车）逐项校验，缺任何一项即失败并列出缺失路径，避免生成“能解压但缺组件”的包。
 - 发布前运行 `build/measure.ps1`，结果附在交接文档。
 

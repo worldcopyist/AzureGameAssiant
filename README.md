@@ -5,7 +5,7 @@
 
 **当前状态：v0.1.0-dev · 系统 / 帧 / 传感器采集、AI 手动分析（OpenAI 兼容）与 MCP 只读服务已落地**
 
-[GitHub 仓库](https://github.com/worldcopyist/AzureGameAssiant) · [Releases 下载](https://github.com/worldcopyist/AzureGameAssiant/releases) · [第三方与开源声明](THIRD-PARTY-NOTICES.md) · 许可证 [GPL-3.0](LICENSE)
+[GitHub 仓库](https://github.com/worldcopyist/AzureGameAssiant) · [Releases 下载](https://github.com/worldcopyist/AzureGameAssiant/releases) · [在线展示站](https://game-stutter-lab-bgfqcqcjijr.qoder.zone) · [第三方与开源声明](THIRD-PARTY-NOTICES.md) · 许可证 [GPL-3.0](LICENSE)
 
 ---
 
